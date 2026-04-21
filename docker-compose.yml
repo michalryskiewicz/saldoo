@@ -19,7 +19,7 @@ services:
       context: .
       dockerfile: apps/backend/Dockerfile
     restart: unless-stopped
-    env_file: .env.local
+    env_file: .env
     command: sh -c "bunx prisma migrate deploy && bun run index.ts"
     depends_on:
       postgres:
