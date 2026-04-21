@@ -181,6 +181,3 @@ dist/
 
 
 pgdata
-
-# Keep production compose private
-docker-compose.yml
