@@ -1,0 +1,27 @@
+# Node/Bun/React
+node_modules
+bun.lockb
+npm-debug.log
+yarn-error.log
+dist
+build
+
+# Environment files
+#.env
+#.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Docker
+docker-compose.yml
+Dockerfile
+
+# Misc
+*.swp
+*.swo

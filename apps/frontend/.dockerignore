@@ -1,0 +1,46 @@
+# Environment files - NEVER include in Docker images
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Dependencies (will be installed fresh)
+node_modules/
+
+# Build artifacts
+dist/
+build/
+
+# Test coverage
+coverage/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+
+# Documentation
+*.md
+!README.md
+
+# Development files
+*.test.ts
+*.spec.ts
+__tests__/
+

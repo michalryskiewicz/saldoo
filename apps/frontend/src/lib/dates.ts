@@ -1,0 +1,117 @@
+import { getISOWeek, isWithinInterval } from 'date-fns';
+
+export const MONTHS = Array.from({ length: 12 }, (_, i) =>
+  new Intl.DateTimeFormat('en', { month: 'long' }).format(new Date(2000, i))
+);
+
+export function countWeekdaysInMonth(year: number, monthIdx: number, weekday: number) {
+  let count = 0;
+  const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, monthIdx, day);
+    if (date.getDay() === weekday) count++;
+  }
+  return count;
+}
+
+export const getFromDate = (date?: Date | string | undefined | null) => {
+  // today or provided date
+  if (!date) {
+    console.error(new Error('Please provide a valid date'));
+    return { year: -1, month: -1, day: -1 };
+  }
+
+  const dateToUse = new Date(date);
+
+  return {
+    year: dateToUse.getFullYear(),
+    month: dateToUse.getMonth(),
+    week: getISOWeek(dateToUse),
+    day: dateToUse.getDay(),
+  };
+};
+
+export function daysInMonth(year: number, monthIdx: number) {
+  return new Date(year, monthIdx + 1, 0).getDate();
+}
+
+export function getDatesInRange(start: Date, end: Date): string[] {
+  const dates: string[] = [];
+  const current = new Date(start);
+  while (current <= end) {
+    dates.push(current.toISOString().slice(0, 10));
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
+}
+
+export function isDateInRange(
+  day: Date | string,
+  start: Date | string,
+  end: Date | string
+): boolean {
+  const dayObj = typeof day === 'string' ? new Date(day) : day;
+  const startObj = typeof start === 'string' ? new Date(start) : start;
+  const endObj = typeof end === 'string' ? new Date(end) : end;
+  return isWithinInterval(dayObj, { start: startObj, end: endObj });
+}
+
+/**
+ * Returns the earliest and latest date from an array of objects by a given key.
+ * If format is true or 'iso-date', returns YYYY-MM-DD string, otherwise returns Date objects.
+ * @param items Array of objects
+ * @param dateKey Key in the object containing the date (string or Date)
+ * @param format Optional: true | 'iso-date' to return YYYY-MM-DD string, otherwise Date
+ * @returns { earliest, latest } as Date | string (YYYY-MM-DD)
+ */
+export function getEarliestAndLatestDate<T>(
+  items: T[],
+  dateKey: keyof T,
+  format?: boolean | 'iso-date'
+): { earliest: Date | string | null; latest: Date | string | null } {
+  const dates = items
+    .map((item) => {
+      const value = item[dateKey];
+      if (!value) return null;
+      const date = typeof value === 'string' ? new Date(value) : value;
+      if (date instanceof Date && !isNaN(date.getTime())) {
+        return date;
+      }
+      return null;
+    })
+    .filter((d): d is Date => d instanceof Date && !isNaN(d.getTime()));
+
+  if (dates.length === 0) return { earliest: null, latest: null };
+
+  const earliestDate = new Date(Math.min(...dates.map((d) => d.getTime())));
+  const latestDate = new Date(Math.max(...dates.map((d) => d.getTime())));
+
+  if (format === true || format === 'iso-date') {
+    return {
+      earliest: toISODate(earliestDate),
+      latest: toISODate(latestDate),
+    };
+  }
+
+  return { earliest: earliestDate, latest: latestDate };
+}
+
+export function getDaysArrayOfYear(year: number): Date[] {
+  const startOfYear = new Date(year, 0, 1);
+  const endOfYear = new Date(year, 11, 31);
+  const daysInYear =
+    Math.floor((endOfYear.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  return Array.from({ length: daysInYear }, (_, i) => {
+    const date = new Date(year, 0, 1);
+    date.setDate(date.getDate() + i);
+    return date;
+  });
+}
+
+export function toISODate(date: Date | string | number): string {
+  const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
+  if (!(d instanceof Date) || isNaN(d.getTime())) {
+    throw new Error('Invalid date');
+  }
+  return d.toISOString().split('T')[0];
+}
