@@ -178,6 +178,7 @@ dist
 dist/
 
 .env.local
+.env
 
 
 pgdata
