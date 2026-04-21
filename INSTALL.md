@@ -1,6 +1,6 @@
 # 🚀 Installation Guide
 
-Complete step-by-step guide to run Rysiu locally.
+Complete step-by-step guide to run Saldoo locally.
 
 ## Table of Contents
 

@@ -1,4 +1,4 @@
-# 🔐 Rysiu
+# 🔐 Saldoo
 
 > **Personal Finance Management Application** - Track expenses, plan budgets, and understand your money.
 

@@ -1,4 +1,4 @@
-# Contributing to Rysiu
+# Contributing to Saldoo
 
 We love contributions! This document provides guidelines and instructions for contributing.
 
@@ -383,5 +383,5 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 ---
 
-**Thank you for contributing to Rysiu! 🎉**
+**Thank you for contributing to Saldoo! 🎉**
 
