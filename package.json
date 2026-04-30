@@ -5,9 +5,11 @@
   "description": "Saldoo - Personal Finance Management Application",
   "workspaces": ["apps/*"],
   "scripts": {
+    "postinstall": "bun run migrate",
     "dev": "bun --env-file=.env run --filter '*' dev",
     "dev:backend": "bun --env-file=.env run --filter backend dev",
     "dev:frontend": "bun --env-file=.env run --filter frontend dev",
+    "migrate": "bun --env-file=.env run --filter backend migrate",
     "build": "bun --env-file=.env run --filter '*' build",
     "test": "bun --env-file=.env run --filter '*' test",
     "lint": "bun run --filter '*' lint:check",
