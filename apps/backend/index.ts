@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import express from 'express';
 import http from 'http';
 import apiRouter from './api';
@@ -8,10 +9,11 @@ import cors from 'cors';
 const app = express();
 const server = http.createServer(app);
 
-console.log('process.env.FRONTEND_URL === ', process.env.FRONTEND_URL);
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: [process.env.FRONTEND_URL],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   }),
 );

@@ -1,52 +1,46 @@
-import express from 'express';
+import type { Request, Response } from 'express';
 import { getSessionMiddleware } from '../../middleware';
-import prisma from '../../prisma/prisma.ts';
+import { ProfileService } from './profile.service.ts';
+import {
+  buildRouter,
+  Get,
+  Post,
+  UseMiddleware, Validate,
+} from '../../utils/decorators.ts';
+import { container, inject, injectable } from 'tsyringe';
+import { profileSchema } from './profile.dto.ts';
 
-const profile = express.Router();
+@injectable()
+export class ProfileController {
+  constructor(@inject(ProfileService) private readonly profileService: ProfileService) {}
 
-profile.get('/', getSessionMiddleware, async (req, res) => {
-  const userId = req.session.userId;
+  @Get("/")
+  @UseMiddleware(getSessionMiddleware)
+  async getProfile(req: Request, res: Response) {
+    const userId = req.session.userId;
 
-  const data = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
+    const data = await this.profileService.getProfile(userId);
 
-    include: { strategy: true },
-  });
+    res.status(200).json({
+      email: data?.email,
+      currency: data?.preferredCurrency,
+      strategy: data?.strategy?.strategy,
+      encryptionKey: data?.encryptionKey,
+      requiredActions: data?.requiredActions,
+    });
+  }
 
-  res.status(200).json({
-    email: data?.email,
-    currency: data?.preferredCurrency,
-    strategy: data?.strategy?.strategy,
-    encryptionKey: data?.encryptionKey,
-    requiredActions: data?.requiredActions,
-  });
-});
+  @Post("/")
+  @Validate(profileSchema)
+  @UseMiddleware(getSessionMiddleware)
+  async updateProfile(req: Request, res: Response) {
+    const userId = req.session.userId;
 
-profile.post('/', getSessionMiddleware, async (req, res) => {
-  const userId = req.session.userId;
+    const data = await this.profileService.updateProfile(userId, req.body);
 
-  const data = await prisma.user.update({
-    where: { id: userId },
-    data: {
-      preferredCurrency: req.body.currency,
-      requiredActions: req.body.requiredActions,
-    },
-  });
+    res.status(201).json({ data });
+  }
 
-  await prisma.strategy.upsert({
-    where: { userId },
-    create: {
-      userId,
-      strategy: req.body.strategy,
-    },
-    update: {
-      strategy: req.body.strategy,
-    },
-  });
+}
 
-  res.status(201).json({ data });
-});
-
-export default profile;
+export default buildRouter(container.resolve(ProfileController));

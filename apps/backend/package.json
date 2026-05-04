@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "bun index.ts",
-    "dev": "concurrently \"bun --watch index.ts\" \"npx prisma studio\"",
+    "dev": "concurrently \"bun --watch --env-file ../../.env index.ts\" \"npx prisma studio\"",
     "migrate": "npx prisma migrate dev && npx prisma generate client",
     "format:write": "prettier --write .",
     "lint:check": "eslint .",
@@ -50,7 +50,9 @@
     "multer": "^2.0.2",
     "nodemailer": "^7.0.6",
     "open": "^10.2.0",
+    "reflect-metadata": "^0.2.2",
     "socket.io": "^4.8.1",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "tsyringe": "^4.10.0"
   }
 }
