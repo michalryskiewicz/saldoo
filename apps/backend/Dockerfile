@@ -29,4 +29,4 @@ EXPOSE 3000
 WORKDIR /app/apps/backend
 
 # Environment variables provided at runtime via docker-compose / Coolify
-CMD ["bun", "run", "index.ts"]
+CMD ["sh", "-c", "bunx prisma migrate deploy && bun run index.ts"]
