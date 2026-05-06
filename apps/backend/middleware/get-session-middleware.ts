@@ -1,10 +1,11 @@
 import { auth } from '../auth';
 import { fromNodeHeaders } from 'better-auth/node';
 import { type Request, type Response, type NextFunction } from 'express';
+import { HttpError } from './error-handler.ts';
 
 export async function getSessionMiddleware(
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction,
 ): Promise<void> {
   const session = await auth.api.getSession({
@@ -12,13 +13,9 @@ export async function getSessionMiddleware(
   });
 
   if (!session) {
-    return res.status(401).json({
-      success: false,
-      message: 'No session found!',
-    }) as unknown as Promise<void>;
+    return next(new HttpError(401, 'No session found!', 'UNAUTHORIZED'));
   }
 
-  // Attach userId to req.session
   req.session = { userId: session.session.userId };
 
   next();

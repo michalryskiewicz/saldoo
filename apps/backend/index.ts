@@ -5,6 +5,7 @@ import apiRouter from './api';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './auth.ts';
 import cors from 'cors';
+import { errorHandler } from './middleware';
 
 const app = express();
 const server = http.createServer(app);
@@ -26,6 +27,11 @@ app.use(express.json());
 // app.use(express.urlencoded({ extended: true }));
 
 app.use('/api', apiRouter);
+
+// Global error handler — must be the last middleware so unhandled errors
+// from routes/async handlers are funnelled into a consistent JSON response.
+app.use(errorHandler);
+
 
 if (require.main === module) {
   server.listen(3000, () => {

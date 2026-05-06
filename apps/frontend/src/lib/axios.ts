@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { CONFIG } from '../global-config.ts';
+import { ApiError } from './api-error.ts';
 
 const axiosInstance = axios.create({
   baseURL: CONFIG.serverUrl,
@@ -12,9 +13,13 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message = error?.response?.data?.message || error?.message || 'Something went wrong!';
-    console.error('Axios error:', message);
-    return Promise.reject(new Error(message));
+    const status = error?.response?.status;
+    const apiError = ApiError.fromAxios(
+      error?.response?.data,
+      status,
+      error?.message,
+    );
+    return Promise.reject(apiError);
   }
 );
 

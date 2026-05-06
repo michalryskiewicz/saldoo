@@ -6,7 +6,6 @@ import { AuthGuard } from '@/auth/guard';
 import { CONFIG } from '@/global-config.ts';
 import MiniDrawer from '../../layouts/dashboard-layout.tsx';
 import { paths } from '@/routes/paths.ts';
-import { Toaster } from '@/components/ui/sonner.tsx';
 import ContentLoading from '@/components/loaders/content-loading.tsx';
 import { MetaDataWrapper } from '@/routes/components';
 import { DataSyncWrapper } from '@/database/sync/data-sync-wrapper.tsx';
@@ -33,7 +32,6 @@ const dashboardLayout = () => (
   <DataSyncWrapper>
     <OnboardingWrapper>
       <MiniDrawer>
-        <Toaster />
         <SuspenseOutlet />
       </MiniDrawer>
     </OnboardingWrapper>

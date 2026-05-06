@@ -33,12 +33,13 @@ export const profileSliceApi = baseApi.injectEndpoints({
         data,
       }),
       async onQueryStarted(_, { queryFulfilled }) {
+        // The error toast is handled globally by rtkQueryErrorMiddleware,
+        // so we only need to surface the success path here.
         try {
           await queryFulfilled;
           toast(i18n.t('success.update-account-settings'));
-        } catch (e) {
-          console.error(e);
-          toast(i18n.t('errors.update-account-settings'));
+        } catch {
+          // intentionally empty
         }
       },
     }),
