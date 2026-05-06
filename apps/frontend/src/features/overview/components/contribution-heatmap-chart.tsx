@@ -1,4 +1,5 @@
 import { ScatterChart, Scatter, XAxis, YAxis } from 'recharts';
+import { Activity } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import '@/index.css';
@@ -12,6 +13,8 @@ import {
 } from '@/components/ui/chart.tsx';
 import { formatDate, formatDay, formatMonth } from '@/lib/formats.ts';
 import { useOverviewData } from '@/features/overview/hooks/use-overview-data.tsx';
+import { ChartEmptyOverlay } from '@/components/stats/empty-state.tsx';
+import { paths } from '@/routes/paths.ts';
 
 const chartConfig = {
   total: {
@@ -21,7 +24,9 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export default function ContributionHeatmap() {
-  const { contributionData } = useOverviewData();
+  const { contributionData, hasTransactions } = useOverviewData();
+
+  const isEmpty = !hasTransactions;
 
   const colorScale = (v: number) => {
     if (v === 0) return '#e5e7eb'; // gray-200
@@ -37,8 +42,19 @@ export default function ContributionHeatmap() {
         <CardDescription>{i18n.t('metrics.activity_chart_description')}</CardDescription>
       </CardHeader>
 
-      <CardContent className="pb-0">
-        <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[150px] w-full">
+      <CardContent className="pb-0 relative">
+        {isEmpty && (
+          <ChartEmptyOverlay
+            icon={Activity}
+            description={i18n.t('empty_state.no_activity_data')}
+            ctaLabel={i18n.t('empty_state.add_first_transaction')}
+            ctaTo={paths.dashboard.transactions}
+          />
+        )}
+        <ChartContainer
+          config={chartConfig}
+          className={`mx-auto aspect-square max-h-[150px] w-full ${isEmpty ? 'opacity-30' : ''}`}
+        >
           <div className="overflow-x-auto px-4 hide-scrollbar">
             <div className="w-[1000px] mx-auto">
               <ScatterChart

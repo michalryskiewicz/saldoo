@@ -152,6 +152,9 @@ export const useOverviewData = () => {
     contributionData,
     tags,
     profile,
+    hasExpenses: expenses.length > 0,
+    hasProfits: profits.length > 0,
+    hasTransactions: transactions.length > 0,
     isLoading: isProfileLoading || isExchangeRateForTransactionsLoading || areExchangeRatesLoading,
   };
 };

@@ -1,9 +1,12 @@
 'use client';
 
 import type React from 'react';
+import type { ComponentType } from 'react';
+import type { LucideProps } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { EmptyState } from '@/components/stats/empty-state.tsx';
 
 interface MetricCardProps {
   title: string;
@@ -18,6 +21,11 @@ interface MetricCardProps {
   actionIcon?: React.ReactNode;
   warningMessage?: string;
   onActionClick?: () => void;
+  isEmpty?: boolean;
+  emptyDescription?: string;
+  emptyIcon?: ComponentType<LucideProps>;
+  emptyCtaLabel?: string;
+  emptyCtaTo?: string;
 }
 
 export function MetricCard({
@@ -33,7 +41,31 @@ export function MetricCard({
   actionIcon,
   warningMessage,
   onActionClick,
+  isEmpty = false,
+  emptyDescription,
+  emptyIcon,
+  emptyCtaLabel,
+  emptyCtaTo,
 }: MetricCardProps) {
+  if (isEmpty) {
+    return (
+      <Card className="relative overflow-hidden w-full">
+        <CardContent className="p-4 py-0">
+          <h5 className="text-xs font-normal leading-none tracking-wide text-muted-foreground dark:text-foreground/80 uppercase">
+            {title}
+          </h5>
+          <EmptyState
+            icon={emptyIcon}
+            description={emptyDescription ?? ''}
+            ctaLabel={emptyCtaLabel}
+            ctaTo={emptyCtaTo}
+            size="sm"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
   const renderProgressBar = () => {
     if (details && title === 'Commands') {
       const writes = Number.parseInt(details[0].value.replace(/,/g, ''));

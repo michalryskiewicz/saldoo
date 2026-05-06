@@ -1,6 +1,9 @@
 import { DataTable } from '@/components/ui/data-table.tsx';
 import { Checkbox } from '@/components/ui/checkbox.tsx';
-import DateRangeSelector from '@/features/duties/components/date-range-selector.tsx';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
+import DateRangeSelector, {
+  type DateRange,
+} from '@/features/duties/components/date-range-selector.tsx';
 import i18n, { type TranslationKey } from '@/i18n.ts';
 import { formatFrequency } from '@/lib/formats.ts';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -11,6 +14,7 @@ import { useDuties } from '@/features/duties/hooks/use-duties.tsx';
 import { type DBDuty, resolveDBDuty } from '@/database/duty.ts';
 import type { DBExpense } from '@/database/expenses.ts';
 import { useState } from 'react';
+import { endOfMonth, startOfMonth } from 'date-fns';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs.tsx';
 
 const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
@@ -58,33 +62,58 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
     accessorKey: 'resolved',
     header: i18n.t('resolved'),
     cell: ({ row }) => {
+      const { id, resolved, transactionId } = row.original;
+      if (id === TOTAL) return null;
+
+      const indicator = resolved ? (transactionId ? '💳' : '🖐') : null;
+      const indicatorTitle = transactionId
+        ? i18n.t('resolved_via_transaction')
+        : i18n.t('resolved_manually');
+
       return (
-        <>
+        <div className="flex items-center gap-2">
           <Checkbox
-            checked={row.original.resolved}
-            onCheckedChange={async () => resolveDBDuty(row.original.id, !row?.original?.resolved)}
-            aria-label="Select row"
+            checked={resolved}
+            onCheckedChange={() => resolveDBDuty(id, !resolved)}
+            aria-label={i18n.t('resolved')}
           />
-          {row.original.transactionId && row.original.resolved && '💳'}
-          {!row.original.transactionId && row.original.resolved && '🖐'}
-        </>
+          {indicator && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-base leading-none" aria-label={indicatorTitle}>
+                  {indicator}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{indicatorTitle}</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
       );
     },
   },
   {
     id: 'actions',
-    maxSize: 30,
+    maxSize: 40,
+    header: () => <span className="sr-only">{i18n.t('open_menu')}</span>,
     cell: ({ row }) => {
       if (row.original.id === TOTAL) {
         return null;
       }
-      return <DutiesTableActions row={row} />;
+      return (
+        <div className="flex items-center justify-end">
+          <DutiesTableActions row={row} />
+        </div>
+      );
     },
   },
 ];
 
 export default function DutiesTable() {
-  const { duties } = useDuties();
+  const [range, setRange] = useState<DateRange>(() => {
+    const today = new Date();
+    return { from: startOfMonth(today), to: endOfMonth(today) };
+  });
+  const { duties } = useDuties(range);
   const [paidFilter, setPaidFilter] = useState<'all' | 'unpaid' | 'paid'>('all');
 
   let dataToTable = duties ?? [];
@@ -118,7 +147,7 @@ export default function DutiesTable() {
   return (
     <>
       <div className="flex flex-col w-full justify-start gap-4 lg:flex-row lg:gap-8 min-w-0">
-        <DateRangeSelector />
+        <DateRangeSelector value={range} onChange={setRange} />
 
         <div className="flex items-center gap-2 flex-none">
           <Tabs value={paidFilter}>

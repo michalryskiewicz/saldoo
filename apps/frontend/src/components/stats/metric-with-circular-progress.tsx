@@ -1,6 +1,11 @@
+import type { ComponentType } from 'react';
+import type { LucideProps } from 'lucide-react';
+import { Link } from 'react-router';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { type ChartConfig, ChartContainer } from '@/components/ui/chart';
 import { PolarAngleAxis, RadialBar, RadialBarChart } from 'recharts';
+import { Button } from '@/components/ui/button';
 
 const chartConfig = {
   progress: {
@@ -16,6 +21,11 @@ interface MetricItem {
   current: string; // formatted currency string
   fill: string; // CSS color (e.g. "var(--chart-4)")
   totalLeft: string;
+  isEmpty?: boolean;
+  emptyDescription?: string;
+  emptyIcon?: ComponentType<LucideProps>;
+  emptyCtaLabel?: string;
+  emptyCtaTo?: string;
 }
 
 export const MetricWithCircularProgress = ({
@@ -25,7 +35,15 @@ export const MetricWithCircularProgress = ({
   current,
   fill,
   totalLeft,
+  isEmpty = false,
+  emptyDescription,
+  emptyIcon: EmptyIcon,
+  emptyCtaLabel,
+  emptyCtaTo,
 }: MetricItem) => {
+  const ringFill = isEmpty ? 'var(--muted)' : fill;
+  const ringProgress = isEmpty ? 0 : progress;
+
   return (
     <Card className="relative overflow-hidden w-full">
       <CardContent className="p-4 py-0">
@@ -36,10 +54,10 @@ export const MetricWithCircularProgress = ({
                 data={[
                   {
                     title,
-                    progress,
+                    progress: ringProgress,
                     budget,
                     current,
-                    fill,
+                    fill: ringFill,
                     totalLeft,
                   },
                 ]}
@@ -60,23 +78,45 @@ export const MetricWithCircularProgress = ({
                   dataKey="progress"
                   background
                   cornerRadius={10}
-                  fill={fill}
+                  fill={ringFill}
                   angleAxisId={0}
                 />
               </RadialBarChart>
             </ChartContainer>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-base font-medium text-foreground">{progress}%</span>
+              {isEmpty ? (
+                EmptyIcon ? (
+                  <EmptyIcon className="size-5 text-muted-foreground" aria-hidden="true" />
+                ) : (
+                  <span className="text-base font-medium text-muted-foreground">—</span>
+                )
+              ) : (
+                <span className="text-base font-medium text-foreground">{progress}%</span>
+              )}
             </div>
           </div>
-          <div>
-            <dd className="text-base font-medium text-foreground">
-              {current} / {budget}
-            </dd>
-            <dt className="text-sm text-muted-foreground">
-              {title} {totalLeft}
-            </dt>
-          </div>
+          {isEmpty ? (
+            <div className="flex flex-col gap-2">
+              <dt className="text-sm font-medium text-foreground">{title}</dt>
+              {emptyDescription && (
+                <dd className="text-xs text-muted-foreground max-w-[24ch]">{emptyDescription}</dd>
+              )}
+              {emptyCtaLabel && emptyCtaTo && (
+                <Button asChild size="sm" variant="outline" className="w-fit">
+                  <Link to={emptyCtaTo}>{emptyCtaLabel}</Link>
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div>
+              <dd className="text-base font-medium text-foreground">
+                {current} / {budget}
+              </dd>
+              <dt className="text-sm text-muted-foreground">
+                {title} {totalLeft}
+              </dt>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

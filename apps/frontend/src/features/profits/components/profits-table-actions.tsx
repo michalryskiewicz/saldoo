@@ -1,12 +1,6 @@
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu.tsx';
+import { Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button.tsx';
-import { EllipsisVertical } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
 import i18n from '@/i18n.ts';
 import type { Row } from '@tanstack/react-table';
 import { type DBProfit, deleteDBProfit } from '@/database/profits.ts';
@@ -22,26 +16,36 @@ export default function ProfitsTableActions({ row }: ProfitsTableActionsProps) {
   const dispatch = useDispatch();
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-          size="icon"
-        >
-          <EllipsisVertical />
-          <span className="sr-only">{i18n.t('open_menu')}</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-32">
-        <DropdownMenuItem onClick={() => dispatch(serProfitsDrawerId(profitId))}>
-          {i18n.t('edit')}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onClick={() => deleteDBProfit(profitId)}>
-          {i18n.t('remove')}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center justify-end gap-1">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground hover:text-foreground"
+            aria-label={i18n.t('edit')}
+            onClick={() => dispatch(serProfitsDrawerId(profitId))}
+          >
+            <Pencil className="size-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{i18n.t('edit')}</TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground hover:text-destructive"
+            aria-label={i18n.t('remove')}
+            onClick={() => deleteDBProfit(profitId)}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{i18n.t('remove')}</TooltipContent>
+      </Tooltip>
+    </div>
   );
 }

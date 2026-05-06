@@ -1,62 +1,60 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/database';
 import { useEffect } from 'react';
-import { endOfMonth, startOfMonth } from 'date-fns';
 import { addDBDutiesForDateRange, type DBDuty } from '@/database/duty.ts';
 import type { DBExpense } from '@/database/expenses';
 
-export const useDuties = () => {
+type UseDutiesArgs = {
+  from: Date;
+  to: Date;
+};
+
+export const useDuties = ({ from, to }: UseDutiesArgs) => {
+  const fromTime = from.getTime();
+  const toTime = to.getTime();
+
   // ==========================================================================
-  // Side Effect
+  // Side Effect — generate duties for the selected range
   // ==========================================================================
   useEffect(() => {
     (async () => {
-      const today = Date.now();
-
-      const startDate = startOfMonth(today);
-      const endDate = endOfMonth(today);
-
       await addDBDutiesForDateRange(
-        { startDate, endDate },
-        { regenFrom: startDate, keepResolved: true }
+        { startDate: from, endDate: to },
+        { regenFrom: from, keepResolved: true }
       );
     })();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromTime, toTime]);
 
   // ==========================================================================
   // Live Query
   // ==========================================================================
   const mergedDuties = useLiveQuery(async () => {
-    const today = Date.now();
-
-    const startDate = startOfMonth(today);
-    const endDate = endOfMonth(today);
-
     const [duties, expenses]: [DBDuty[], DBExpense[]] = await Promise.all([
       db.duties.toArray(),
       db.expenses.toArray(),
     ]);
 
-    const dutiesInSelectedMonth = duties.filter((duty) => {
+    const dutiesInSelectedRange = duties.filter((duty) => {
       if (!duty.executionDate) return false;
       const execDate = new Date(duty.executionDate).getTime();
-      return execDate >= startDate.getTime() && execDate <= endDate.getTime();
+      return execDate >= fromTime && execDate <= toTime;
     });
 
-    if (!duties?.length || !dutiesInSelectedMonth?.length) return [];
+    if (!duties?.length || !dutiesInSelectedRange?.length) return [];
 
     const expenseMap = new Map<string, DBExpense>();
     for (const exp of expenses) {
       expenseMap.set(exp.id, exp);
     }
 
-    return dutiesInSelectedMonth
+    return dutiesInSelectedRange
       .map((duty) => ({
         ...duty,
         expense: duty.expenseId ? (expenseMap.get(duty.expenseId) ?? null) : null,
       }))
       .filter((d) => d.expense);
-  }, []);
+  }, [fromTime, toTime]);
 
   return { duties: mergedDuties ?? [] };
 };

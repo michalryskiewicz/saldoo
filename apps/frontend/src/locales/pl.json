@@ -106,6 +106,8 @@
     "generic": "Coś poszło nie tak. Spróbuj ponownie później"
   },
   "resolved": "Opłacone",
+  "resolved_via_transaction": "Opłacone automatycznie z transakcji",
+  "resolved_manually": "Oznaczone jako opłacone ręcznie",
   "log_out": "Wyloguj się",
   "account": "Konto",
   "profits": "Zyski",
@@ -238,8 +240,39 @@
   "save_changes": "Zapisz zmiany",
   "filter_transactions": "Wyszukaj transakcje po tytule...",
   "entire_time": "Cały Okres",
-  "previous_month": "Poprzedni Miesiąc",
+  "previous_month": "Poprzedni miesiąc",
+  "next_month": "Następny miesiąc",
+  "custom_range": "Niestandardowy zakres",
+  "date_range": {
+    "from": "Od",
+    "to": "Do",
+    "apply": "Zastosuj",
+    "previous_month_aria": "Poprzedni miesiąc",
+    "next_month_aria": "Następny miesiąc",
+    "open_aria": "Wybierz zakres dat"
+  },
   "this_month_you_have_left": "W tym miesiącu zostaje Ci",
   "this_month_you_have_left_tooltip": "Wskaźnik prezentuje relację między dochodami a wydatkami w danym miesiącu. Ujemny wynik sygnalizuje deficyt – wydatki są wyższe niż osiągane dochody",
-  "price_exchanged_automatically": "Cena została automatycznie przewalutowana do wybranej waluty"
+  "price_exchanged_automatically": "Cena została automatycznie przewalutowana do wybranej waluty",
+  "empty_state": {
+    "no_data": "Brak danych",
+    "no_data_for_period": "Brak danych za wybrany okres",
+    "no_expenses_yet": "Nie masz jeszcze żadnych zaplanowanych wydatków",
+    "no_profits_yet": "Nie masz jeszcze żadnych zysków",
+    "no_transactions_yet": "Nie masz jeszcze żadnych transakcji",
+    "no_duties_in_period": "Brak zobowiązań w wybranym okresie",
+    "no_strategy_data": "Dodaj wydatki i zyski, aby zobaczyć podział budżetu",
+    "no_categories_data": "Dodaj wydatki z kategoriami, aby zobaczyć ich rozkład",
+    "no_safety_net_data": "Dodaj wydatki, aby obliczyć wymaganą poduszkę finansową",
+    "no_activity_data": "Dodaj transakcje, aby zobaczyć aktywność",
+    "no_yearly_data": "Dodaj zyski i wydatki, aby zobaczyć analizę roczną",
+    "no_dominant_expense": "Brak dominującego wydatku w bieżącym miesiącu",
+    "ready_to_track": "Wszystko gotowe, aby zacząć śledzić finanse",
+    "add_first_expense": "Dodaj pierwszy wydatek",
+    "add_first_profit": "Dodaj pierwszy zysk",
+    "add_first_transaction": "Dodaj pierwszą transakcję",
+    "add_first_duty": "Dodaj pierwsze zobowiązanie",
+    "add_savings_goal": "Dodaj cel oszczędnościowy",
+    "add_debt": "Dodaj dług"
+  }
 }

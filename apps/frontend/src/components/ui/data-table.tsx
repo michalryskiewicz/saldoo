@@ -31,19 +31,33 @@ interface DataTableProps<TData, TValue> {
   children?: (table: ReturnType<typeof useReactTable<TData>>) => ReactNode;
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  getRowId?: (row: TData, index: number) => string;
 }
 
 export function DataTable<TData, TValue>({
   children,
   columns,
   data,
+  getRowId,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+
+  const resolvedGetRowId = React.useMemo<(row: TData, index: number) => string>(
+    () =>
+      getRowId ??
+      ((row, index) => {
+        const id = (row as { id?: unknown })?.id;
+        return typeof id === 'string' || typeof id === 'number' ? String(id) : String(index);
+      }),
+    [getRowId]
+  );
+
   const table = useReactTable({
     data,
     columns,
+    getRowId: resolvedGetRowId,
     filterFns: {
       ...filterFns,
       dateBetweenFilterFn,

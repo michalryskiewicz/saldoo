@@ -1,4 +1,5 @@
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
+import { LineChart as LineChartIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   type ChartConfig,
@@ -12,6 +13,7 @@ import { useIsMobile } from '@/hooks/use-mobile.ts';
 import { Link } from 'react-router';
 import { paths } from '@/routes/paths.ts';
 import { useOverviewData } from '@/features/overview/hooks/use-overview-data.tsx';
+import { ChartEmptyOverlay } from '@/components/stats/empty-state.tsx';
 
 const chartConfig = {
   totalProfits: {
@@ -28,6 +30,8 @@ export function ChartAreaInteractive() {
   const data = useOverviewData();
   const isMobile = useIsMobile();
 
+  const isEmpty = !data?.hasExpenses && !data?.hasProfits;
+
   return (
     <Card className="pt-0">
       <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
@@ -41,8 +45,19 @@ export function ChartAreaInteractive() {
           </CardDescription>
         </div>
       </CardHeader>
-      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-        <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
+      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6 relative">
+        {isEmpty && (
+          <ChartEmptyOverlay
+            icon={LineChartIcon}
+            description={i18n.t('empty_state.no_yearly_data')}
+            ctaLabel={i18n.t('empty_state.add_first_profit')}
+            ctaTo={paths.dashboard.profits}
+          />
+        )}
+        <ChartContainer
+          config={chartConfig}
+          className={`aspect-auto h-[250px] w-full ${isEmpty ? 'opacity-30' : ''}`}
+        >
           <LineChart
             reverseStackOrder
             accessibilityLayer

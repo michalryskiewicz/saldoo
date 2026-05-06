@@ -1,11 +1,6 @@
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu.tsx';
+import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button.tsx';
-import { EllipsisVertical } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
 import i18n from '@/i18n.ts';
 
 import type { Row } from '@tanstack/react-table';
@@ -19,22 +14,19 @@ export default function DutiesTableActions({ row }: DutiesTableActionsProps) {
   const dutyId = row.original.id;
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <Tooltip>
+      <TooltipTrigger asChild>
         <Button
           variant="ghost"
-          className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-          size="icon"
+          size="icon-sm"
+          className="text-muted-foreground hover:text-destructive"
+          aria-label={i18n.t('remove')}
+          onClick={() => deleteDBDuty(dutyId)}
         >
-          <EllipsisVertical />
-          <span className="sr-only">{i18n.t('open_menu')}</span>
+          <Trash2 className="size-4" />
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-32">
-        <DropdownMenuItem variant="destructive" onClick={async () => await deleteDBDuty(dutyId)}>
-          {i18n.t('remove')}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </TooltipTrigger>
+      <TooltipContent>{i18n.t('remove')}</TooltipContent>
+    </Tooltip>
   );
 }
