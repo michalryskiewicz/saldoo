@@ -130,4 +130,4 @@ grep GOOGLE_CLIENT .env
 ## Contact
 
 - Website: [https://rysiuo.it](https://rysiuo.it)
-- Email: ryskiewicz.m@gmail.com
+- Email: kontakt@rysiuo.it
