@@ -178,7 +178,7 @@ Contributions are welcome. Please check `CONTRIBUTING.md` for the workflow and c
 ## 💬 Contact
 
 - Website: [https://rysiuo.it](https://rysiuo.it)
-- Email: ryskiewicz.m@gmail.com
+- Email: kontakt@rysiuo.it
 
 ---
 
