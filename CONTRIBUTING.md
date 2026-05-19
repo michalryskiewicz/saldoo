@@ -375,7 +375,7 @@ main ← develop ← feature branches
 
 - **Issues**: [GitHub Issues](https://github.com/michalryskiewicz/saldoo/issues)
 - **Website**: [https://rysiuo.it](https://rysiuo.it)
-- **Email**: ryskiewicz.m@gmail.com
+- **Email**: kontakt@rysiuo.it
 
 ## 📜 License
 
