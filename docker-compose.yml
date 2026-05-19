@@ -36,6 +36,8 @@ services:
         - VITE_GA_DRIVE_DIRECTORY=${VITE_GA_DRIVE_DIRECTORY}
         - VITE_GA_DRIVE_FILE=${VITE_GA_DRIVE_FILE}
         - VITE_ASSETS_DIR=${VITE_ASSETS_DIR}
+        - VITE_UMAMI_WEBSITE_ID=${VITE_UMAMI_WEBSITE_ID}
+        - VITE_UMAMI_SRC=${VITE_UMAMI_SRC}
     restart: unless-stopped
     depends_on:
       - backend
