@@ -15,7 +15,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs.tsx';
 import { useState } from 'react';
 import { formatMonth } from '@/lib/formats.ts';
-import { useGetProfileQuery } from '@/store/profile-slice.api.ts';
+import { useSettings } from '@/features/settings/use-settings.ts';
 import { useSidebar } from '@/components/ui/sidebar.tsx';
 import { paths } from '@/routes/paths';
 import i18n from '@/i18n.ts';
@@ -44,7 +44,7 @@ const chartConfig = {
 
 export const ExpensesChart = () => {
   const { chartData } = useListExpenses();
-  const { data: profile } = useGetProfileQuery();
+  const { settings } = useSettings();
   const { isMobile } = useSidebar();
 
   const [chartDisplay, setChartDisplay] = useState<'total' | 'severity'>('total');
@@ -115,7 +115,7 @@ export const ExpensesChart = () => {
                           <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
                             {value}
                             <span className="text-muted-foreground font-normal">
-                              {profile?.currency || ''}
+                              {settings?.currency || ''}
                             </span>
                           </div>
                           {/* Add this after the last item */}
@@ -125,7 +125,7 @@ export const ExpensesChart = () => {
                               <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
                                 {item.payload.total}
                                 <span className="text-muted-foreground font-normal">
-                                  {profile?.currency || ''}
+                                  {settings?.currency || ''}
                                 </span>
                               </div>
                             </div>

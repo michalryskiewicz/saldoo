@@ -21,13 +21,13 @@ curl -fsSL https://bun.sh/install | bash
 bun --version
 ```
 
-#### Docker
+#### Docker (optional)
 
-Download Docker Desktop from [docker.com](https://www.docker.com/products/docker-desktop)
+Only needed to run the production stack via `docker-compose.yml`. Local development
+needs nothing but Bun — the database is a SQLite file.
 
 ```bash
 docker --version
-docker run hello-world
 ```
 
 ### Step 2: Clone repository
@@ -49,12 +49,14 @@ bun install
 cp .env.example .env
 ```
 
-### Step 5: Start PostgreSQL database
+### Step 5: Create the local database
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d
-docker compose -f docker-compose.dev.yml ps
+bun run migrate
 ```
+
+This creates `apps/backend/prisma/data/saldoo.db`. It holds nothing but a cache of
+public NBP exchange rates, so deleting it is always safe.
 
 ### Step 6: Run the application
 
@@ -80,10 +82,10 @@ cd apps/backend
 bunx prisma studio
 ```
 
-### Direct PostgreSQL access
+### Direct SQLite access
 
 ```bash
-docker exec -it saldoo_postgres_dev psql -U admin -d saldoo
+sqlite3 apps/backend/prisma/data/saldoo.db
 ```
 
 ### Migrations
@@ -92,22 +94,30 @@ docker exec -it saldoo_postgres_dev psql -U admin -d saldoo
 bun run migrate
 ```
 
+### Starting over
+
+```bash
+rm -rf apps/backend/prisma/data && bun run migrate
+```
+
+Safe at any time — the file is a cache, not a record.
+
 ---
 
 ## Troubleshooting
 
-### Database connection issues
+### Database issues
+
+The database is a single SQLite file and holds only cached NBP rates, so the fix is
+almost always to recreate it:
 
 ```bash
-docker compose -f docker-compose.dev.yml ps
-docker compose -f docker-compose.dev.yml logs postgres
-docker compose -f docker-compose.dev.yml restart postgres
+rm -rf apps/backend/prisma/data && bun run migrate
 ```
 
 ### Port already in use
 
 ```bash
-lsof -i :5432
 lsof -i :3000
 lsof -i :5173
 ```
@@ -122,8 +132,33 @@ bun install
 ### Google OAuth issues
 
 ```bash
-grep GOOGLE_CLIENT .env
+grep VITE_GOOGLE_CLIENT .env
 ```
+
+Saldoo uses a **single** Google OAuth client (type: Web application) for both login
+and Google Drive, and it is a browser client — there is no client secret. Three
+things must be set up in Google Cloud:
+
+1. **Publish the OAuth app** (consent screen → *Publish app*). In *Testing*, Google
+   expires consent after **7 days** for any app requesting more than
+   name/email/profile, which breaks the Drive connection every week.
+2. **Authorized JavaScript origins** must include the origin you serve the frontend
+   from. Google Identity Services refuses to start otherwise.
+3. **Scopes**: `openid`, `email`, `profile`,
+   `https://www.googleapis.com/auth/drive.file`. All non-sensitive, so only basic
+   verification applies and no security assessment is required.
+
+### "Nie udało się otworzyć danych" on startup
+
+The app could not read its keyfile (`saldoo-keys.json`) from your Drive — usually the
+Drive token could not be renewed, so check the three points above. Nothing is lost:
+your data stays in the browser's IndexedDB and in the encrypted backup on Drive.
+
+### Lost passphrase
+
+Use the recovery code shown once during setup. **If both are gone, nobody can recover
+the data** — no copy of either secret exists on any server. That is the deliberate
+trade-off; see `apps/frontend/src/database/sync/README.md`.
 
 ---
 

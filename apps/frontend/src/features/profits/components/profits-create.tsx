@@ -47,7 +47,7 @@ export default function ProfitsCreatePage() {
     } else {
       await updateDBProfit(id, values);
     }
-    return dispatch(serProfitsDrawerId(''));
+    dispatch(serProfitsDrawerId(''));
   };
 
   return (

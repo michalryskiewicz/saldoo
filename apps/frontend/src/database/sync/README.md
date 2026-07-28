@@ -1,142 +1,120 @@
-# Synchronizacja Danych z Google Drive
+# Synchronizacja danych z Google Drive
 
-## Jak działa synchronizacja timestampów
+## Model bezpieczeństwa
 
-### Aktualizacja `lastUpdated`
+**Serwer Saldoo nie przechowuje żadnych danych użytkownika ani żadnego klucza.**
+Wszystko, co jest potrzebne do odczytania danych, leży na Google Drive użytkownika
+albo w jego głowie.
 
-Timestamp `lastUpdated` w tabeli `meta` jest aktualizowany **automatycznie** przy każdej operacji modyfikującej dane:
+Szyfrowanie jest kopertowe (envelope encryption), tak jak w LUKS, `age` czy
+Bitwardenie:
 
-#### 1. Dodawanie danych
+- **DEK** (Data Encryption Key) — losowy klucz 256-bit, szyfruje eksport bazy Dexie
+  (AES-GCM, świeży IV przy każdym zapisie). Nigdy nie opuszcza przeglądarki w
+  jawnej postaci.
+- **Keysloty** — DEK zaszyfrowany osobno pod każdą metodą odblokowania. Trafiają na
+  Drive jako `saldoo-keys.json`, obok danych. Każdy slot jest bezużyteczny bez
+  sekretu, którego na Drive **nie ma**.
+
+Sloty tworzone przy zakładaniu vaulta:
+
+| Slot | KDF | Rola |
+|---|---|---|
+| `recovery-code` | PBKDF2-SHA256, 100k | 128 bitów entropii, pokazany raz, korzeń zaufania |
+| `passphrase` | PBKDF2-SHA256, 600k | hasło użytkownika, do codziennego użytku |
+
+Format keyfile'a jest wersjonowany i rozszerzalny — dodanie slotu `passkey-prf`
+(WebAuthn PRF) to **przepakowanie DEK, bez ponownego szyfrowania danych**.
+
+Konsekwencja, o której trzeba pamiętać przy pisaniu copy: Google i każdy, kto wejdzie
+na konto Google użytkownika, ma szyfrogram, ale **nie ma** hasła ani kodu awaryjnego.
+Utrata hasła **i** kodu awaryjnego oznacza bezpowrotną utratę danych.
+
+## Pliki na Drive
+
+Oba w folderze `saldoo` (scope `drive.file`, więc aplikacja widzi wyłącznie własne pliki):
+
+- `saldoo-data.json` — `EncryptedPayload` (`formatVersion`, `iv`, `ciphertext`)
+- `saldoo-keys.json` — `Keyfile` (`formatVersion`, `keyslots[]`)
+
+## Cykl życia vaulta
+
+`VaultManager` (`@/crypto/vault-manager.ts`) rozstrzyga stan przy starcie aplikacji.
+**Keyfile na Drive jest jedynym źródłem prawdy** o tym, czy vault istnieje — sam
+zacache'owany DEK nigdy nie wystarcza.
+
+| Keyfile | DEK w cache | Stan |
+|---|---|---|
+| brak | — | `needs-setup` (cache jest czyszczony) |
+| jest | brak | `locked` |
+| jest | jest | `unlocked` |
+
+DEK jest cache'owany per urządzenie w **osobnej** bazie Dexie `saldoo-vault`.
+Świadomie nie w tabeli `meta` bazy aplikacji: `exportDB` serializuje każdą tabelę,
+którą dostanie, więc klucz obok danych aplikacji wylądowałby w backupie na Drive.
+
+`VaultGate` (`@/features/vault/vault-gate.tsx`) stoi przed `DataSyncWrapper` i nie
+przepuszcza nic dalej, dopóki DEK nie jest dostępny.
+
+## Aktualizacja `lastUpdated`
+
+Timestamp w tabeli `meta` jest aktualizowany przy każdej operacji modyfikującej dane:
+
 ```typescript
-// expenses.ts, profits.ts, transactions.ts, duty.ts
+// expenses.ts, profits.ts, transactions.ts, duty.ts, tags.ts
 await db.expenses.add({ ... });
-await setLastUpdated(); // ✅ Timestamp aktualizowany
-await googleDriveSync.exportToDrive();
+await setLastUpdated();
+await vaultDriveSync.exportToDrive();
 ```
 
-#### 2. Aktualizacja danych
-```typescript
-await db.expenses.update(id, { ... });
-await setLastUpdated(); // ✅ Timestamp aktualizowany
-await googleDriveSync.exportToDrive();
-```
-
-#### 3. Usuwanie danych
-```typescript
-await db.expenses.delete(id);
-await setLastUpdated(); // ✅ Timestamp aktualizowany
-await googleDriveSync.exportToDrive();
-```
-
-### Import danych
-
-Gdy importujesz dane z Google Drive, timestamp `lastUpdated` jest **automatycznie przywracany** jako część importowanych danych:
-
-```typescript
-const dbBlob = new Blob([clearContent], { type: 'application/json' });
-await importInto(db, dbBlob, { overwriteValues: true });
-// ✅ Tabela 'meta' (wraz z lastUpdated) jest częścią importu
-```
-
-**Ważne:** `importInto` z biblioteki `dexie-export-import` importuje **wszystkie tabele**, włącznie z tabelą `meta`, więc nie trzeba ręcznie aktualizować timestamp po imporcie.
+Przy imporcie timestamp wraca automatycznie — `importInto` z `dexie-export-import`
+importuje **wszystkie** tabele, w tym `meta`.
 
 ## Logika synchronizacji
 
-Metoda `syncNewestDB()` działa według następujących priorytetów:
+Decyzja jest czystą funkcją: `decideSync()` w `sync-decision.service.ts`
+(przetestowana w `__tests__/sync-decision.service.test.ts`).
 
-### 1. Lokalna baza pusta, zdalna ma dane
-```typescript
-if (isCurrentDBEmpty && remoteLastModified > 0) {
-  await this.importFromDrive(); // IMPORT
-}
-```
+| Stan lokalny | Stan zdalny | Decyzja |
+|---|---|---|
+| pusty | ma dane | `import` |
+| ma dane | brak timestampu | `export` |
+| pusty | brak timestampu | `none` |
+| — | nowszy niż lokalny | `import` |
+| nowszy niż zdalny | — | `export` |
+| równe | równe | `none` |
 
-### 2. Lokalna baza ma dane, zdalna pusta
-```typescript
-if (!isCurrentDBEmpty && remoteLastModified === -1) {
-  await this.exportToDrive(); // EXPORT
-}
-```
+Pustka jest sprawdzana **przed** timestampami celowo: świeże urządzenie nie ma
+sensownego `localLastModified`, więc porównanie kazałoby mu wyeksportować nic na
+dobrą kopię zdalną.
 
-### 3. Obie bazy puste
-```typescript
-if (isCurrentDBEmpty && remoteLastModified === -1) {
-  // BRAK AKCJI
-}
-```
+`syncNewestDB()` czyta i odszyfrowuje plik z Drive **dokładnie raz**, a potem działa
+na wyniku.
 
-### 4. Porównanie timestampów
-```typescript
-if (remoteLastModified > localLastModified) {
-  await this.importFromDrive(); // IMPORT - zdalna nowsza
-} else if (localLastModified > remoteLastModified) {
-  await this.exportToDrive(); // EXPORT - lokalna nowsza
-} else {
-  // BRAK AKCJI - zsynchronizowane
-}
-```
+## Zabezpieczenia przed utratą danych
 
-## Scenariusze użycia
+Trzy reguły, których nie wolno rozluźnić — każda ma test:
 
-### Scenariusz 1: Nowy użytkownik
-1. **Urządzenie A (pierwszy raz):**
-   - `localLastModified = -1`
-   - `remoteLastModified = -1`
-   - **Akcja:** Brak (obie bazy puste)
+1. **Uszkodzony keyfile rzuca `CorruptKeyfileError`, nigdy nie udaje „brak vaulta".**
+   Gdyby udawał, aplikacja zaproponowałaby założenie nowego vaulta i odcięła dane
+   starym kluczem.
+2. **Backup w aktualnym formacie, którego nie da się odszyfrować, rzuca
+   `RemoteDecryptionError` i wstrzymuje synchronizację.** Bez tego zły DEK kazałby
+   nadpisać dobry backup. Plik **bez** `formatVersion` (sprzed vaulta) jest natomiast
+   traktowany jako nieobecny i zostanie zastąpiony.
+3. **`exportToDrive()` odmawia nadpisania backupu pustą bazą.**
 
-2. **Użytkownik dodaje expense:**
-   - `setLastUpdated()` → `localLastModified = 1732800000000`
-   - `exportToDrive()` → zapisuje w Drive
+## Token do Drive
 
-3. **Urządzenie B (pierwszy raz):**
-   - `localLastModified = -1`
-   - `remoteLastModified = 1732800000000`
-   - **Akcja:** Import z Drive
-   - Po imporcie: `localLastModified = 1732800000000` ✅
+Jeden token Google na wszystko — ten sam OAuth client i ta sama zgoda co przy
+logowaniu. `DriveTokenService` (`@/auth/google/drive-token.service.ts`) odnawia go
+po cichu przez Google Identity Services (`prompt: ''`), trzymając go w pamięci i w
+`sessionStorage` (nie w cookie: nigdy nie leci z requestem, ginie z zakładką).
 
-### Scenariusz 2: Synchronizacja między urządzeniami
-1. **Urządzenie B modyfikuje dane:**
-   - `setLastUpdated()` → `localLastModified = 1732810000000`
-   - `exportToDrive()` → zapisuje w Drive
-
-2. **Urządzenie A (powrót):**
-   - `localLastModified = 1732800000000`
-   - `remoteLastModified = 1732810000000`
-   - **Akcja:** Import z Drive (zdalna nowsza)
-   - Po imporcie: `localLastModified = 1732810000000` ✅
+`GoogleDriveButton` jest **wyłącznie fallbackiem** na wypadek, gdy Google odmówi
+cichego odnowienia.
 
 ## Debugowanie
 
-Aby zobaczyć logi synchronizacji, otwórz konsolę przeglądarki. Zobaczysz:
-
-```
-Sync check: {
-  localLastModified: 1732800000000,
-  remoteLastModified: 1732810000000,
-  isCurrentDBEmpty: false
-}
-Import From Drive (remote is newer)
-Database imported from Google Drive
-```
-
-## Bezpieczeństwo
-
-- Wszystkie dane są **szyfrowane** przed wysłaniem do Google Drive
-- Używamy AES-GCM z kluczem derywowanym z PBKDF2
-- Każde szyfrowanie używa losowego salt i IV
-- Hasło szyfrujące jest przechowywane w profilu użytkownika
-
-## Potencjalne problemy
-
-### Problem: Oba urządzenia eksportują zamiast importować
-**Przyczyna:** `getRemoteLastModified()` nie deszyfruje pliku przed parsowaniem
-**Rozwiązanie:** ✅ Naprawione - teraz plik jest deszyfrowany przed parsowaniem
-
-### Problem: Nieskończona pętla importu/eksportu
-**Przyczyna:** Timestamp nie jest aktualizowany po operacjach
-**Rozwiązanie:** ✅ Każda operacja (add/update/delete) wywołuje `setLastUpdated()`
-
-### Problem: Timestamp nie jest zachowany po imporcie
-**Przyczyna:** `importInto` nie importuje tabeli meta
-**Rozwiązanie:** ✅ `importInto` importuje **wszystkie** tabele, w tym meta
-
+`syncNewestDB()` zwraca podjętą decyzję (`'import' | 'export' | 'none'`), więc w
+testach i w konsoli widać wynik bez czytania logów.

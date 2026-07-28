@@ -14,11 +14,20 @@ import type { DBDuty } from '@/database/duty.ts';
 import type { Currency } from '@/constant.ts';
 import type { DBTag } from '@/database/tags.ts';
 
+type SeverityTotals = { total: number; HIGH: number; MEDIUM: number; LOW: number };
+
 export function groupExpensesByMonth(data: DBExpense[]) {
-  const result: Record<number, { total: number; HIGH: number; MEDIUM: number; LOW: number }> = {};
+  const result: Record<number, SeverityTotals> = {};
 
   const ensureMonth = (month: number) => {
     if (!result[month]) result[month] = { total: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+  };
+
+  // An expense with no severity still counts towards the month's total; it simply
+  // has no bucket to land in. Indexing by a null severity would invent one.
+  const addToMonth = (month: number, severity: DBExpense['severity'], value: number) => {
+    if (severity) result[month][severity] += value;
+    result[month].total += value;
   };
 
   data.forEach((item) => {
@@ -29,15 +38,13 @@ export function groupExpensesByMonth(data: DBExpense[]) {
       case 'YEARLY': {
         if (month < 0) return;
         ensureMonth(month);
-        result[month][item.severity] += item.expense;
-        result[month].total += item.expense;
+        addToMonth(month, item.severity, item.expense);
         break;
       }
       case 'MONTHLY': {
         for (let m = 0; m < 12; m++) {
           ensureMonth(m);
-          result[m][item.severity] += item.expense;
-          result[m].total += item.expense;
+          addToMonth(m, item.severity, item.expense);
         }
         break;
       }
@@ -45,9 +52,7 @@ export function groupExpensesByMonth(data: DBExpense[]) {
         for (let m = 0; m < 12; m++) {
           const count = countWeekdaysInMonth(year, m, day);
           ensureMonth(m);
-          const value = item.expense * count;
-          result[m][item.severity] += value;
-          result[m].total += value;
+          addToMonth(m, item.severity, item.expense * count);
         }
         break;
       }
@@ -55,9 +60,7 @@ export function groupExpensesByMonth(data: DBExpense[]) {
         for (let m = 0; m < 12; m++) {
           const count = daysInMonth(year, m);
           ensureMonth(m);
-          const value = item.expense * count;
-          result[m][item.severity] += value;
-          result[m].total += value;
+          addToMonth(m, item.severity, item.expense * count);
         }
         break;
       }
@@ -190,7 +193,9 @@ export function groupExpensesByStrategyPart(
   month: number,
   expenses: DBExpense[],
   transactions: DBTransaction[],
-  duties: (DBDuty & {
+  // DBDuty declares `expense?: DBExpense`; callers join it in and use null for "no
+  // matching expense", so the property is replaced rather than intersected.
+  duties: (Omit<DBDuty, 'expense'> & {
     price: number;
     currency: Currency;
     expense: DBExpense | null;
@@ -355,8 +360,19 @@ export function calculateFinancialSafetyNet(month: number, data: DBExpense[]) {
   };
 }
 
+type ContributionDay = {
+  week: number;
+  day: number;
+  date: number;
+  month: number;
+  year: number;
+  value: number;
+  amount: number;
+  currency: Currency | '';
+};
+
 export function generateContributionData(transactions: DBTransaction[]) {
-  const data = [];
+  const data: ContributionDay[] = [];
   const today = new Date();
   const currentYear = today.getFullYear();
 
@@ -366,9 +382,6 @@ export function generateContributionData(transactions: DBTransaction[]) {
     const date = new Date(t.transactionDate);
     return date.getFullYear() === currentYear;
   });
-
-  // Start from January 1st of the current year
-  const current = new Date(currentYear, 0, 1);
 
   const daysOfYearArray = getDaysArrayOfYear(currentYear);
 
@@ -392,8 +405,6 @@ export function generateContributionData(transactions: DBTransaction[]) {
       amount: transactionsInSelectedDay.reduce((acc, curr) => (acc += curr.amount), 0),
       currency: transactionsInSelectedDay?.[0]?.currency || '',
     });
-
-    current.setDate(current.getDate() + 1);
   });
 
   return data;

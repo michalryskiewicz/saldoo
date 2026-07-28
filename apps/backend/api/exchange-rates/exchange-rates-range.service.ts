@@ -72,7 +72,7 @@ export class ExchangeRatesRangeService {
       promises.push(
         prisma.exchangeRate.findMany({
           where: {
-            fromCurrency: fromCurrency as unknown as CURRENCY,
+            fromCurrency,
             toCurrency: CURRENCY.PLN,
             effectiveDate: {
               gte: new Date(fromDateISO),
@@ -89,7 +89,7 @@ export class ExchangeRatesRangeService {
       promises.push(
         prisma.exchangeRate.findMany({
           where: {
-            fromCurrency: toCurrency as unknown as CURRENCY,
+            fromCurrency: toCurrency,
             toCurrency: CURRENCY.PLN,
             effectiveDate: {
               gte: new Date(fromDateISO),
@@ -305,24 +305,22 @@ export class ExchangeRatesRangeService {
             map[r.effectiveDate] = r.mid;
 
             try {
-              const existing = await prisma.exchangeRate.findFirst({
-                where: {
-                  fromCurrency: currency as unknown as CURRENCY,
-                  toCurrency: CURRENCY.PLN,
-                  effectiveDate: new Date(r.effectiveDate),
-                },
-              });
+              // One statement rather than read-then-write: the compound unique on
+              // (fromCurrency, toCurrency, effectiveDate) makes this idempotent even
+              // when two range requests overlap.
+              const identity = {
+                fromCurrency: currency,
+                toCurrency: CURRENCY.PLN,
+                effectiveDate: new Date(r.effectiveDate),
+              };
 
-              if (!existing) {
-                await prisma.exchangeRate.create({
-                  data: {
-                    fromCurrency: currency as unknown as CURRENCY,
-                    toCurrency: CURRENCY.PLN,
-                    effectiveDate: new Date(r.effectiveDate),
-                    mid: r.mid,
-                  },
-                });
-              }
+              await prisma.exchangeRate.upsert({
+                where: {
+                  fromCurrency_toCurrency_effectiveDate: identity,
+                },
+                create: { ...identity, mid: r.mid },
+                update: { mid: r.mid },
+              });
 
               await Cache.set(
                 `${currency}-${CURRENCY.PLN}-${r.effectiveDate}`,

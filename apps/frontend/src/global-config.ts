@@ -13,13 +13,6 @@ export type ConfigType = {
   };
   dateFormat: string;
 
-  driveToken: {
-    name: string;
-    expires: number;
-    secure: boolean;
-    sameSite: 'strict' | 'Strict' | 'lax' | 'Lax' | 'none' | 'None' | undefined;
-  };
-
   dataSourceFile: string;
   dataSourceDirectory: string;
 
@@ -48,16 +41,6 @@ export const CONFIG: ConfigType = {
   },
 
   /**
-   * Drive token information to properly set cookie on client side of app
-   */
-  driveToken: {
-    name: 'access_token',
-    expires: 1 / 24, // 1 hour,
-    secure: true,
-    sameSite: 'strict',
-  },
-
-  /**
    * Google Drive Auth Info
    */
   googleClientId: import.meta.env.VITE_GOOGLE_CLIENT,
@@ -69,6 +52,15 @@ export const CONFIG: ConfigType = {
   dataSourceDirectory: import.meta.env.VITE_GA_DRIVE_DIRECTORY ?? 'saldoo',
 };
 
-export const GOOGLE_ENDPOINTS = {
-  LOGIN_DRIVE: 'https://www.googleapis.com/auth/drive.file',
-};
+/**
+ * Every scope Saldoo ever asks for, granted in one consent at login.
+ *
+ * `drive.file` is non-sensitive and limits the app to files it created itself, so
+ * this whole set only needs basic OAuth verification.
+ */
+export const GOOGLE_SCOPES = [
+  'openid',
+  'email',
+  'profile',
+  'https://www.googleapis.com/auth/drive.file',
+].join(' ');

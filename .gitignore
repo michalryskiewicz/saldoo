@@ -182,3 +182,8 @@ dist/
 
 
 pgdata
+
+# SQLite rate cache — rebuildable from NBP, never committed
+*.db
+*.db-journal
+apps/backend/prisma/data/

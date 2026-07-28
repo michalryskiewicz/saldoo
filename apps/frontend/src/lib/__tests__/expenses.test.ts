@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   groupExpensesAndProfitsByMonth,
   groupExpensesByCategory,
@@ -12,6 +12,17 @@ import type { DBDuty } from '@/database/duty.ts';
 import type { Currency } from '@/constant.ts';
 
 describe('expenses service', () => {
+  // These groupers resolve WEEKLY/DAILY occurrence counts against the *current*
+  // year, so any fixture with a fixed date needs the clock pinned to match.
+  const freezeClock = (iso: string) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(iso));
+  };
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   describe('groupExpensesByMonth', () => {
     it('ignores expenses with missing severity and add it only to total severity bucket', () => {
       const data = [
@@ -219,6 +230,7 @@ describe('expenses service', () => {
 
     it('correctly multiplies weekly frequency expenses by weekday count in the month', () => {
       const year = 2020;
+      freezeClock(`${year}-01-15`);
       const janIdx = MONTHS.indexOf('January');
       const data = [
         {
@@ -230,11 +242,12 @@ describe('expenses service', () => {
       ] as never[];
       const result = groupExpensesByCategory(janIdx, data);
 
+      const wednesdaysInJanuary2020 = 5;
       expect(result).toContainEqual({
         tag: 'Gym',
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
-        total: Number(5 * data[0].expense),
+        total: Number(wednesdaysInJanuary2020 * data[0].expense),
       });
     });
 
@@ -297,6 +310,7 @@ describe('expenses service', () => {
   describe('groupExpensesByStrategyPart', () => {
     it('returns correct planned and real totals for monthly and yearly expenses', () => {
       const month = 9; // October (0-based)
+      freezeClock('2025-10-15');
       const expenses = [
         {
           strategyPart: 'NEEDS',
@@ -366,6 +380,7 @@ describe('expenses service', () => {
 
     it('ignores duties that are not resolved or have transactionId', () => {
       const month = 9;
+      freezeClock('2025-10-15');
       const duties = [
         {
           price: 30,
@@ -384,6 +399,7 @@ describe('expenses service', () => {
 
     it('handles edge case with missing strategyPart in expenses, transactions, and duties', () => {
       const month = 9;
+      freezeClock('2025-10-15');
       const expenses = [
         { execution: '2025-10-10', expense: 100, frequency: 'MONTHLY' },
       ] as unknown as DBExpense[];

@@ -9,11 +9,10 @@ import {
 import { Field, Form } from '@/components/hook-form';
 import i18n from '@/i18n.ts';
 import { z } from 'zod';
-import {
-  type UpdateProfileReqDto,
-  useGetProfileQuery,
-  useUpdateProfileMutation,
-} from '@/store/profile-slice.api';
+import { useSettings } from '@/features/settings/use-settings.ts';
+import { saveSettings } from '@/database/settings.ts';
+import type { BudgetingStrategy } from '@/database/settings.service.ts';
+import type { Currency } from '@/constant.ts';
 import ContentLoading from '@/components/loaders/content-loading.tsx';
 import { SavingsChart } from '@/features/account/components/savings-chart.tsx';
 import { addDBTags, removeDBTags } from '@/database/tags.ts';
@@ -28,12 +27,14 @@ const formSchema = z.object({
 type UpdateProfileForm = z.infer<typeof formSchema>;
 
 export default function Account() {
-  const { data, isLoading, refetch } = useGetProfileQuery();
-  const [updateProfile] = useUpdateProfileMutation();
+  const { settings, isLoading } = useSettings();
   const { tagsNames, isLoading: areTagsLoading } = useListTags();
 
   const onSubmit = async (values: UpdateProfileForm): Promise<void> => {
-    await updateProfile(values as unknown as UpdateProfileReqDto);
+    await saveSettings({
+      currency: values.currency as Currency,
+      strategy: values.strategy as BudgetingStrategy,
+    });
     const originalTags = tagsNames ?? [];
     const newTags = values.tags;
 
@@ -47,7 +48,7 @@ export default function Account() {
     if (removedTags.length > 0) {
       await removeDBTags(removedTags);
     }
-    refetch();
+
   };
 
   if (isLoading || areTagsLoading) {
@@ -70,7 +71,11 @@ export default function Account() {
           <div className="h-full w-full p-4 ">
             <Form
               schema={formSchema}
-              initialValues={{ ...data, tags: tagsNames }}
+              initialValues={{
+                currency: settings?.currency,
+                strategy: settings?.strategy ?? undefined,
+                tags: tagsNames,
+              }}
               onSubmit={onSubmit}
             >
               <div className="gap-4 flex flex-col ml-auto mr-auto w-full max-w-4xl">

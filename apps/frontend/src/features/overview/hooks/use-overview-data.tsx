@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/database';
-import { useGetProfileQuery } from '@/store/profile-slice.api.ts';
+import { useSettings } from '@/features/settings/use-settings.ts';
 import { convertDataToDesiredCurrency } from '@/lib/exchange-rate.ts';
 
 import { getEarliestAndLatestDate, getFromDate } from '@/lib/dates.ts';
@@ -19,7 +19,7 @@ export const useOverviewData = () => {
   // ===========================================================================
   // Hooks
   // ===========================================================================
-  const { data: profile, isLoading: isProfileLoading } = useGetProfileQuery();
+  const { settings, isLoading: areSettingsLoading } = useSettings();
 
   // ===========================================================================
   // Database
@@ -67,16 +67,16 @@ export const useOverviewData = () => {
 
   // Merge expenses into duties
   const dutiesWithExpense = duties.map((duty) => {
-    const expense = expensesWithTag?.find((expense) => expense.id === duty.expenseId) || undefined;
+    const expense = expensesWithTag?.find((expense) => expense.id === duty.expenseId);
     return {
       ...duty,
-      expense: expense || undefined,
+      expense: expense ?? null,
       price: expense?.expense || 0,
       currency: expense?.currency || 'EUR',
     };
   });
 
-  const preferredCurrency = profile?.currency ?? 'EUR';
+  const preferredCurrency = settings?.currency ?? 'EUR';
 
   const expensesInSelectedCurrency = convertDataToDesiredCurrency({
     data: expensesWithTag,
@@ -151,10 +151,10 @@ export const useOverviewData = () => {
     financialSafetyNet: financialSafetyNetToReturn,
     contributionData,
     tags,
-    profile,
+    settings,
     hasExpenses: expenses.length > 0,
     hasProfits: profits.length > 0,
     hasTransactions: transactions.length > 0,
-    isLoading: isProfileLoading || isExchangeRateForTransactionsLoading || areExchangeRatesLoading,
+    isLoading: areSettingsLoading || isExchangeRateForTransactionsLoading || areExchangeRatesLoading,
   };
 };

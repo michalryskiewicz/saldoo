@@ -1,4 +1,4 @@
-import { useGetProfileQuery } from '@/store/profile-slice.api.ts';
+import { useSettings } from '@/features/settings/use-settings.ts';
 import { useListExchangeRatesQuery } from '@/store/exchange-rates.api.ts';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/database';
@@ -8,7 +8,7 @@ export const useListProfits = () => {
   // ===========================================================================
   // RTK Query
   // ===========================================================================
-  const { data: profile } = useGetProfileQuery();
+  const { settings } = useSettings();
   const { data: exchanges } = useListExchangeRatesQuery({
     fromDate: new Date(2025, 9, 1).toISOString().split('T')[0],
     toDate: new Date().toISOString().split('T')[0],
@@ -25,7 +25,7 @@ export const useListProfits = () => {
   const allProfitsInDesiredCurrency = convertDataToDesiredCurrency({
     data: allProfits,
     exchangeRates: exchanges,
-    desiredCurrency: profile?.currency,
+    desiredCurrency: settings?.currency,
     amountKey: 'profit',
   });
 

@@ -2,36 +2,28 @@ import 'reflect-metadata';
 import express from 'express';
 import http from 'http';
 import apiRouter from './api';
-import { toNodeHandler } from 'better-auth/node';
-import { auth } from './auth.ts';
 import cors from 'cors';
 import { errorHandler } from './middleware';
 
 const app = express();
 const server = http.createServer(app);
 
-
+// No credentials: the backend holds no session and no user data, so there is
+// nothing for the browser to send along.
 app.use(
   cors({
     origin: [process.env.FRONTEND_URL],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true,
+    methods: ['GET'],
   }),
 );
 
-app.all('/api/auth/*', toNodeHandler(auth));
-
-// Mount express json middleware after Better Auth handler
-// or only apply it to routes that don't interact with Better Auth
 app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
 
 app.use('/api', apiRouter);
 
 // Global error handler — must be the last middleware so unhandled errors
 // from routes/async handlers are funnelled into a consistent JSON response.
 app.use(errorHandler);
-
 
 if (require.main === module) {
   server.listen(3000, () => {

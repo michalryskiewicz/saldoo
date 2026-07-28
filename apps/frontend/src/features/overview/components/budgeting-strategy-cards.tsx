@@ -18,11 +18,11 @@ const LG_COLS_BY_COUNT: Record<number, string> = {
 export const BudgetingStrategyCards = () => {
   const data = useOverviewData();
 
-  if (!data?.profile?.strategy) {
+  if (!data?.settings?.strategy) {
     return null;
   }
 
-  const strategyItems = BUDGETING_STRATEGIES[data?.profile.strategy] || [];
+  const strategyItems = BUDGETING_STRATEGIES[data?.settings.strategy] || [];
   const totalProfits = data?.totalProfits || 0;
   const totalExpense = data?.totalExpense || 0;
   // Empty = no records exist at all, not "current month rolls up to zero".

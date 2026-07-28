@@ -1,4 +1,4 @@
-import { useGetProfileQuery } from '@/store/profile-slice.api.ts';
+import { useSettings } from '@/features/settings/use-settings.ts';
 import { useListExchangeRatesQuery } from '@/store/exchange-rates.api.ts';
 import { groupExpensesByMonth } from '@/lib/expenses.ts';
 import { combineExpensesWithTags } from '@/features/expenses/hooks/list-expenses.serivce.ts';
@@ -23,7 +23,7 @@ export const useListExpenses = () => {
   // ===========================================================================
   // RTK Query
   // ===========================================================================
-  const { data: profile } = useGetProfileQuery();
+  const { settings } = useSettings();
   const { data: exchanges } = useListExchangeRatesQuery(
     {
       fromDate: earliest as string,
@@ -40,7 +40,7 @@ export const useListExpenses = () => {
   const allExpensesInDesiredCurrency = convertDataToDesiredCurrency({
     data: allExpenses,
     exchangeRates: exchanges,
-    desiredCurrency: profile?.currency,
+    desiredCurrency: settings?.currency,
     amountKey: 'expense',
   });
 

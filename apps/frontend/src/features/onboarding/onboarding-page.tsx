@@ -5,7 +5,9 @@ import { useState } from 'react';
 import i18n from '@/i18n.ts';
 import { OnboardingCardContentSwitcher } from '@/features/onboarding/onboarding-card-content-switcher.tsx';
 import FormProvider from '@/components/hook-form/form-provider.tsx';
-import { useGetProfileQuery, useUpdateProfileMutation } from '@/store/profile-slice.api.ts';
+import { saveSettings } from '@/database/settings.ts';
+import type { BudgetingStrategy } from '@/database/settings.service.ts';
+import type { Currency } from '@/constant.ts';
 import z from 'zod';
 import { isStep, STEPS, STEPS_ICONS } from './onboarding-constants';
 import { useNavigate } from 'react-router';
@@ -24,11 +26,6 @@ export const OnboardingPage = () => {
   // ===========================================================================
   const [activeTab, setActiveTab] = useState<STEPS>(STEPS.INTRODUCTION);
 
-  // ===========================================================================
-  // RTK Query
-  // ===========================================================================
-  const [update] = useUpdateProfileMutation();
-  const { refetch } = useGetProfileQuery();
   const navigate = useNavigate();
 
   // =========================================================================
@@ -47,16 +44,17 @@ export const OnboardingPage = () => {
         <FormProvider
           schema={formSchema}
           onSubmit={async (values) => {
-            const res = await update({ ...values, requiredActions: [] });
-
-            if (res?.data?.data) {
-              // Add tags to local database
-              if (values.tags.length > 0) {
-                await addDBTags(values.tags);
-              }
-              refetch();
-              navigate(paths.dashboard.root);
+            if (values.tags.length > 0) {
+              await addDBTags(values.tags);
             }
+
+            await saveSettings({
+              currency: values.currency as Currency,
+              strategy: values.strategy as BudgetingStrategy,
+              requiredActions: [],
+            });
+
+            navigate(paths.dashboard.root);
           }}
           initialValues={{
             tags: ['ZDROWIE', 'PODATKI', 'ŻYCIE', 'EDUKACJA', 'SUBSKRYPCJE', 'INWESTYCJE', 'SPORT'],

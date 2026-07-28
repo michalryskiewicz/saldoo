@@ -1,14 +1,4 @@
-import {
-  formatISO,
-  subDays,
-  isToday,
-  isWithinInterval,
-  getISOWeek,
-  startOfYear,
-  addWeeks,
-  setDay,
-  getMonth,
-} from 'date-fns';
+import { formatISO, subDays, isToday, isWithinInterval, getISOWeek } from 'date-fns';
 
 export type MonthIndex =
   | 0

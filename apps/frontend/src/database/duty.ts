@@ -4,7 +4,7 @@ import type { DBExpense } from '@/database/expenses';
 import { v4 as uuidv4 } from 'uuid';
 import { getExpensesInSelectedDateRange } from '@/lib/expenses.ts';
 import { createDutiesForSelectedDateRange } from '@/database/services/duties.service.ts';
-import { googleDriveSync } from '@/database/sync/google-drive-sync.ts';
+import { vaultDriveSync } from '@/database/sync/sync.container.ts';
 import { toast } from 'sonner';
 import i18n from '@/i18n.ts';
 import { setLastUpdated } from '@/database/meta.ts';
@@ -122,7 +122,7 @@ export async function resolveDBDuty(id: string, resolved: boolean) {
   try {
     await db.duties.update(id, { resolved });
     await setLastUpdated();
-    await googleDriveSync.exportToDrive();
+    await vaultDriveSync.exportToDrive();
   } catch (e) {
     console.error(e);
   }
@@ -132,7 +132,7 @@ export async function deleteDBDuty(id: string) {
   try {
     await db.duties.delete(id);
     await setLastUpdated();
-    await googleDriveSync.exportToDrive();
+    await vaultDriveSync.exportToDrive();
     toast(i18n.t('success.deleted-duty'));
   } catch (e) {
     console.error(e);

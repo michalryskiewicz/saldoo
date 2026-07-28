@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { container, inject, injectable } from 'tsyringe';
-import { getSessionMiddleware } from '../../middleware';
+import { rateLimitMiddleware } from '../../middleware';
 import { ExchangeRatesRangeService } from './exchange-rates-range.service.ts';
 import {
   buildRouter,
@@ -20,8 +20,9 @@ export class ExchangeRatesRangeController {
 
   @Get('/:fromDate/:toDate')
   @Validate(getAggregatedRatesSchema)
-  @UseMiddleware(getSessionMiddleware)
-  async getRangeRates(req: Request, res: Response) {
+  @UseMiddleware(rateLimitMiddleware)
+  async getRangeRates(req: Request<{ fromDate: string; toDate: string }>, res: Response) {
+    // Both params are guaranteed to be ISO dates by @Validate above.
     const { fromDate, toDate } = req.params;
 
     const currencies: Currency[] = [CURRENCY.USD, CURRENCY.EUR];

@@ -1,6 +1,7 @@
-import { useMemo, type PropsWithChildren } from 'react';
+import { useEffect, useMemo, useState, type PropsWithChildren } from 'react';
 import { AuthContext } from '../auth-context';
-import { authClient } from '@/lib/auth-client';
+import { driveTokenService } from '@/auth/google/drive-token.ts';
+import { fetchGoogleIdentity } from '@/auth/google/google-identity.service.ts';
 
 export type AuthContextValue = {
   user: {
@@ -12,21 +13,49 @@ export type AuthContextValue = {
   isAuthenticated: boolean;
 };
 
+/**
+ * Derives the session from the single Google token.
+ *
+ * There is no server-side session to consult: holding a token Google will still
+ * describe *is* being signed in. Renewal is silent, so a returning user is
+ * recognised without any interaction.
+ */
 export function AuthProvider({ children }: PropsWithChildren) {
-  const { isPending, data } = authClient.useSession();
+  const [user, setUser] = useState<AuthContextValue['user']>(null);
+  const [loading, setLoading] = useState(true);
 
-  const checkAuthenticated = data?.user ? 'authenticated' : 'unauthenticated';
+  useEffect(() => {
+    let cancelled = false;
 
-  const status = isPending ? 'loading' : checkAuthenticated;
+    const identify = async () => {
+      try {
+        const accessToken = await driveTokenService.getAccessToken();
+        const identity = await fetchGoogleIdentity(accessToken);
+
+        if (!cancelled) {
+          setUser({ id: identity.id, email: identity.email, name: identity.name });
+        }
+      } catch {
+        if (!cancelled) setUser(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    identify();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const memoizedValue = useMemo(
-    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     () => ({
-      user: data?.user ? { ...data.user } : null,
-      loading: status === 'loading',
-      isAuthenticated: status === 'authenticated',
+      user,
+      loading,
+      isAuthenticated: user !== null,
     }),
-    [data?.user, status]
+    [user, loading]
   );
 
   return <AuthContext value={memoizedValue}>{children}</AuthContext>;
