@@ -1,21 +1,24 @@
 import { paths } from '@/routes/paths.ts';
 import type { TranslationKey } from '@/i18n.ts';
 
+export type PathTree = { [key: string]: string | PathTree };
+
 export function findLabelByPath(
-  obj: Record<string, any>,
+  obj: PathTree,
   targetPath: string,
   parentKey?: string
 ): string | null {
   for (const key in obj) {
-    if (typeof obj[key] === 'string' && obj[key] === targetPath) {
+    const value = obj[key];
+    if (typeof value === 'string' && value === targetPath) {
       // If the key is 'root' and parentKey exists, return parentKey as label
       if (key === 'root' && parentKey) {
         return parentKey;
       }
       return key;
     }
-    if (typeof obj[key] === 'object' && obj[key] !== null) {
-      const label = findLabelByPath(obj[key], targetPath, key);
+    if (typeof value === 'object' && value !== null) {
+      const label = findLabelByPath(value, targetPath, key);
       if (label) return label;
     }
   }

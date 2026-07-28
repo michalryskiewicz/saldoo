@@ -1,6 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { createStepCollector } from '../step-collector';
-import type { ParseStepResult } from 'papaparse';
+import type { ParseMeta, ParseStepResult } from 'papaparse';
+
+const META: ParseMeta = {
+  delimiter: ',',
+  linebreak: '\n',
+  aborted: false,
+  truncated: false,
+  cursor: 0,
+};
+
+const step = (data: string[]): ParseStepResult<unknown> => ({ data, errors: [], meta: META });
 
 describe('step-collector', () => {
   describe('createStepCollector', () => {
@@ -9,16 +19,16 @@ describe('step-collector', () => {
       const stopRows = [['End of data']];
       const collector = createStepCollector(headerRow, stopRows);
 
-      const mockSteps: ParseStepResult<unknown>[] = [
-        { data: ['Some', 'preamble', 'data'], errors: [], meta: {} as any },
-        { data: ['Column1', 'Column2', 'Column3'], errors: [], meta: {} as any },
-        { data: ['Row1', 'Data1', 'Value1'], errors: [], meta: {} as any },
-        { data: ['Row2', 'Data2', 'Value2'], errors: [], meta: {} as any },
-        { data: ['End of data'], errors: [], meta: {} as any },
-        { data: ['Should', 'not', 'collect'], errors: [], meta: {} as any },
+      const mockSteps = [
+        step(['Some', 'preamble', 'data']),
+        step(['Column1', 'Column2', 'Column3']),
+        step(['Row1', 'Data1', 'Value1']),
+        step(['Row2', 'Data2', 'Value2']),
+        step(['End of data']),
+        step(['Should', 'not', 'collect']),
       ];
 
-      mockSteps.forEach((step) => collector.step(step));
+      mockSteps.forEach((s) => collector.step(s));
       const rows = collector.getRows();
 
       expect(rows).toHaveLength(2);
@@ -31,13 +41,13 @@ describe('step-collector', () => {
       const stopRows = [['']];
       const collector = createStepCollector(headerRow, stopRows);
 
-      const mockSteps: ParseStepResult<unknown>[] = [
-        { data: ['Col1', 'Col2', 'Col3', 'Col4', 'Col5'], errors: [], meta: {} as any },
-        { data: ['Data1', 'Data2', 'Data3', 'Data4', 'Data5'], errors: [], meta: {} as any },
-        { data: [''], errors: [], meta: {} as any },
+      const mockSteps = [
+        step(['Col1', 'Col2', 'Col3', 'Col4', 'Col5']),
+        step(['Data1', 'Data2', 'Data3', 'Data4', 'Data5']),
+        step(['']),
       ];
 
-      mockSteps.forEach((step) => collector.step(step));
+      mockSteps.forEach((s) => collector.step(s));
       const rows = collector.getRows();
 
       expect(rows).toHaveLength(1);
@@ -49,15 +59,15 @@ describe('step-collector', () => {
       const stopRows = [['END']];
       const collector = createStepCollector(headerRow, stopRows);
 
-      const mockSteps: ParseStepResult<unknown>[] = [
-        { data: ['Before', 'header'], errors: [], meta: {} as any },
-        { data: ['Still', 'before'], errors: [], meta: {} as any },
-        { data: ['Header1', 'Header2'], errors: [], meta: {} as any },
-        { data: ['After', 'header'], errors: [], meta: {} as any },
-        { data: ['END'], errors: [], meta: {} as any },
+      const mockSteps = [
+        step(['Before', 'header']),
+        step(['Still', 'before']),
+        step(['Header1', 'Header2']),
+        step(['After', 'header']),
+        step(['END']),
       ];
 
-      mockSteps.forEach((step) => collector.step(step));
+      mockSteps.forEach((s) => collector.step(s));
       const rows = collector.getRows();
 
       expect(rows).toHaveLength(1);
@@ -69,14 +79,9 @@ describe('step-collector', () => {
       const stopRows = [['STOP1'], ['STOP2']];
       const collector = createStepCollector(headerRow, stopRows);
 
-      const mockSteps: ParseStepResult<unknown>[] = [
-        { data: ['H1'], errors: [], meta: {} as any },
-        { data: ['Row1'], errors: [], meta: {} as any },
-        { data: ['STOP1'], errors: [], meta: {} as any },
-        { data: ['Row2'], errors: [], meta: {} as any },
-      ];
+      const mockSteps = [step(['H1']), step(['Row1']), step(['STOP1']), step(['Row2'])];
 
-      mockSteps.forEach((step) => collector.step(step));
+      mockSteps.forEach((s) => collector.step(s));
       const rows = collector.getRows();
 
       expect(rows).toHaveLength(1);
@@ -88,12 +93,9 @@ describe('step-collector', () => {
       const stopRows = [['END']];
       const collector = createStepCollector(headerRow, stopRows);
 
-      const mockSteps: ParseStepResult<unknown>[] = [
-        { data: ['Some', 'data'], errors: [], meta: {} as any },
-        { data: ['More', 'data'], errors: [], meta: {} as any },
-      ];
+      const mockSteps = [step(['Some', 'data']), step(['More', 'data'])];
 
-      mockSteps.forEach((step) => collector.step(step));
+      mockSteps.forEach((s) => collector.step(s));
       const rows = collector.getRows();
 
       expect(rows).toHaveLength(0);
@@ -104,15 +106,15 @@ describe('step-collector', () => {
       const stopRows = [['END']];
       const collector = createStepCollector(headerRow, stopRows);
 
-      const mockSteps: ParseStepResult<unknown>[] = [
-        { data: ['Col'], errors: [], meta: {} as any },
-        { data: ['Data1'], errors: [], meta: {} as any },
-        { data: ['Col'], errors: [], meta: {} as any },
-        { data: ['Data2'], errors: [], meta: {} as any },
-        { data: ['END'], errors: [], meta: {} as any },
+      const mockSteps = [
+        step(['Col']),
+        step(['Data1']),
+        step(['Col']),
+        step(['Data2']),
+        step(['END']),
       ];
 
-      mockSteps.forEach((step) => collector.step(step));
+      mockSteps.forEach((s) => collector.step(s));
       const rows = collector.getRows();
 
       expect(rows).toHaveLength(2);

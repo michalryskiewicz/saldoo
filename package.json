@@ -12,6 +12,8 @@
     "build": "bun --env-file=.env run --filter '*' build",
     "test": "bun --env-file=.env run --filter '*' test",
     "lint": "bun run --filter '*' lint:check",
+    "lint:fix": "bun run --filter '*' lint:fix",
+    "typecheck": "bun run --filter '*' typecheck",
     "release:patch": "bun version --new-version patch",
     "release:minor": "bun version --new-version minor",
     "release:major": "bun version --new-version major",
