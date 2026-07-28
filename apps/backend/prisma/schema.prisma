@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
@@ -15,100 +12,13 @@ datasource db {
 }
 
 // ===========================================================================
-// Auth
+// This database holds NO user data.
+//
+// Financial data lives in the browser (IndexedDB) and in an encrypted backup on
+// the user's own Google Drive, under a key derived from their passphrase or
+// recovery code. Identity is a Google access token verified against Google, not
+// a session row. What remains here is a cache of public NBP exchange rates.
 // ===========================================================================
-
-model User {
-  id            String    @id
-  name          String
-  email         String
-  emailVerified Boolean
-  image         String?
-  createdAt     DateTime?
-  updatedAt     DateTime?
-
-  sessions Session[]
-  accounts Account[]
-
-  role       String?
-  banned     Boolean?
-  banReason  String?
-  banExpires DateTime?
-
-  strategy   Strategy?
-  strategyId String?
-
-  preferredCurrency CURRENCY?
-
-  encryptionKey   String   @unique @default(uuid())
-  requiredActions String[] @default(["onboarding"])
-
-  @@unique([email])
-  @@map("user")
-}
-
-model Session {
-  id        String    @id
-  expiresAt DateTime
-  token     String
-  createdAt DateTime?
-  updatedAt DateTime?
-  ipAddress String?
-  userAgent String?
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  impersonatedBy String?
-
-  @@unique([token])
-  @@map("session")
-}
-
-model Account {
-  id                    String    @id
-  accountId             String
-  providerId            String
-  userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
-  accessTokenExpiresAt  DateTime?
-  refreshTokenExpiresAt DateTime?
-  scope                 String?
-  password              String?
-  createdAt             DateTime?
-  updatedAt             DateTime?
-
-  @@map("account")
-}
-
-model Verification {
-  id         String    @id
-  identifier String
-  value      String
-  expiresAt  DateTime
-  createdAt  DateTime?
-  updatedAt  DateTime?
-
-  @@map("verification")
-}
-
-// ===========================================================================
-// Expenses
-// ===========================================================================
-enum FREQUENCY {
-  DAILY
-  WEEKLY
-  MONTHLY
-  YEARLY
-}
-
-enum SEVERITY {
-  HIGH
-  MEDIUM
-  LOW
-}
 
 enum CURRENCY {
   PLN
@@ -116,9 +26,6 @@ enum CURRENCY {
   USD
 }
 
-// ===========================================================================
-// Exchange Rate
-// ===========================================================================
 model ExchangeRate {
   id           String   @id @default(uuid())
   fromCurrency CURRENCY
@@ -127,55 +34,9 @@ model ExchangeRate {
   bid          Float?
   ask          Float?
 
-  effectiveDate DateTime // TAKE A LOOK AT ISO 8601 format
-}
+  effectiveDate DateTime
 
-// ===========================================================================
-// Strategy
-// ===========================================================================
-model Strategy {
-  id        String    @id @default(uuid())
-  createdAt DateTime  @default(now()) @db.Date
-  updatedAt DateTime?
-
-  strategy BUDGETING_STRATEGY?
-
-  // 50-30-20, 50-20-30, 60-30-10
-  needs   Float?
-  wants   Float?
-  savings Float?
-  debts   Float?
-
-  // 70-20-10, 80-20
-  needsAndWants Float?
-
-  // 10-10-10-70
-  shortTermSavings Float?
-  longTermSavings  Float?
-
-  User   User?   @relation(fields: [userId], references: [id])
-  userId String?
-
-  @@unique([userId])
-}
-
-enum STRATEGY_PART {
-  NEEDS
-  WANTS
-  SAVINGS
-  DEBTS
-  NEEDS_AND_WANTS
-  SHORT_TERM_SAVINGS
-  LONG_TERM_SAVINGS
-}
-
-enum BUDGETING_STRATEGY {
-  FIFTY_THIRTY_TWENTY
-  FIFTY_TWENTY_THIRTY
-  SIXTY_THIRTY_TEN
-
-  EIGHTY_TWENTY
-  SEVENTY_TWENTY_TEN
-
-  TEN_TEN_TEN_SEVENTY
+  // A rate for one currency pair on one day is a single immutable fact, so the
+  // cache must not be able to hold two of them.
+  @@unique([fromCurrency, toCurrency, effectiveDate])
 }

@@ -15,19 +15,19 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { authClient } from '@/lib/auth-client';
+import { signOutFromGoogle } from '@/auth/context/google';
+import { useAuth } from '@/auth/hooks';
 import { useRouter } from '@/routes/hooks';
 import { paths } from '@/routes/paths';
 import i18n from '@/i18n.ts';
 import { useTheme } from '@/components/theme-provider.tsx';
-import { useGetProfileQuery } from '@/store/profile-slice.api.ts';
 import { Link } from 'react-router';
 
 export function NavUser() {
   const router = useRouter();
   const { isMobile } = useSidebar();
   const { theme, setTheme } = useTheme();
-  const { data: profile } = useGetProfileQuery();
+  const { user } = useAuth();
 
   return (
     <SidebarMenu>
@@ -45,7 +45,7 @@ export function NavUser() {
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{profile?.email}</span>
+                <span className="truncate font-medium">{user?.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -65,7 +65,7 @@ export function NavUser() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{profile?.email}</span>
+                  <span className="truncate font-medium">{user?.email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
@@ -92,14 +92,9 @@ export function NavUser() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => {
-                authClient.signOut({
-                  fetchOptions: {
-                    onSuccess: () => {
-                      router.push(paths.auth.google.signIn);
-                    },
-                  },
-                });
+              onClick={async () => {
+                await signOutFromGoogle();
+                router.push(paths.auth.google.signIn);
               }}
             >
               <LogOut />

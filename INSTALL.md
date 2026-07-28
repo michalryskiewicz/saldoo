@@ -122,8 +122,33 @@ bun install
 ### Google OAuth issues
 
 ```bash
-grep GOOGLE_CLIENT .env
+grep VITE_GOOGLE_CLIENT .env
 ```
+
+Saldoo uses a **single** Google OAuth client (type: Web application) for both login
+and Google Drive, and it is a browser client — there is no client secret. Three
+things must be set up in Google Cloud:
+
+1. **Publish the OAuth app** (consent screen → *Publish app*). In *Testing*, Google
+   expires consent after **7 days** for any app requesting more than
+   name/email/profile, which breaks the Drive connection every week.
+2. **Authorized JavaScript origins** must include the origin you serve the frontend
+   from. Google Identity Services refuses to start otherwise.
+3. **Scopes**: `openid`, `email`, `profile`,
+   `https://www.googleapis.com/auth/drive.file`. All non-sensitive, so only basic
+   verification applies and no security assessment is required.
+
+### "Nie udało się otworzyć danych" on startup
+
+The app could not read its keyfile (`saldoo-keys.json`) from your Drive — usually the
+Drive token could not be renewed, so check the three points above. Nothing is lost:
+your data stays in the browser's IndexedDB and in the encrypted backup on Drive.
+
+### Lost passphrase
+
+Use the recovery code shown once during setup. **If both are gone, nobody can recover
+the data** — no copy of either secret exists on any server. That is the deliberate
+trade-off; see `apps/frontend/src/database/sync/README.md`.
 
 ---
 

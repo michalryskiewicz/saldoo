@@ -110,6 +110,7 @@ bun run build
 bun run test
 bun run lint
 bun run lint:fix
+bun run typecheck
 bun run migrate
 ```
 
@@ -117,16 +118,28 @@ bun run migrate
 
 ```env
 DATABASE_URL=postgresql://admin:root@localhost:5432/saldoo
-BETTER_AUTH_SECRET=your_secret_min_32_characters
-BETTER_AUTH_URL=http://localhost:3000
 FRONTEND_URL=http://localhost:5173
-GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your_client_secret
 VITE_SERVER_URL=http://localhost:3000
 VITE_GOOGLE_CLIENT=your_client_id.apps.googleusercontent.com
 VITE_GA_DRIVE_DIRECTORY=rysiu-dev
 VITE_GA_DRIVE_FILE=rysiu-dev-data.json
 ```
+
+There is no OAuth client secret and no auth secret: the browser obtains its Google
+token directly, and the backend has no session to sign.
+
+### Google Cloud setup
+
+One OAuth client (type: Web application) covers login and Drive:
+
+1. **Publish the app** — OAuth consent screen → *Publish app*. While it is in
+   *Testing*, Google expires consent after 7 days for any app requesting more than
+   name/email/profile.
+2. **Authorized JavaScript origins** — add your app's origin (e.g.
+   `http://localhost:5173`). Google Identity Services will not start without it.
+3. **Scopes** — `openid`, `email`, `profile`, and
+   `https://www.googleapis.com/auth/drive.file`. All non-sensitive, so only basic
+   verification applies and no security assessment is required.
 
 ### Project structure
 
