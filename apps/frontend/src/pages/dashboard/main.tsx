@@ -9,13 +9,13 @@ import ContentLoading from '@/components/loaders/content-loading.tsx';
 import { useOverviewData } from '@/features/overview/hooks/use-overview-data.tsx';
 
 export default function Page() {
-  const { profile, isLoading } = useOverviewData();
+  const { settings, isLoading } = useOverviewData();
 
   if (isLoading) {
     return <ContentLoading />;
   }
 
-  if (!profile?.currency || !profile?.strategy) {
+  if (!settings?.currency || !settings?.strategy) {
     return <SetUpPersonalPreferencesIndicator />;
   }
 

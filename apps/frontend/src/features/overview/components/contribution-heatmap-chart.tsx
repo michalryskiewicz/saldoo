@@ -103,7 +103,7 @@ export default function ContributionHeatmap() {
                   content={
                     <ChartTooltipContent
                       hideLabel
-                      formatter={(value, name, item, index) => {
+                      formatter={(_value, name, item, index) => {
                         if (index !== 1) {
                           return null;
                         }
@@ -119,7 +119,9 @@ export default function ContributionHeatmap() {
                               }
                             />
                             {i18n.t(
-                              `metrics.${chartConfig[name as keyof typeof chartConfig]?.label || name}`
+                              // Built from chart series names at runtime, so the key
+                              // cannot be narrowed to the translation union here.
+                              `metrics.${chartConfig[name as keyof typeof chartConfig]?.label || name}` as TranslationKey
                             )}
                             <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
                               {formatDate(
@@ -153,8 +155,13 @@ export default function ContributionHeatmap() {
                 <Scatter
                   dataKey="value"
                   data={contributionData}
-                  shape={(props) => {
-                    const { cx, cy, payload } = props;
+                  shape={(props: unknown) => {
+                    // Recharts types customised shapes as receiving `unknown`.
+                    const { cx, cy, payload } = props as {
+                      cx: number;
+                      cy: number;
+                      payload: { value: number };
+                    };
                     return (
                       <rect
                         x={cx - 6}

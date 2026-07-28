@@ -67,10 +67,10 @@ export const useOverviewData = () => {
 
   // Merge expenses into duties
   const dutiesWithExpense = duties.map((duty) => {
-    const expense = expensesWithTag?.find((expense) => expense.id === duty.expenseId) || undefined;
+    const expense = expensesWithTag?.find((expense) => expense.id === duty.expenseId);
     return {
       ...duty,
-      expense: expense || undefined,
+      expense: expense ?? null,
       price: expense?.expense || 0,
       currency: expense?.currency || 'EUR',
     };

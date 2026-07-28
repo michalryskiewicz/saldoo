@@ -94,6 +94,33 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
+/**
+ * What Recharts hands to tooltip and legend content at render time.
+ *
+ * Recharts 3 reads these from context and removed them from the components'
+ * declared props, so they have to be described here for the content components
+ * that still receive them.
+ */
+type ChartPayloadItem = {
+  name?: string | number;
+  dataKey?: string | number;
+  value?: number | string;
+  color?: string;
+  fill?: string;
+  payload?: Record<string, unknown> & { fill?: string };
+};
+
+type InjectedTooltipProps = {
+  active?: boolean;
+  payload?: ChartPayloadItem[];
+  label?: unknown;
+};
+
+type InjectedLegendProps = {
+  payload?: ChartPayloadItem[];
+  verticalAlign?: 'top' | 'middle' | 'bottom';
+};
+
 function ChartTooltipContent({
   active,
   payload,
@@ -109,7 +136,8 @@ function ChartTooltipContent({
   nameKey,
   labelKey,
 }: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-  React.ComponentProps<'div'> & {
+  React.ComponentProps<'div'> &
+  InjectedTooltipProps & {
     hideLabel?: boolean;
     hideIndicator?: boolean;
     indicator?: 'line' | 'dot' | 'dashed';
@@ -162,7 +190,7 @@ function ChartTooltipContent({
         {payload.map((item, index) => {
           const key = `${nameKey || item.name || item.dataKey || 'value'}`;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
-          const indicatorColor = color || item.payload.fill || item.color;
+          const indicatorColor = color || item.payload?.fill || item.color;
 
           return (
             <div
@@ -173,7 +201,10 @@ function ChartTooltipContent({
               )}
             >
               {formatter && item?.value !== undefined && item.name !== undefined ? (
-                formatter(item.value, item.name, item, index, item.payload)
+                // Recharts declares the fifth argument as the payload array, not the
+                // single datum shadcn used to pass here. No formatter in this app
+                // reads it, so the signature wins.
+                formatter(item.value, item.name, item, index, payload)
               ) : (
                 <>
                   {itemConfig?.icon ? (
@@ -238,7 +269,7 @@ function ChartLegendContent({
   nameKey,
   getLabel,
 }: React.ComponentProps<'div'> &
-  Pick<RechartsPrimitive.LegendProps, 'payload' | 'verticalAlign'> & {
+  InjectedLegendProps & {
     hideIcon?: boolean;
     nameKey?: string;
   } & { getLabel?: (item: unknown) => string }) {

@@ -72,7 +72,7 @@ export class ExchangeRatesRangeService {
       promises.push(
         prisma.exchangeRate.findMany({
           where: {
-            fromCurrency: fromCurrency as unknown as CURRENCY,
+            fromCurrency,
             toCurrency: CURRENCY.PLN,
             effectiveDate: {
               gte: new Date(fromDateISO),
@@ -89,7 +89,7 @@ export class ExchangeRatesRangeService {
       promises.push(
         prisma.exchangeRate.findMany({
           where: {
-            fromCurrency: toCurrency as unknown as CURRENCY,
+            fromCurrency: toCurrency,
             toCurrency: CURRENCY.PLN,
             effectiveDate: {
               gte: new Date(fromDateISO),
@@ -309,7 +309,7 @@ export class ExchangeRatesRangeService {
               // (fromCurrency, toCurrency, effectiveDate) makes this idempotent even
               // when two range requests overlap.
               const identity = {
-                fromCurrency: currency as unknown as CURRENCY,
+                fromCurrency: currency,
                 toCurrency: CURRENCY.PLN,
                 effectiveDate: new Date(r.effectiveDate),
               };

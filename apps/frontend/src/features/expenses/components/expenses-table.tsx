@@ -9,9 +9,13 @@ import { useState } from 'react';
 import { Cell, Header } from '@/components/tanstack-table';
 import { useListExpenses } from '@/features/expenses/hooks/use-list-expenses.tsx';
 import type { DBExpense } from '@/database/expenses.ts';
+import type { DBTag } from '@/database/tags.ts';
+
+/** A row as the table sees it: an expense with its tag joined in. */
+export type ExpenseRow = DBExpense & { tag?: DBTag };
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const columns: ColumnDef<DBExpense>[] = [
+export const columns: ColumnDef<ExpenseRow>[] = [
   {
     accessorKey: 'description',
     cell: ({ row }) => <Cell.Description id={row.original.id} name={row.original.description} />,
@@ -86,17 +90,16 @@ export const ExpensesTable = () => {
     return severityMatch && frequencyMatch;
   });
 
-  const totalRow = dataToTable.length
+  // A summary row rather than a stored expense, so it is shaped like one on purpose.
+  const totalRow: ExpenseRow[] = dataToTable.length
     ? [
         {
           id: TOTAL,
+          createdAt: new Date(),
           description: 'TOTAL',
           expense: dataToTable.reduce((acc, curr) => acc + (curr.expense || 0), 0),
-          currency: dataToTable?.[0]?.currency,
+          currency: dataToTable[0].currency,
           severity: null,
-          execution: undefined,
-          frequency: undefined,
-          tags: [],
         },
       ]
     : [];
