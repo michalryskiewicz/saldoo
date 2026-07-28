@@ -97,7 +97,7 @@ export function ChartAreaInteractive() {
                         <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
                           {value}
                           <span className="text-muted-foreground font-normal">
-                            {data?.profile?.currency || ''}
+                            {data?.settings?.currency || ''}
                           </span>
                         </div>
                         {/* Add this after the last item */}
@@ -107,7 +107,7 @@ export function ChartAreaInteractive() {
                             <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
                               {formatNumber(item.payload.totalProfits - item.payload.totalExpense)}
                               <span className="text-muted-foreground font-normal">
-                                {data?.profile?.currency || ''}
+                                {data?.settings?.currency || ''}
                               </span>
                             </div>
                           </div>

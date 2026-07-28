@@ -79,7 +79,7 @@ export function ChartRadarDots() {
                           <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
                             {value}
                             <span className="text-muted-foreground font-normal">
-                              {data?.profile?.currency}
+                              {data?.settings?.currency}
                             </span>
                           </div>
                         </div>
@@ -107,7 +107,7 @@ export function ChartRadarDots() {
         <div className="flex items-center gap-2 leading-none font-medium">
           {isEmpty
             ? i18n.t('empty_state.no_dominant_expense')
-            : `${i18n.t('maximum_expense')} ${maxItem!.tag} (${formatMoney(maxItem!.total || 0, data?.profile?.currency ?? 'PLN')})`}
+            : `${i18n.t('maximum_expense')} ${maxItem!.tag} (${formatMoney(maxItem!.total || 0, data?.settings?.currency ?? 'PLN')})`}
         </div>
         <div className="text-muted-foreground flex items-center gap-2 leading-none">
           {`${formatMonth(new Date().getMonth())} ${new Date().getFullYear()}`}

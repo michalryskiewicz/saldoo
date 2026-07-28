@@ -1,19 +1,20 @@
-import { useGetProfileQuery } from '@/store/profile-slice.api.ts';
 import type { PropsWithChildren } from 'react';
 import { OnboardingPage } from '@/features/onboarding/onboarding-page.tsx';
 import { PageLoader } from '@/components/loaders/page-loader.tsx';
+import { useSettings } from '@/features/settings/use-settings.ts';
+import { needsOnboarding } from '@/database/settings.service.ts';
 
 export const OnboardingWrapper = ({ children }: PropsWithChildren) => {
-  const { data, isLoading } = useGetProfileQuery();
+  const { settings, isLoading } = useSettings();
 
   // ===========================================================================
   // Return
   // ===========================================================================
-  if (isLoading) {
+  if (isLoading || !settings) {
     return <PageLoader title="metrics.checking-actions" />;
   }
 
-  if (data?.requiredActions?.includes('onboarding')) {
+  if (needsOnboarding(settings)) {
     return <OnboardingPage />;
   }
 

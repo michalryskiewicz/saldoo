@@ -5,6 +5,7 @@ import type { DBMeta } from '@/database/meta.ts';
 import type { DBDuty } from '@/database/duty.ts';
 import type { DBTransaction } from '@/database/transactions.ts';
 import type { DBTag } from '@/database/tags.ts';
+import type { DBSettings } from '@/database/settings.ts';
 
 class AppDB extends Dexie {
   expenses!: Table<DBExpense, string>;
@@ -13,6 +14,7 @@ class AppDB extends Dexie {
   transactions!: Table<DBTransaction, string>;
   tags!: Table<DBTag, string>;
   meta!: Table<DBMeta, unknown>;
+  settings!: Table<DBSettings, string>;
 
   constructor() {
     super('saldoo');
@@ -41,6 +43,22 @@ class AppDB extends Dexie {
         'id, createdAt, updatedAt, transactionId, sourceBank, amount, currency, transactionDate, description, &hash, expenseId, strategyPart, tagId, duties',
       tags: 'id, createdAt, updatedAt, userId, &name',
       meta: '&key',
+    });
+
+    // Version 3 moves currency, budgeting strategy and pending actions off the
+    // server and into the encrypted backup.
+    this.version(3).stores({
+      expenses:
+        'id, createdAt, updatedAt, userId, description, expense, currency, severity, frequency, execution, strategyPart, tagId',
+      profits:
+        'id, createdAt, updatedAt, userId, description, profit, currency, frequency, execution',
+      duties:
+        'id, createdAt, updatedAt, resolved, ignored, frequency, executionDate, expenseId, transactionId, &hash',
+      transactions:
+        'id, createdAt, updatedAt, transactionId, sourceBank, amount, currency, transactionDate, description, &hash, expenseId, strategyPart, tagId, duties',
+      tags: 'id, createdAt, updatedAt, userId, &name',
+      meta: '&key',
+      settings: '&id',
     });
   }
 }
@@ -71,6 +89,7 @@ export type DatabaseType = {
       TableInJSON<DBTransaction, 'transactions'>,
       TableInJSON<DBTag, 'tags'>,
       TableInJSON<DBMeta, 'meta'>,
+      TableInJSON<DBSettings, 'settings'>,
     ];
   };
   name: string;
