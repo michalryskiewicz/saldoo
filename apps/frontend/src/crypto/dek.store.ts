@@ -1,4 +1,4 @@
-import Dexie, { type Table } from 'dexie';
+import { createVaultKeyDb, type VaultKeyDB } from '@/crypto/vault-key-db.ts';
 
 /** Per-device cache of the unlocked data key, so unlocking is once per device. */
 export interface DekStore {
@@ -9,24 +9,7 @@ export interface DekStore {
 
 const SINGLETON_ID = 'dek';
 
-type StoredKey = { id: string; key: CryptoKey };
-
-/**
- * Deliberately its own Dexie database rather than a table on the app database:
- * `exportDB` serialises every table it is given, so a data key living next to the
- * app's tables would be written straight into the backup on Drive.
- */
-class VaultKeyDB extends Dexie {
-  keys!: Table<StoredKey, string>;
-
-  constructor() {
-    super('saldoo-vault');
-    this.version(1).stores({ keys: '&id' });
-  }
-}
-
-export function createIndexedDbDekStore(): DekStore {
-  const database = new VaultKeyDB();
+export function createIndexedDbDekStore(database: VaultKeyDB = createVaultKeyDb()): DekStore {
 
   return {
     async read() {

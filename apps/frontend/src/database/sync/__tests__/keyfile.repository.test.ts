@@ -4,14 +4,25 @@ import {
   DriveKeyfileRepository,
   KEYFILE_NAME,
 } from '../keyfile.repository.ts';
-import type { DriveFileGateway } from '../drive-file.gateway.ts';
+import { type DriveFileGateway, DriveUnreachableError } from '../drive-file.gateway.ts';
 import { createVault } from '@/crypto/vault.service.ts';
 
 function fakeDrive(files: Record<string, string> = {}): DriveFileGateway {
   return {
-    readFile: vi.fn(async (name: string) => files[name] ?? null),
+    readFile: vi.fn(async (name: string) => files[name] ?? ''),
     writeFile: vi.fn(async (name: string, content: string) => {
       files[name] = content;
+    }),
+  };
+}
+
+function unreachableDrive(): DriveFileGateway {
+  return {
+    readFile: vi.fn(async () => {
+      throw new DriveUnreachableError();
+    }),
+    writeFile: vi.fn(async () => {
+      throw new DriveUnreachableError();
     }),
   };
 }
@@ -29,13 +40,21 @@ describe('DriveKeyfileRepository', () => {
   it('reports no vault when the keyfile has never been written', async () => {
     const repository = new DriveKeyfileRepository(fakeDrive());
 
-    await expect(repository.load()).resolves.toBeNull();
+    await expect(repository.load()).resolves.toEqual({ status: 'absent' });
   });
 
   it('reports no vault when Drive returns the freshly created empty file', async () => {
     const repository = new DriveKeyfileRepository(fakeDrive({ [KEYFILE_NAME]: '   ' }));
 
-    await expect(repository.load()).resolves.toBeNull();
+    await expect(repository.load()).resolves.toEqual({ status: 'absent' });
+  });
+
+  it('reports the keyfile as unreachable rather than absent when Drive cannot be read', async () => {
+    // The whole point of the third state: "absent" would clear the cached data key
+    // and offer a fresh vault over data this device simply could not look at.
+    const repository = new DriveKeyfileRepository(unreachableDrive());
+
+    await expect(repository.load()).resolves.toEqual({ status: 'unreachable' });
   });
 
   it('round-trips a keyfile through Drive', async () => {
@@ -44,7 +63,7 @@ describe('DriveKeyfileRepository', () => {
 
     await repository.save(keyfile);
 
-    await expect(repository.load()).resolves.toEqual(keyfile);
+    await expect(repository.load()).resolves.toEqual({ status: 'present', keyfile });
   });
 
   it('writes to the agreed file name so other devices find it', async () => {
@@ -54,6 +73,12 @@ describe('DriveKeyfileRepository', () => {
     await repository.save(await aKeyfile());
 
     expect(drive.writeFile).toHaveBeenCalledWith(KEYFILE_NAME, expect.any(String));
+  });
+
+  it('lets a failed publish surface instead of reporting success', async () => {
+    const repository = new DriveKeyfileRepository(unreachableDrive());
+
+    await expect(repository.save(await aKeyfile())).rejects.toBeInstanceOf(DriveUnreachableError);
   });
 
   it('refuses to treat unparseable content as an absent vault', async () => {

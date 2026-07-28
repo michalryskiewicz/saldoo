@@ -45,6 +45,17 @@ export function VaultGate({ children }: PropsWithChildren) {
     );
   }
 
+  // Not an error: this device has simply never seen the keyfile, and there is no
+  // safe verdict to reach without Drive. Reconnecting resolves it.
+  if (status === 'unavailable') {
+    return (
+      <VaultShellView
+        title="vault.unavailable_title"
+        description="vault.unavailable_description"
+      />
+    );
+  }
+
   if (status === 'failed') {
     return (
       <VaultShellView title="vault.failed_title" description="vault.failed_description">

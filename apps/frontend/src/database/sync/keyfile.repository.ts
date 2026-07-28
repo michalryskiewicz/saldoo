@@ -1,5 +1,9 @@
-import type { DriveFileGateway } from '@/database/sync/drive-file.gateway.ts';
+import {
+  type DriveFileGateway,
+  DriveUnreachableError,
+} from '@/database/sync/drive-file.gateway.ts';
 import type { Keyfile, Keyslot } from '@/crypto/vault.service.ts';
+import type { KeyfileLookup } from '@/crypto/vault-manager.ts';
 
 export const KEYFILE_NAME = 'saldoo-keys.json';
 
@@ -49,13 +53,18 @@ export class DriveKeyfileRepository {
     private readonly fileName: string = KEYFILE_NAME
   ) {}
 
-  /**
-   * @returns the keyfile, or `null` only when no vault has ever been created.
-   * @throws {CorruptKeyfileError} when a keyfile is present but unusable.
-   */
-  async load(): Promise<Keyfile | null> {
-    const raw = await this.drive.readFile(this.fileName);
-    if (raw === null || raw.trim() === '') return null;
+  /** @throws {CorruptKeyfileError} when a keyfile is present but unusable. */
+  async load(): Promise<KeyfileLookup> {
+    let raw: string;
+    try {
+      raw = await this.drive.readFile(this.fileName);
+    } catch (error) {
+      if (error instanceof DriveUnreachableError) return { status: 'unreachable' };
+
+      throw error;
+    }
+
+    if (raw.trim() === '') return { status: 'absent' };
 
     let parsed: unknown;
     try {
@@ -66,7 +75,7 @@ export class DriveKeyfileRepository {
 
     if (!isKeyfile(parsed)) throw new CorruptKeyfileError();
 
-    return parsed;
+    return { status: 'present', keyfile: parsed };
   }
 
   async save(keyfile: Keyfile): Promise<void> {

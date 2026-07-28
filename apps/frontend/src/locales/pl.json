@@ -26,7 +26,16 @@
     "sync_failed_title": "Wstrzymaliśmy synchronizację",
     "sync_failed_description": "Kopia na Twoim Google Drive została zaszyfrowana innym kluczem. Nie nadpisujemy jej, żeby nie stracić danych — odblokuj właściwym hasłem lub kodem awaryjnym.",
     "failed_title": "Nie udało się otworzyć danych",
-    "failed_description": "Nie mogliśmy sprawdzić Twojego zabezpieczenia na Google Drive. Odśwież stronę i spróbuj ponownie."
+    "failed_description": "Nie mogliśmy sprawdzić Twojego zabezpieczenia na Google Drive. Odśwież stronę i spróbuj ponownie.",
+    "unavailable_title": "Potrzebujemy jednorazowo połączenia",
+    "unavailable_description": "To pierwsze uruchomienie Saldoo na tym urządzeniu, a Twój klucz leży na Google Drive. Połącz się z internetem — od następnego razu aplikacja zadziała też offline."
+  },
+  "sync": {
+    "idle": "Synchronizacja",
+    "syncing": "Synchronizuję…",
+    "synced": "Zsynchronizowano",
+    "offline": "Offline — zmiany zapisane na tym urządzeniu",
+    "blocked": "Synchronizacja wstrzymana"
   },
   "onboarding": {
     "INTRODUCTION": "Wprowadzenie",
