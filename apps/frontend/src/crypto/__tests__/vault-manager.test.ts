@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { VaultManager, type KeyfileRepository } from '../vault-manager.ts';
+import { VaultManager, type KeyfileLookup, type KeyfileRepository } from '../vault-manager.ts';
 import { VaultSession } from '../vault-session.ts';
 import type { DekStore } from '../dek.store.ts';
+import type { KeyfileCache } from '../keyfile-cache.store.ts';
 import { createVault, VaultUnlockError, type Keyfile } from '../vault.service.ts';
 
 const PASSPHRASE = 'a decent passphrase';
@@ -11,10 +12,20 @@ const FAST_VAULT: typeof createVault = (options) =>
 function fakeKeyfiles(initial: Keyfile | null = null) {
   let stored = initial;
   return {
-    load: vi.fn(async () => stored),
+    load: vi.fn(
+      async (): Promise<KeyfileLookup> =>
+        stored ? { status: 'present', keyfile: stored } : { status: 'absent' }
+    ),
     save: vi.fn(async (keyfile: Keyfile) => {
       stored = keyfile;
     }),
+  } satisfies KeyfileRepository;
+}
+
+function unreachableKeyfiles() {
+  return {
+    load: vi.fn(async (): Promise<KeyfileLookup> => ({ status: 'unreachable' })),
+    save: vi.fn(async () => {}),
   } satisfies KeyfileRepository;
 }
 
@@ -31,13 +42,31 @@ function fakeDekStore(initial: CryptoKey | null = null) {
   } satisfies DekStore;
 }
 
-function build(keyfiles = fakeKeyfiles(), dekStore = fakeDekStore()) {
+function fakeKeyfileCache(initial: Keyfile | null = null) {
+  let stored = initial;
+  return {
+    read: vi.fn(async () => stored),
+    write: vi.fn(async (keyfile: Keyfile) => {
+      stored = keyfile;
+    }),
+    clear: vi.fn(async () => {
+      stored = null;
+    }),
+  } satisfies KeyfileCache;
+}
+
+function build(
+  keyfiles = fakeKeyfiles(),
+  dekStore = fakeDekStore(),
+  keyfileCache = fakeKeyfileCache()
+) {
   const session = new VaultSession();
   return {
     keyfiles,
     dekStore,
+    keyfileCache,
     session,
-    manager: new VaultManager(keyfiles, dekStore, session, FAST_VAULT),
+    manager: new VaultManager(keyfiles, dekStore, session, keyfileCache, FAST_VAULT),
   };
 }
 
@@ -97,6 +126,107 @@ describe('VaultManager.bootstrap', () => {
   });
 });
 
+describe('VaultManager.bootstrap when Drive cannot be reached', () => {
+  it('unlocks from cached keyfile and cached key', async () => {
+    const { keyfile, dek } = await anExistingVault();
+    const { manager, session } = build(
+      unreachableKeyfiles(),
+      fakeDekStore(dek),
+      fakeKeyfileCache(keyfile)
+    );
+
+    await expect(manager.bootstrap()).resolves.toBe('unlocked');
+    expect(session.requireDek()).toBe(dek);
+  });
+
+  it('asks for the passphrase when only the keyfile is cached', async () => {
+    // Unwrapping is pure crypto, so a cached keyfile is enough to unlock offline.
+    const { keyfile } = await anExistingVault();
+    const { manager } = build(unreachableKeyfiles(), fakeDekStore(), fakeKeyfileCache(keyfile));
+
+    await expect(manager.bootstrap()).resolves.toBe('locked');
+  });
+
+  it('reports the vault unavailable when this device has never seen a keyfile', async () => {
+    const { manager } = build(unreachableKeyfiles(), fakeDekStore(), fakeKeyfileCache());
+
+    await expect(manager.bootstrap()).resolves.toBe('unavailable');
+  });
+
+  it('never clears the cached key on an answer it could not obtain', async () => {
+    const { dek } = await anExistingVault();
+    const dekStore = fakeDekStore(dek);
+    const { manager } = build(unreachableKeyfiles(), dekStore, fakeKeyfileCache());
+
+    await manager.bootstrap();
+
+    expect(dekStore.clear).not.toHaveBeenCalled();
+    await expect(dekStore.read()).resolves.toBe(dek);
+  });
+
+  it('never offers to build a fresh vault over data it merely could not see', async () => {
+    const { keyfile, dek } = await anExistingVault();
+    const { manager } = build(
+      unreachableKeyfiles(),
+      fakeDekStore(dek),
+      fakeKeyfileCache(keyfile)
+    );
+
+    await expect(manager.bootstrap()).resolves.not.toBe('needs-setup');
+  });
+});
+
+describe('VaultManager keyfile caching', () => {
+  it('caches the keyfile Drive returned so the next start can be offline', async () => {
+    const { keyfile } = await anExistingVault();
+    const { manager, keyfileCache } = build(fakeKeyfiles(keyfile));
+
+    await manager.bootstrap();
+
+    expect(keyfileCache.write).toHaveBeenCalledWith(keyfile);
+  });
+
+  it('caches the keyfile it publishes at setup', async () => {
+    const { manager, keyfileCache } = build();
+
+    await manager.setUp(PASSPHRASE);
+
+    expect(keyfileCache.write).toHaveBeenCalledOnce();
+  });
+
+  it('forgets the cached keyfile once Drive says the vault is gone', async () => {
+    const { keyfile } = await anExistingVault();
+    const { manager, keyfileCache } = build(
+      fakeKeyfiles(null),
+      fakeDekStore(),
+      fakeKeyfileCache(keyfile)
+    );
+
+    await manager.bootstrap();
+
+    expect(keyfileCache.clear).toHaveBeenCalled();
+  });
+
+  it('unlocks offline against the cached keyfile', async () => {
+    const { keyfile } = await anExistingVault();
+    const { manager, session } = build(
+      unreachableKeyfiles(),
+      fakeDekStore(),
+      fakeKeyfileCache(keyfile)
+    );
+
+    await manager.unlock({ kind: 'passphrase', passphrase: PASSPHRASE });
+
+    expect(session.isUnlocked()).toBe(true);
+  });
+
+  it('refuses to unlock offline with no cached keyfile', async () => {
+    const { manager } = build(unreachableKeyfiles(), fakeDekStore(), fakeKeyfileCache());
+
+    await expect(manager.unlock({ kind: 'passphrase', passphrase: PASSPHRASE })).rejects.toThrow();
+  });
+});
+
 describe('VaultManager.setUp', () => {
   it('publishes the keyfile and unlocks the session', async () => {
     const { manager, keyfiles, session } = build();
@@ -113,8 +243,11 @@ describe('VaultManager.setUp', () => {
     const recoveryCode = await manager.setUp(PASSPHRASE);
 
     const published = await keyfiles.load();
-    expect(published).not.toBeNull();
-    const reopened = build(fakeKeyfiles(published), fakeDekStore());
+    expect(published.status).toBe('present');
+    const reopened = build(
+      fakeKeyfiles(published.status === 'present' ? published.keyfile : null),
+      fakeDekStore()
+    );
     await expect(reopened.manager.unlock({ kind: 'recovery-code', recoveryCode })).resolves.not.toThrow();
   });
 

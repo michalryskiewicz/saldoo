@@ -1,46 +1,49 @@
-import { type PropsWithChildren, useEffect, useRef, useState } from 'react';
-import { PageLoader } from '@/components/loaders/page-loader.tsx';
+import { type PropsWithChildren, useEffect, useSyncExternalStore } from 'react';
 import { VaultShellView } from '@/features/vault/views/vault-shell-view.tsx';
 import { vaultDriveSync } from '@/database/sync/sync.container.ts';
+import { decideSyncStatus } from '@/database/sync/sync-outcome.service.ts';
+import { syncStatusStore } from '@/database/sync/sync-status.store.ts';
 import i18n from '@/i18n.ts';
 
 /**
- * Brings this device level with the encrypted backup on Drive before the app is
- * shown. Requires an unlocked vault, so it must sit inside `VaultGate`.
+ * Brings this device level with the encrypted backup on Drive, in the background.
+ *
+ * The local database is the source of truth, so the app renders straight away and
+ * the sync only reports how far it got. It refuses to continue for exactly one
+ * class of failure — see `decideSyncStatus`. Requires an unlocked vault, so it
+ * must sit inside `VaultGate`.
  */
 export const DataSyncWrapper = ({ children }: PropsWithChildren) => {
-  const [isSyncing, setIsSyncing] = useState(true);
-  const [failed, setFailed] = useState(false);
-  const hasSyncedRef = useRef(false);
-
+  const status = useSyncExternalStore(
+    (listener) => syncStatusStore.subscribe(listener),
+    () => syncStatusStore.get()
+  );
   useEffect(() => {
-    // Guarded so a re-render (or StrictMode's double invoke) cannot create the
-    // Drive folder/file twice.
-    if (hasSyncedRef.current) return;
-    hasSyncedRef.current = true;
+    const sync = async () => {
+      // The status is the record of a sync being in flight, so it is also the
+      // guard: a re-render, StrictMode's double invoke, or a burst of `online`
+      // events must not create the Drive folder/file twice.
+      if (syncStatusStore.get() === 'syncing') return;
+      syncStatusStore.set('syncing');
 
-    let cancelled = false;
-    vaultDriveSync
-      .syncNewestDB()
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      })
-      .finally(() => {
-        if (!cancelled) setIsSyncing(false);
-      });
+      const attempt = await vaultDriveSync
+        .syncNewestDB()
+        .then(() => ({ ok: true }) as const)
+        .catch((error: unknown) => ({ ok: false, error }) as const);
 
-    return () => {
-      cancelled = true;
+      syncStatusStore.set(decideSyncStatus(attempt));
     };
+
+    void sync();
+
+    // Without this a device that started offline stays stale until a reload.
+    const resync = () => void sync();
+    window.addEventListener('online', resync);
+
+    return () => window.removeEventListener('online', resync);
   }, []);
 
-  if (isSyncing) {
-    return <PageLoader title="metrics.syncing_with_drive" />;
-  }
-
-  // Refusing to continue is deliberate: carrying on would let a later export
-  // overwrite a backup whose key the user may still be able to recover.
-  if (failed) {
+  if (status === 'blocked') {
     return (
       <VaultShellView title="vault.sync_failed_title" description="vault.sync_failed_description">
         <p role="alert" className="text-destructive text-sm font-medium">

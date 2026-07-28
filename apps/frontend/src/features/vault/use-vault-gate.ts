@@ -8,6 +8,7 @@ export type VaultGateStatus =
   | 'showing-recovery-code'
   | 'locked'
   | 'unlocked'
+  | 'unavailable'
   | 'failed';
 
 export function useVaultGate() {
