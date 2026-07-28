@@ -13,13 +13,6 @@ export type ConfigType = {
   };
   dateFormat: string;
 
-  driveToken: {
-    name: string;
-    expires: number;
-    secure: boolean;
-    sameSite: 'strict' | 'Strict' | 'lax' | 'Lax' | 'none' | 'None' | undefined;
-  };
-
   dataSourceFile: string;
   dataSourceDirectory: string;
 
@@ -45,16 +38,6 @@ export const CONFIG: ConfigType = {
     method: 'google',
     skip: false,
     redirectPath: paths.dashboard.root,
-  },
-
-  /**
-   * Drive token information to properly set cookie on client side of app
-   */
-  driveToken: {
-    name: 'access_token',
-    expires: 1 / 24, // 1 hour,
-    secure: true,
-    sameSite: 'strict',
   },
 
   /**

@@ -10,6 +10,7 @@ import ContentLoading from '@/components/loaders/content-loading.tsx';
 import { MetaDataWrapper } from '@/routes/components';
 import { DataSyncWrapper } from '@/database/sync/data-sync-wrapper.tsx';
 import { OnboardingWrapper } from '@/features/onboarding/onboarding-wrapper.tsx';
+import { VaultGate } from '@/features/vault/vault-gate.tsx';
 
 const IndexPage = lazy(() => import('@/pages/dashboard/main.tsx'));
 const DutiesPage = lazy(() => import('@/pages/dashboard/duties.tsx'));
@@ -29,13 +30,15 @@ function SuspenseOutlet() {
 }
 
 const dashboardLayout = () => (
-  <DataSyncWrapper>
-    <OnboardingWrapper>
-      <MiniDrawer>
-        <SuspenseOutlet />
-      </MiniDrawer>
-    </OnboardingWrapper>
-  </DataSyncWrapper>
+  <VaultGate>
+    <DataSyncWrapper>
+      <OnboardingWrapper>
+        <MiniDrawer>
+          <SuspenseOutlet />
+        </MiniDrawer>
+      </OnboardingWrapper>
+    </DataSyncWrapper>
+  </VaultGate>
 );
 
 export const dashboardRoutes: RouteObject[] = [

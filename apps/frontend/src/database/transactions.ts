@@ -6,7 +6,7 @@ import { uniqBy } from 'lodash';
 import type { DBExpense } from '@/database/expenses.ts';
 import type { Currency, STRATEGY_PART } from '@/constant.ts';
 import { setLastUpdated } from '@/database/meta.ts';
-import { googleDriveSync } from '@/database/sync/google-drive-sync.ts';
+import { vaultDriveSync } from '@/database/sync/sync.container.ts';
 import type { DBTag } from '@/database/tags.ts';
 
 export type DBTransaction = {
@@ -49,7 +49,7 @@ export const addDBTransactions = async (bank: string, rows: unknown[][]) => {
 
     console.log('ADDED: ', newUniqueTransactions.length, ' transactions');
     await setLastUpdated();
-    await googleDriveSync.exportToDrive();
+    await vaultDriveSync.exportToDrive();
     toast(i18n.t('success.upload-transaction'));
   } catch (e) {
     console.error(e);
@@ -76,7 +76,7 @@ export const updateDBTransactions = async (payload: UpdateDBTransactionReq[]) =>
     await resolveDutiesForExpense(expenseId as string);
   }
   await setLastUpdated();
-  await googleDriveSync.exportToDrive();
+  await vaultDriveSync.exportToDrive();
 };
 
 /**
@@ -122,5 +122,5 @@ export const resolveDutiesForExpense = async (expenseId: string) => {
     });
   }
   await setLastUpdated();
-  await googleDriveSync.exportToDrive();
+  await vaultDriveSync.exportToDrive();
 };

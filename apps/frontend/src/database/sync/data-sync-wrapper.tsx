@@ -1,35 +1,54 @@
-import { type PropsWithChildren, useRef, useState } from 'react';
-import { GoogleOAuthProvider } from '@react-oauth/google';
-import { CONFIG } from '@/global-config.ts';
-import { googleDriveSync } from '@/database/sync/google-drive-sync.ts';
-import { useGetProfileQuery } from '@/store/profile-slice.api.ts';
+import { type PropsWithChildren, useEffect, useRef, useState } from 'react';
 import { PageLoader } from '@/components/loaders/page-loader.tsx';
+import { VaultShellView } from '@/features/vault/views/vault-shell-view.tsx';
+import { vaultDriveSync } from '@/database/sync/sync.container.ts';
+import i18n from '@/i18n.ts';
 
+/**
+ * Brings this device level with the encrypted backup on Drive before the app is
+ * shown. Requires an unlocked vault, so it must sit inside `VaultGate`.
+ */
 export const DataSyncWrapper = ({ children }: PropsWithChildren) => {
-  const { data, isLoading } = useGetProfileQuery();
-  const [loading, setLoading] = useState<boolean>(true);
-  // track whether we already performed the initial sync to avoid duplicate folder/file creation
-  const initialSyncedRef = useRef(false);
+  const [isSyncing, setIsSyncing] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const hasSyncedRef = useRef(false);
 
-  // Always keep encryption key in sync with profile on each render
-  if (data?.encryptionKey) {
-    googleDriveSync.setEncryptionKey(data.encryptionKey);
-  } else {
-    googleDriveSync.clearEncryptionKey();
-  }
+  useEffect(() => {
+    // Guarded so a re-render (or StrictMode's double invoke) cannot create the
+    // Drive folder/file twice.
+    if (hasSyncedRef.current) return;
+    hasSyncedRef.current = true;
 
-  // Start the (potentially-creating) sync only once, after profile finished loading
-  if (!initialSyncedRef.current && !isLoading) {
-    initialSyncedRef.current = true;
-    (async () => {
-      await googleDriveSync.syncNewestDB();
-      setLoading(false);
-    })();
-  }
+    let cancelled = false;
+    vaultDriveSync
+      .syncNewestDB()
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      })
+      .finally(() => {
+        if (!cancelled) setIsSyncing(false);
+      });
 
-  if (loading || isLoading) {
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (isSyncing) {
     return <PageLoader title="metrics.syncing_with_drive" />;
   }
 
-  return <GoogleOAuthProvider clientId={CONFIG.googleClientId}>{children}</GoogleOAuthProvider>;
+  // Refusing to continue is deliberate: carrying on would let a later export
+  // overwrite a backup whose key the user may still be able to recover.
+  if (failed) {
+    return (
+      <VaultShellView title="vault.sync_failed_title" description="vault.sync_failed_description">
+        <p role="alert" className="text-destructive text-sm font-medium">
+          {i18n.t('vault.sync_failed_description')}
+        </p>
+      </VaultShellView>
+    );
+  }
+
+  return children;
 };

@@ -1,9 +1,4 @@
-import Cookies from 'js-cookie';
 import { CONFIG } from '@/global-config.ts';
-
-export function getAccessTokenFromCookies() {
-  return Cookies.get(CONFIG.driveToken.name) || null;
-}
 
 export async function getOrCreateSaldooFolderId(accessToken: string): Promise<string | null> {
   // Szukaj folderu saldoo
@@ -93,32 +88,3 @@ export async function deleteFileFromDrive(accessToken: string, fileId: string) {
   });
 }
 
-export async function isGoogleDriveTokenValid(): Promise<boolean> {
-  const token = getAccessTokenFromCookies();
-  if (!token) return false;
-  try {
-    const res = await fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-export const saveFileToGoogleDrive = async () => {
-  const accessToken = getAccessTokenFromCookies();
-  if (!accessToken) {
-    console.error('No access token found');
-    return;
-  }
-  const fileId = await getOrCreateFileIdInSaldooFolder(accessToken, CONFIG.dataSourceFile);
-  if (!fileId) {
-    console.error('Could not get or create file in saldoo folder');
-    return;
-  }
-  const fileContent = { hello: 'Hello from your app!' };
-  await writeFileToDrive(accessToken, fileId, JSON.stringify(fileContent));
-  console.log('File created/updated in Google Drive');
-};

@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { ExpenseCreateType } from '@/features/expenses/components/expenses-create.tsx';
 import { toast } from 'sonner';
 import i18n from '@/i18n.ts';
-import { googleDriveSync } from '@/database/sync/google-drive-sync.ts';
+import { vaultDriveSync } from '@/database/sync/sync.container.ts';
 import { setLastUpdated } from '@/database/meta.ts';
 
 export type DBExpense = {
@@ -34,7 +34,7 @@ export const addDBExpense = async (expense: ExpenseCreateType) => {
       strategyPart: expense.strategyPart as STRATEGY_PART,
     });
     await setLastUpdated();
-    await googleDriveSync.exportToDrive();
+    await vaultDriveSync.exportToDrive();
     toast(i18n.t('success.create-expense'));
   } catch (e) {
     console.error(e);
@@ -53,7 +53,7 @@ export const updateDBExpense = async (id: string, expense: ExpenseCreateType) =>
       strategyPart: expense.strategyPart as STRATEGY_PART,
     });
     await setLastUpdated();
-    await googleDriveSync.exportToDrive();
+    await vaultDriveSync.exportToDrive();
     toast(i18n.t('success.update-expense'));
   } catch (e) {
     console.error(e);
@@ -65,7 +65,7 @@ export const deleteDBExpense = async (id: string) => {
   try {
     await db.expenses.delete(id);
     await setLastUpdated();
-    await googleDriveSync.exportToDrive();
+    await vaultDriveSync.exportToDrive();
     toast(i18n.t('success.deleted-expense'));
   } catch (e) {
     console.error(e);

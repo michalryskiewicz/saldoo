@@ -1,25 +1,21 @@
-import { useGoogleLogin } from '@react-oauth/google';
 import { Button } from '@/components/ui/button.tsx';
-import { CONFIG, GOOGLE_ENDPOINTS } from '@/global-config.ts';
-import Cookies from 'js-cookie';
+import { driveTokenService } from '@/auth/google/drive-token.ts';
 import { useGoogleDriveAuthStatus } from '@/components/google-drive/use-google-drive-auth-status.tsx';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip.tsx';
 import { cn } from '@/lib/utils.ts';
 import i18n from '@/i18n.ts';
 
+/**
+ * Fallback for the rare case where Google will not renew the Drive token silently —
+ * normally the connection is kept alive without any interaction.
+ */
 export function GoogleDriveButton() {
-  const login = useGoogleLogin({
-    scope: GOOGLE_ENDPOINTS.LOGIN_DRIVE,
-    onSuccess: (tokenResponse) => {
-      Cookies.set(CONFIG.driveToken.name, tokenResponse.access_token, {
-        expires: CONFIG.driveToken.expires,
-        secure: CONFIG.driveToken.secure,
-        sameSite: CONFIG.driveToken.sameSite,
-      });
-      window.location.reload();
-    },
-  });
   const isLoggedIn = useGoogleDriveAuthStatus();
+
+  const login = async () => {
+    await driveTokenService.connect();
+    window.location.reload();
+  };
 
   return (
     <Tooltip>
@@ -27,7 +23,11 @@ export function GoogleDriveButton() {
         <Button
           variant="outline"
           size="icon"
-          aria-label="Submit"
+          aria-label={
+            isLoggedIn
+              ? i18n.t('metrics.google_drive_in_sync')
+              : i18n.t('metrics.need_to_sync_with_google_drive')
+          }
           onClick={() => login()}
           className={cn(
             ' cursor-pointer  text-white px-4 py-2 rounded',
