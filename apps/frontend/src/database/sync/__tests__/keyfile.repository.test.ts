@@ -9,7 +9,7 @@ import { createVault } from '@/crypto/vault.service.ts';
 
 function fakeDrive(files: Record<string, string> = {}): DriveFileGateway {
   return {
-    readFile: vi.fn(async (name: string) => files[name] ?? ''),
+    readFile: vi.fn(async (name: string) => files[name] ?? null),
     writeFile: vi.fn(async (name: string, content: string) => {
       files[name] = content;
     }),
@@ -43,10 +43,13 @@ describe('DriveKeyfileRepository', () => {
     await expect(repository.load()).resolves.toEqual({ status: 'absent' });
   });
 
-  it('reports no vault when Drive returns the freshly created empty file', async () => {
+  it('refuses to treat an empty keyfile as an absent vault', async () => {
+    // An empty keyfile is a half-finished write, not a fresh account. Reading it as
+    // "absent" clears this device's data key and offers a new vault, whose first
+    // export overwrites the backup the real keyfile still opens.
     const repository = new DriveKeyfileRepository(fakeDrive({ [KEYFILE_NAME]: '   ' }));
 
-    await expect(repository.load()).resolves.toEqual({ status: 'absent' });
+    await expect(repository.load()).rejects.toBeInstanceOf(CorruptKeyfileError);
   });
 
   it('reports the keyfile as unreachable rather than absent when Drive cannot be read', async () => {

@@ -1,8 +1,10 @@
 import {
-  getOrCreateFileIdInSaldooFolder,
+  createFileInSaldooFolder,
+  findFilesInSaldooFolder,
   readFileFromDrive,
   writeFileToDrive,
 } from '@/database/sync/googleDriveUtils.ts';
+import { selectDriveFile } from '@/database/sync/drive-file-selection.service.ts';
 
 /**
  * The narrow slice of Drive the sync layer needs, named by file rather than by id
@@ -10,10 +12,12 @@ import {
  */
 export interface DriveFileGateway {
   /**
-   * @returns the file's contents, empty when nothing has been stored yet.
-   * @throws {DriveUnreachableError} rather than reporting a failed read as empty.
+   * @returns the file's contents, or `null` when Drive authoritatively holds no
+   * such file. An empty string means the file exists and is empty — a different
+   * fact, and never on its own evidence of a fresh account.
+   * @throws {DriveUnreachableError} rather than reporting a failed read as absent.
    */
-  readFile(fileName: string): Promise<string>;
+  readFile(fileName: string): Promise<string | null>;
   writeFile(fileName: string, content: string): Promise<void>;
 }
 
@@ -46,26 +50,26 @@ async function reportingUnreachable<T>(work: () => Promise<T>): Promise<T> {
 }
 
 export function createDriveFileGateway(getAccessToken: () => Promise<string>): DriveFileGateway {
-  const resolveFile = async (fileName: string) => {
-    const accessToken = await getAccessToken();
-    const fileId = await getOrCreateFileIdInSaldooFolder(accessToken, fileName);
-    if (!fileId) throw new DriveUnreachableError();
-
-    return { accessToken, fileId };
-  };
+  const resolve = async (accessToken: string, fileName: string) =>
+    selectDriveFile(await findFilesInSaldooFolder(accessToken, fileName));
 
   return {
     async readFile(fileName) {
       return reportingUnreachable(async () => {
-        const { accessToken, fileId } = await resolveFile(fileName);
+        const accessToken = await getAccessToken();
+        const file = await resolve(accessToken, fileName);
+        if (!file) return null;
 
-        return readFileFromDrive(accessToken, fileId);
+        return readFileFromDrive(accessToken, file.id);
       });
     },
 
     async writeFile(fileName, content) {
       return reportingUnreachable(async () => {
-        const { accessToken, fileId } = await resolveFile(fileName);
+        const accessToken = await getAccessToken();
+        const existing = await resolve(accessToken, fileName);
+        const fileId = existing?.id ?? (await createFileInSaldooFolder(accessToken, fileName));
+        if (!fileId) throw new DriveUnreachableError();
 
         await writeFileToDrive(accessToken, fileId, content);
       });

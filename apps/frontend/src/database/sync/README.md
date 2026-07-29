@@ -93,16 +93,27 @@ na wyniku.
 
 ## Zabezpieczenia przed utratą danych
 
-Trzy reguły, których nie wolno rozluźnić — każda ma test:
+Sześć reguł, których nie wolno rozluźnić — każda ma test:
 
 1. **Uszkodzony keyfile rzuca `CorruptKeyfileError`, nigdy nie udaje „brak vaulta".**
    Gdyby udawał, aplikacja zaproponowałaby założenie nowego vaulta i odcięła dane
    starym kluczem.
-2. **Backup w aktualnym formacie, którego nie da się odszyfrować, rzuca
-   `RemoteDecryptionError` i wstrzymuje synchronizację.** Bez tego zły DEK kazałby
-   nadpisać dobry backup. Plik **bez** `formatVersion` (sprzed vaulta) jest natomiast
-   traktowany jako nieobecny i zostanie zastąpiony.
-3. **`exportToDrive()` odmawia nadpisania backupu pustą bazą.**
+2. **Pusty keyfile to też `CorruptKeyfileError`.** Jedynym dowodem na „vaulta nigdy
+   nie było" jest plik, którego w folderze **nie ma** — `readFile()` zwraca wtedy
+   `null`. Plik, który istnieje i nic nie mówi, to niedokończony zapis.
+3. **Czytanie niczego nie tworzy.** Wcześniej `getOrCreateFileIdInSaldooFolder()`
+   zakładał plik już przy odczycie; gdy zapis, który miał po nim nastąpić, nie
+   doszedł, na Drive zostawał 0-bajtowy keyfile — czyli dokładnie reguła 2.
+4. **Przy duplikatach nazw wygrywa najnowszy niepusty plik** (`selectDriveFile`).
+   Drive dopuszcza wiele plików o tej samej nazwie i nie obiecuje kolejności, więc
+   `files[0]` to rzut monetą, w którym jedna strona kasuje backup.
+5. **Backup, którego nie da się odczytać, nigdy nie jest nadpisywany.** Zły DEK przy
+   aktualnym formacie → `RemoteDecryptionError`. Plik **bez** `formatVersion`
+   (sprzed vaulta) albo bajty, których nie da się sparsować → `UnreadableBackupError`
+   i ekran z instrukcją zmiany nazwy. Kopie sprzed vaulta były zamykane kluczem
+   trzymanym przez serwer, którego już nie ma — migracji nie ma jak zrobić, więc plik
+   zostaje nietknięty.
+6. **`exportToDrive()` odmawia nadpisania backupu pustą bazą.**
 
 ## Token do Drive
 

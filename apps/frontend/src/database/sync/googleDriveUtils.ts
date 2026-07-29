@@ -22,47 +22,105 @@ async function driveFetch(url: string, init?: RequestInit): Promise<Response> {
   return response;
 }
 
-export async function getOrCreateSaldooFolderId(accessToken: string): Promise<string | null> {
-  // Szukaj folderu saldoo
-  const folderRes = await driveFetch(
-    `https://www.googleapis.com/drive/v3/files?q=name='${CONFIG.dataSourceDirectory}'+and+mimeType='application/vnd.google-apps.folder'+and+trashed=false`,
+/** What the file listing tells us about one candidate, and all it needs to tell us. */
+export type DriveFileSummary = {
+  id: string;
+  size: number;
+  modifiedTime: string;
+};
+
+/**
+ * Drive's query language quotes string literals with `'`, so a name carrying one
+ * would end the literal early. Today every name is a build-time constant, which is
+ * exactly why this is easy to forget the day one stops being.
+ */
+function driveQueryLiteral(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function listUrl(query: string, fields: string): string {
+  return `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}`;
+}
+
+const FOLDER_MIME = 'application/vnd.google-apps.folder';
+
+/** @returns the folder id, or `null` when this account has no Saldoo folder yet. */
+export async function findSaldooFolderId(accessToken: string): Promise<string | null> {
+  const response = await driveFetch(
+    listUrl(
+      `name='${driveQueryLiteral(CONFIG.dataSourceDirectory)}' and mimeType='${FOLDER_MIME}' and trashed=false`,
+      'files(id)'
+    ),
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
-  const folderData = await folderRes.json();
-  const folderId = folderData.files?.[0]?.id;
-  if (folderId) return folderId;
-  // Utwórz folder jeśli nie istnieje
-  const createFolderRes = await driveFetch('https://www.googleapis.com/drive/v3/files', {
+
+  const data = await response.json();
+
+  return data.files?.[0]?.id ?? null;
+}
+
+export async function getOrCreateSaldooFolderId(accessToken: string): Promise<string | null> {
+  const existing = await findSaldooFolderId(accessToken);
+  if (existing) return existing;
+
+  const created = await driveFetch('https://www.googleapis.com/drive/v3/files', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      name: CONFIG.dataSourceDirectory,
-      mimeType: 'application/vnd.google-apps.folder',
-    }),
+    body: JSON.stringify({ name: CONFIG.dataSourceDirectory, mimeType: FOLDER_MIME }),
   });
-  const createFolderData = await createFolderRes.json();
-  return createFolderData.id || null;
+
+  return (await created.json()).id || null;
 }
 
-export async function getOrCreateFileIdInSaldooFolder(
+/**
+ * Lists every file of that name in the Saldoo folder — plural, because Drive is
+ * perfectly happy to hold several files sharing one name, and which one comes back
+ * first is not something a caller may rely on.
+ *
+ * Creates nothing: a read must never leave an artefact behind that a later read
+ * would mistake for the user's own data.
+ *
+ * @returns the candidates, empty when the folder or the file does not exist.
+ */
+export async function findFilesInSaldooFolder(
+  accessToken: string,
+  fileName: string
+): Promise<DriveFileSummary[]> {
+  const folderId = await findSaldooFolderId(accessToken);
+  if (!folderId) return [];
+
+  const response = await driveFetch(
+    listUrl(
+      `name='${driveQueryLiteral(fileName)}' and '${driveQueryLiteral(folderId)}' in parents and trashed=false`,
+      'files(id,size,modifiedTime)'
+    ),
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+
+  const data = await response.json();
+  const files: { id?: string; size?: string; modifiedTime?: string }[] = data.files ?? [];
+
+  return files
+    .filter((file): file is { id: string; size?: string; modifiedTime?: string } => !!file.id)
+    .map((file) => ({
+      id: file.id,
+      size: Number(file.size ?? 0),
+      modifiedTime: file.modifiedTime ?? '',
+    }));
+}
+
+/** @returns the new file's id, or `null` when Drive declined to make one. */
+export async function createFileInSaldooFolder(
   accessToken: string,
   fileName: string
 ): Promise<string | null> {
   const folderId = await getOrCreateSaldooFolderId(accessToken);
   if (!folderId) return null;
-  // Szukaj pliku w folderze
-  const fileRes = await driveFetch(
-    `https://www.googleapis.com/drive/v3/files?q=name='${fileName}'+and+'${folderId}'+in+parents+and+trashed=false`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  );
-  const fileData = await fileRes.json();
-  const fileId = fileData.files?.[0]?.id;
-  if (fileId) return fileId;
-  // Utwórz plik jeśli nie istnieje
-  const createFileRes = await driveFetch(
+
+  const response = await driveFetch(
     'https://www.googleapis.com/drive/v3/files?uploadType=multipart',
     {
       method: 'POST',
@@ -77,8 +135,8 @@ export async function getOrCreateFileIdInSaldooFolder(
       }),
     }
   );
-  const createFileData = await createFileRes.json();
-  return createFileData.id || null;
+
+  return (await response.json()).id || null;
 }
 
 /**

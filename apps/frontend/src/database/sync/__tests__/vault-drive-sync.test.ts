@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { RemoteDecryptionError, VaultDriveSync } from '../vault-drive-sync.ts';
+import { RemoteDecryptionError, UnreadableBackupError, VaultDriveSync } from '../vault-drive-sync.ts';
 import type { DriveFileGateway } from '../drive-file.gateway.ts';
 import type { LocalSnapshotStore } from '../local-snapshot.store.ts';
 import { encryptWithDek } from '@/crypto/vault.service.ts';
@@ -148,13 +148,34 @@ describe('VaultDriveSync', () => {
       expect(drive.gateway.readFile).toHaveBeenCalledTimes(1);
     });
 
-    it('replaces a pre-vault backup instead of choking on it', async () => {
+    it('refuses to overwrite a pre-vault backup', async () => {
+      // The key that opens this envelope came from the server, which no longer
+      // holds one — so the app cannot read it and must not destroy it either. The
+      // user still has the file, and that is the only copy of that data left.
       const legacy = JSON.stringify({ salt: 'c2FsdA==', iv: 'aXY=', ciphertext: 'Y3Q=' });
       const drive = fakeDrive({ [DATA_FILE]: legacy });
       const sync = new VaultDriveSync(drive.gateway, fakeLocal(), () => dek, DATA_FILE);
 
-      await expect(sync.syncNewestDB()).resolves.toBe('export');
-      expect(drive.gateway.writeFile).toHaveBeenCalled();
+      await expect(sync.syncNewestDB()).rejects.toBeInstanceOf(UnreadableBackupError);
+      expect(drive.gateway.writeFile).not.toHaveBeenCalled();
+    });
+
+    it('refuses to overwrite bytes it cannot parse at all', async () => {
+      const drive = fakeDrive({ [DATA_FILE]: 'not json, but somebody put it there' });
+      const sync = new VaultDriveSync(drive.gateway, fakeLocal(), () => dek, DATA_FILE);
+
+      await expect(sync.syncNewestDB()).rejects.toBeInstanceOf(UnreadableBackupError);
+      expect(drive.gateway.writeFile).not.toHaveBeenCalled();
+    });
+
+    it('refuses to import a pre-vault backup rather than reporting an empty one', async () => {
+      const legacy = JSON.stringify({ salt: 'c2FsdA==', iv: 'aXY=', ciphertext: 'Y3Q=' });
+      const drive = fakeDrive({ [DATA_FILE]: legacy });
+      const local = fakeLocal({ isEmpty: vi.fn(async () => true) });
+      const sync = new VaultDriveSync(drive.gateway, local, () => dek, DATA_FILE);
+
+      await expect(sync.importFromDrive()).rejects.toBeInstanceOf(UnreadableBackupError);
+      expect(local.importSnapshot).not.toHaveBeenCalled();
     });
 
     it('refuses to overwrite a current backup it cannot decrypt', async () => {

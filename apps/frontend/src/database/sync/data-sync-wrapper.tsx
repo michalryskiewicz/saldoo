@@ -3,6 +3,8 @@ import { VaultShellView } from '@/features/vault/views/vault-shell-view.tsx';
 import { vaultDriveSync } from '@/database/sync/sync.container.ts';
 import { decideSyncStatus } from '@/database/sync/sync-outcome.service.ts';
 import { syncStatusStore } from '@/database/sync/sync-status.store.ts';
+import { archivedBackupName } from '@/database/sync/archived-backup-name.service.ts';
+import { CONFIG } from '@/global-config.ts';
 import i18n from '@/i18n.ts';
 
 /**
@@ -42,6 +44,23 @@ export const DataSyncWrapper = ({ children }: PropsWithChildren) => {
 
     return () => window.removeEventListener('online', resync);
   }, []);
+
+  if (status === 'unreadable-backup') {
+    return (
+      <VaultShellView
+        title="vault.unreadable_backup_title"
+        description="vault.unreadable_backup_description"
+      >
+        <p role="alert" className="text-destructive text-sm font-medium">
+          {i18n.t('vault.unreadable_backup_instruction', {
+            directory: CONFIG.dataSourceDirectory,
+            file: CONFIG.dataSourceFile,
+            archived: archivedBackupName(CONFIG.dataSourceFile),
+          })}
+        </p>
+      </VaultShellView>
+    );
+  }
 
   if (status === 'blocked') {
     return (
