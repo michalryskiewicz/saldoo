@@ -18,6 +18,9 @@ const FAST = { passphraseIterations: 1_000, recoveryCodeIterations: 1_000 };
 const PASSPHRASE = 'correct horse battery staple';
 const SECRET_DATA = JSON.stringify({ expenses: [{ amount: 1234.56 }] });
 
+/** The secret a caller must already hold to change how the vault opens. */
+const CURRENT_SECRET = { kind: 'passphrase', passphrase: PASSPHRASE } as const;
+
 async function newVault(passphrase = PASSPHRASE) {
   return createVault({ passphrase, ...FAST });
 }
@@ -48,13 +51,21 @@ describe('createVault', () => {
   });
 
   it('leaks neither the data key nor the secrets into the keyfile', async () => {
-    const { dek, recoveryCode, keyfile } = await newVault();
-    const rawDek = new Uint8Array(await crypto.subtle.exportKey('raw', dek));
+    const { recoveryCode, keyfile } = await newVault();
 
     const serialized = JSON.stringify(keyfile);
     expect(serialized).not.toContain(PASSPHRASE);
     expect(serialized).not.toContain(recoveryCode);
-    expect(serialized).not.toContain(btoa(String.fromCharCode(...rawDek)));
+  });
+
+  it('hands back a data key whose bytes cannot be read back out', async () => {
+    // Stronger than "the key is not in the keyfile": a non-extractable key cannot
+    // be exported by anything running in this origin, so an injected script can
+    // borrow it while the tab is open but can never carry it away.
+    const { dek } = await newVault();
+
+    expect(dek.extractable).toBe(false);
+    await expect(crypto.subtle.exportKey('raw', dek)).rejects.toThrow();
   });
 
   it('defaults to the OWASP iteration floor for passphrase slots', async () => {
@@ -139,17 +150,20 @@ describe('addKeyslot', () => {
     const payload = await encryptWithDek(dek, SECRET_DATA);
     const prfOutput = crypto.getRandomValues(new Uint8Array(32));
 
-    const extended = await addKeyslot(keyfile, dek, { kind: 'passkey-prf', prfOutput });
+    const extended = await addKeyslot(keyfile, CURRENT_SECRET, {
+      kind: 'passkey-prf',
+      prfOutput,
+    });
     const unlocked = await unlockVault(extended, { kind: 'passkey-prf', prfOutput });
 
     await expect(decryptWithDek(unlocked, payload)).resolves.toBe(SECRET_DATA);
   });
 
   it('keeps the existing slots working', async () => {
-    const { dek, keyfile } = await newVault();
+    const { keyfile } = await newVault();
     const extended = await addKeyslot(
       keyfile,
-      dek,
+      CURRENT_SECRET,
       { kind: 'passkey-prf', prfOutput: new Uint8Array(32) },
       1_000
     );
@@ -157,6 +171,22 @@ describe('addKeyslot', () => {
     await expect(
       unlockVault(extended, { kind: 'passphrase', passphrase: PASSPHRASE })
     ).resolves.toBeDefined();
+  });
+
+  it('refuses to add a slot to someone who cannot already open the vault', async () => {
+    // The data key is non-extractable, so the only way to wrap it under a new
+    // secret is to unwrap it with one that already works. That turns into the
+    // right rule for free: proving you hold a secret is the price of adding one.
+    const { keyfile } = await newVault();
+
+    await expect(
+      addKeyslot(
+        keyfile,
+        { kind: 'passphrase', passphrase: 'not the passphrase' },
+        { kind: 'passkey-prf', prfOutput: new Uint8Array(32) },
+        1_000
+      )
+    ).rejects.toBeInstanceOf(VaultUnlockError);
   });
 });
 
@@ -167,7 +197,7 @@ describe('replaceKeyslot', () => {
 
     const rotated = await replaceKeyslot(
       keyfile,
-      dek,
+      CURRENT_SECRET,
       { kind: 'passphrase', passphrase: 'a brand new passphrase' },
       1_000
     );
@@ -180,10 +210,10 @@ describe('replaceKeyslot', () => {
   });
 
   it('retires the old passphrase', async () => {
-    const { dek, keyfile } = await newVault();
+    const { keyfile } = await newVault();
     const rotated = await replaceKeyslot(
       keyfile,
-      dek,
+      CURRENT_SECRET,
       { kind: 'passphrase', passphrase: 'a brand new passphrase' },
       1_000
     );
@@ -194,10 +224,10 @@ describe('replaceKeyslot', () => {
   });
 
   it('leaves the recovery code slot intact', async () => {
-    const { dek, recoveryCode, keyfile } = await newVault();
+    const { recoveryCode, keyfile } = await newVault();
     const rotated = await replaceKeyslot(
       keyfile,
-      dek,
+      CURRENT_SECRET,
       { kind: 'passphrase', passphrase: 'a brand new passphrase' },
       1_000
     );

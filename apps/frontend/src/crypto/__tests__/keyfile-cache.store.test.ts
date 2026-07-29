@@ -2,7 +2,6 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Dexie from 'dexie';
 import { createIndexedDbKeyfileCache } from '../keyfile-cache.store.ts';
-import { createIndexedDbDekStore } from '../dek.store.ts';
 import { createVaultKeyDb, type VaultKeyDB } from '../vault-key-db.ts';
 import { createVault } from '../vault.service.ts';
 
@@ -59,17 +58,16 @@ describe('createIndexedDbKeyfileCache', () => {
     await expect(cache.read()).resolves.toBeNull();
   });
 
-  it('shares a database with the cached data key without disturbing it', async () => {
-    const { dek } = await FAST_VAULT();
-    const dekStore = createIndexedDbDekStore(database);
-    await dekStore.write(dek);
-
+  it('keeps no table for a data key, so none can be written to disk', async () => {
     await createIndexedDbKeyfileCache(database).write(await aKeyfile());
 
-    await expect(dekStore.read()).resolves.not.toBeNull();
+    expect(database.tables.map((table) => table.name)).not.toContain('keys');
   });
 
-  it('upgrades a database written before the cache existed without losing the key', async () => {
+  it('deletes a data key that an older version left on this device', async () => {
+    // Upgrading has to actively remove it. Leaving the key behind would mean the
+    // release that stopped persisting the key still shipped every existing user's
+    // key sitting unlocked on their disk.
     database.close();
     const legacy = new Dexie('saldoo-vault');
     legacy.version(1).stores({ keys: '&id' });
@@ -78,8 +76,19 @@ describe('createIndexedDbKeyfileCache', () => {
     legacy.close();
 
     database = createVaultKeyDb();
+    await database.open();
 
-    await expect(createIndexedDbDekStore(database).read()).resolves.not.toBeNull();
-    await expect(createIndexedDbKeyfileCache(database).read()).resolves.toBeNull();
+    expect(database.tables.map((table) => table.name)).not.toContain('keys');
+    expect(database.verno).toBeGreaterThanOrEqual(3);
+  });
+
+  it('survives that upgrade with the cached keyfile still usable', async () => {
+    const keyfile = await aKeyfile();
+    await createIndexedDbKeyfileCache(database).write(keyfile);
+    database.close();
+
+    database = createVaultKeyDb();
+
+    await expect(createIndexedDbKeyfileCache(database).read()).resolves.toEqual(keyfile);
   });
 });

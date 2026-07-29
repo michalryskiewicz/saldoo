@@ -40,21 +40,40 @@ Oba w folderze `saldoo` (scope `drive.file`, więc aplikacja widzi wyłącznie w
 ## Cykl życia vaulta
 
 `VaultManager` (`@/crypto/vault-manager.ts`) rozstrzyga stan przy starcie aplikacji.
-**Keyfile na Drive jest jedynym źródłem prawdy** o tym, czy vault istnieje — sam
-zacache'owany DEK nigdy nie wystarcza.
+**Keyfile na Drive jest jedynym źródłem prawdy** o tym, czy vault istnieje.
 
-| Keyfile | DEK w cache | Stan |
-|---|---|---|
-| brak | — | `needs-setup` (cache jest czyszczony) |
-| jest | brak | `locked` |
-| jest | jest | `unlocked` |
+| Keyfile | Stan po starcie |
+|---|---|
+| brak | `needs-setup` (cache keyfile'a jest czyszczony) |
+| jest (z Drive albo z cache'u) | `locked` |
+| nie da się sprawdzić, nigdy nie widziany | `unavailable` |
 
-DEK jest cache'owany per urządzenie w **osobnej** bazie Dexie `saldoo-vault`.
-Świadomie nie w tabeli `meta` bazy aplikacji: `exportDB` serializuje każdą tabelę,
-którą dostanie, więc klucz obok danych aplikacji wylądowałby w backupie na Drive.
+**Start aplikacji zawsze zaczyna się od `locked`.** DEK nie jest nigdzie zapisywany
+— żyje wyłącznie w `VaultSession` (pamięć) i ginie razem z kartą. Jest też
+nieekstrahowalny (`importKey(..., extractable: false)`), więc nawet skrypt działający
+w tym originie nie odczyta jego bajtów; może go co najwyżej użyć, dopóki karta jest
+otwarta. Dlatego `addKeyslot`/`replaceKeyslot` przyjmują **sekret**, a nie klucz:
+z nieekstrahowalnego DEK-a nie ma drogi powrotnej do materiału, którym był.
+
+W bazie `saldoo-vault` zostaje tylko cache keyfile'a (czyli DEK w postaci
+**zawiniętej**), żeby dało się wystartować offline. Świadomie osobna baza, nie tabela
+`meta` aplikacji: `exportDB` serializuje każdą tabelę, którą dostanie, więc cokolwiek
+obok danych aplikacji wylądowałoby w backupie na Drive.
 
 `VaultGate` (`@/features/vault/vault-gate.tsx`) stoi przed `DataSyncWrapper` i nie
 przepuszcza nic dalej, dopóki DEK nie jest dostępny.
+
+## Blokada po bezczynności
+
+`createIdleLock` (`@/crypto/idle-lock.service.ts`) zamyka vault po 30 minutach bez
+aktywności. O bezczynności decyduje **zegar, nie odpalenie timera**: uśpiony laptop
+nie wykonuje `setTimeout`, a karta w tle ma go zdławionego, więc sam timer pozwoliłby
+obudzić maszynę po godzinach z otwartym vaultem. `check()` jest wołane przy powrocie
+karty na wierzch i łapie dokładnie ten przypadek.
+
+Blokada zdejmuje klucz z sesji, nie przechodzi przez bramkę — dlatego
+`resolveVaultGateStatus` sprawdza stan sesji przy każdym renderze i sprowadza
+`unlocked` z powrotem do `locked`.
 
 ## Aktualizacja `lastUpdated`
 

@@ -100,8 +100,17 @@ async function deriveKeyEncryptionKey(
   );
 }
 
+/**
+ * Brings the data key into the session as a **non-extractable** key.
+ *
+ * Nothing running in this origin can read its bytes back out. An injected script
+ * can still borrow the key while the tab is open, but it cannot carry it away, and
+ * it cannot survive the tab. This is also why everything that needs the raw bytes
+ * takes an unlock secret instead of the key: there is deliberately no way back from
+ * the key to the material it was made of.
+ */
 async function importDek(raw: Uint8Array): Promise<CryptoKey> {
-  return crypto.subtle.importKey('raw', raw as BufferSource, { name: 'AES-GCM' }, true, [
+  return crypto.subtle.importKey('raw', raw as BufferSource, { name: 'AES-GCM' }, false, [
     'encrypt',
     'decrypt',
   ]);
@@ -112,7 +121,7 @@ async function importDek(raw: Uint8Array): Promise<CryptoKey> {
  * publicly. Adding a slot never touches the data itself.
  */
 export async function createKeyslot(
-  dek: CryptoKey,
+  rawDek: Uint8Array,
   secret: UnlockSecret,
   iterations = defaultIterations(secret.kind)
 ): Promise<Keyslot> {
@@ -120,8 +129,11 @@ export async function createKeyslot(
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
   const kek = await deriveKeyEncryptionKey(secret, salt, iterations);
 
-  const rawDek = await crypto.subtle.exportKey('raw', dek);
-  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv as BufferSource }, kek, rawDek);
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv: iv as BufferSource },
+    kek,
+    rawDek as BufferSource
+  );
 
   return {
     kind: secret.kind,
@@ -143,13 +155,20 @@ export async function createVault(options: {
   passphraseIterations?: number;
   recoveryCodeIterations?: number;
 }): Promise<{ dek: CryptoKey; recoveryCode: string; keyfile: Keyfile }> {
-  const dek = await importDek(crypto.getRandomValues(new Uint8Array(DEK_BYTES)));
+  const rawDek = crypto.getRandomValues(new Uint8Array(DEK_BYTES));
   const recoveryCode = generateRecoveryCode();
 
   const keyslots = await Promise.all([
-    createKeyslot(dek, { kind: 'passphrase', passphrase: options.passphrase }, options.passphraseIterations),
-    createKeyslot(dek, { kind: 'recovery-code', recoveryCode }, options.recoveryCodeIterations),
+    createKeyslot(
+      rawDek,
+      { kind: 'passphrase', passphrase: options.passphrase },
+      options.passphraseIterations
+    ),
+    createKeyslot(rawDek, { kind: 'recovery-code', recoveryCode }, options.recoveryCodeIterations),
   ]);
+
+  const dek = await importDek(rawDek);
+  rawDek.fill(0);
 
   return { dek, recoveryCode, keyfile: { formatVersion: KEYFILE_FORMAT_VERSION, keyslots } };
 }
@@ -160,7 +179,7 @@ export async function createVault(options: {
  * @throws {VaultUnlockError} when the secret opens none of them — this is the
  * expected signal for "wrong passphrase", not an exceptional condition.
  */
-export async function unlockVault(keyfile: Keyfile, secret: UnlockSecret): Promise<CryptoKey> {
+async function unwrapRawDek(keyfile: Keyfile, secret: UnlockSecret): Promise<Uint8Array> {
   if (keyfile.formatVersion !== KEYFILE_FORMAT_VERSION) {
     throw new UnsupportedKeyfileError(keyfile.formatVersion);
   }
@@ -180,8 +199,9 @@ export async function unlockVault(keyfile: Keyfile, secret: UnlockSecret): Promi
         base64ToBytes(slot.wrapped.ciphertext) as BufferSource
       );
 
-      return await importDek(new Uint8Array(rawDek));
-    } catch {
+      return new Uint8Array(rawDek);
+    } catch (error) {
+      if (error instanceof UnsupportedKeyfileError) throw error;
       // Wrong secret for this slot — keep trying the rest.
     }
   }
@@ -189,26 +209,61 @@ export async function unlockVault(keyfile: Keyfile, secret: UnlockSecret): Promi
   throw new VaultUnlockError();
 }
 
-/** Adds an unlock method without re-encrypting any data. */
+/**
+ * Recovers the data key by trying every slot the secret could plausibly open.
+ *
+ * @throws {VaultUnlockError} when the secret opens none of them — this is the
+ * expected signal for "wrong passphrase", not an exceptional condition.
+ */
+export async function unlockVault(keyfile: Keyfile, secret: UnlockSecret): Promise<CryptoKey> {
+  const rawDek = await unwrapRawDek(keyfile, secret);
+
+  const dek = await importDek(rawDek);
+  rawDek.fill(0);
+
+  return dek;
+}
+
+/**
+ * Adds an unlock method without re-encrypting any data.
+ *
+ * Takes the secret that already opens the vault rather than the unlocked key: the
+ * key cannot be exported, so the data key has to be unwrapped again to be wrapped
+ * under something new. The rule that falls out of that is the one we want anyway —
+ * adding a way in costs you proof that you already have one.
+ *
+ * @throws {VaultUnlockError} when `currentSecret` opens no slot.
+ */
 export async function addKeyslot(
   keyfile: Keyfile,
-  dek: CryptoKey,
-  secret: UnlockSecret,
+  currentSecret: UnlockSecret,
+  newSecret: UnlockSecret,
   iterations?: number
 ): Promise<Keyfile> {
-  const slot = await createKeyslot(dek, secret, iterations);
+  const rawDek = await unwrapRawDek(keyfile, currentSecret);
+  const slot = await createKeyslot(rawDek, newSecret, iterations);
+  rawDek.fill(0);
+
   return { ...keyfile, keyslots: [...keyfile.keyslots, slot] };
 }
 
-/** Replaces every slot of a kind, e.g. when the user changes their passphrase. */
+/**
+ * Replaces every slot of a kind, e.g. when the user changes their passphrase.
+ *
+ * @throws {VaultUnlockError} when `currentSecret` opens no slot.
+ */
 export async function replaceKeyslot(
   keyfile: Keyfile,
-  dek: CryptoKey,
-  secret: UnlockSecret,
+  currentSecret: UnlockSecret,
+  newSecret: UnlockSecret,
   iterations?: number
 ): Promise<Keyfile> {
-  const slot = await createKeyslot(dek, secret, iterations);
-  const kept = keyfile.keyslots.filter((existing) => existing.kind !== secret.kind);
+  const rawDek = await unwrapRawDek(keyfile, currentSecret);
+  const slot = await createKeyslot(rawDek, newSecret, iterations);
+  rawDek.fill(0);
+
+  const kept = keyfile.keyslots.filter((existing) => existing.kind !== newSecret.kind);
+
   return { ...keyfile, keyslots: [...kept, slot] };
 }
 
