@@ -164,7 +164,7 @@ export default function DateRangeSelector({
           ) : (
             <div className="flex flex-col gap-3 p-2">
               <Calendar
-                // weekStartsOn=1 → poniedziałek
+                // weekStartsOn=1 → Monday
                 weekStartsOn={1}
                 locale={pl}
                 mode="range"
