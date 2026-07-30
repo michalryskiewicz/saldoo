@@ -38,6 +38,7 @@ const PROJECTED_TABLES: readonly DocumentTable[] = [
   'tags',
   'transactions',
   'duties',
+  'settings',
 ];
 
 /** Exactly the callback shape `Y.Map.observeDeep` declares, so no `any` is needed. */

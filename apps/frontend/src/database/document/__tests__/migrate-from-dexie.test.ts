@@ -32,7 +32,27 @@ describe('migrate from Dexie', () => {
       db.tags.clear(),
       db.transactions.clear(),
       db.duties.clear(),
+      db.settings.clear(),
     ]);
+  });
+
+  it('lifts the settings too, so a second device inherits them', async () => {
+    await db.settings.put({
+      id: 'settings',
+      currency: 'EUR',
+      strategy: 'EIGHTY_TWENTY',
+      requiredActions: [],
+    });
+
+    const s = session(`mig-settings-${Math.random()}`);
+    await s.open();
+    await migrateFromDexie(s, db);
+
+    // Left behind, the settings would live only in this device's Dexie: the next device
+    // would be sent through onboarding again and pick its own currency and strategy.
+    const migrated = s.records('settings').find((record) => record.id === 'settings');
+    expect(migrated).toMatchObject({ currency: 'EUR', strategy: 'EIGHTY_TWENTY' });
+    await s.close();
   });
 
   it('lifts an existing user’s rows into an empty document', async () => {

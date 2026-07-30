@@ -37,6 +37,7 @@ describe('projector', () => {
       db.transactions.clear(),
       db.tags.clear(),
       db.duties.clear(),
+      db.settings.clear(),
     ]);
   });
 
@@ -51,6 +52,28 @@ describe('projector', () => {
     const row = await db.expenses.get('e1');
     expect(row?.description).toBe('Rent');
     expect(row?.createdAt).toBeInstanceOf(Date);
+  });
+
+  it('projects settings, without which finishing onboarding never sticks', async () => {
+    const doc = createDocument();
+    const projector = createProjector(doc, db);
+    projector.start();
+
+    // Exactly what `saveSettings` writes when the wizard's last step submits.
+    putRecord(doc, 'settings', {
+      id: 'settings',
+      currency: 'PLN',
+      strategy: 'FIFTY_THIRTY_TWENTY',
+      requiredActions: [],
+    });
+    await projector.settled();
+
+    // `getSettings` reads Dexie, so a settings record the projector skips leaves the app
+    // on the defaults forever: `requiredActions` still lists onboarding, and the wizard
+    // comes straight back however many times it is completed.
+    const row = await db.settings.get('settings');
+    expect(row?.strategy).toBe('FIFTY_THIRTY_TWENTY');
+    expect(row?.requiredActions).toEqual([]);
   });
 
   it('applies a single-field change without disturbing the rest of the row', async () => {

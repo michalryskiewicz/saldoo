@@ -10,10 +10,12 @@
     "lint": "eslint .",
     "lint:check": "eslint .",
     "lint:fix": "eslint --fix .",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.e2e.json --noEmit",
     "preview": "vite preview",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
-    "test": "vitest"
+    "test": "vitest",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install chromium"
   },
   "overrides": {
     "react-is": "^19.1.0"
@@ -71,6 +73,7 @@
   "devDependencies": {
     "@eslint/js": "^9.29.0",
     "@hookform/devtools": "^4.4.0",
+    "@playwright/test": "^1.62.0",
     "@types/lodash": "^4.17.24",
     "@types/papaparse": "^5.3.16",
     "@types/react": "^19.1.8",
