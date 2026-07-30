@@ -3,7 +3,9 @@
   "version": "1.0.8",
   "private": true,
   "description": "Saldoo - Personal Finance Management Application",
-  "workspaces": ["apps/*"],
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev": "bun --env-file=.env run --filter '*' dev",
     "dev:backend": "bun --env-file=.env run --filter backend dev",
@@ -18,7 +20,9 @@
     "release:minor": "bun version --new-version minor",
     "release:major": "bun version --new-version major",
     "version": "git add -A",
-    "postversion": "git push && git push --tags"
+    "postversion": "git push && git push --tags",
+    "e2e": "bun --env-file=.env run --filter frontend e2e",
+    "e2e:install": "bun run --filter frontend e2e:install"
   },
   "repository": {
     "type": "git",

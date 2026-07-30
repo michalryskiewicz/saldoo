@@ -192,3 +192,7 @@ apps/backend/prisma/data/
 
 # Local env backups
 .env.bak*
+
+# Playwright
+apps/frontend/playwright-report/
+apps/frontend/test-results/
