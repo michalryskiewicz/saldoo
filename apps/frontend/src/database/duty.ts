@@ -1,9 +1,9 @@
 import type { FREQUENCY } from '@/constant.ts';
 import { db } from '@/database/index';
 import type { DBExpense } from '@/database/expenses';
-import { v4 as uuidv4 } from 'uuid';
 import { getExpensesInSelectedDateRange } from '@/lib/expenses.ts';
 import { createDutiesForSelectedDateRange } from '@/database/services/duties.service.ts';
+import { documentSession } from '@/database/document/document.container.ts';
 import { vaultDriveSync } from '@/database/sync/sync.container.ts';
 import { toast } from 'sonner';
 import i18n from '@/i18n.ts';
@@ -83,7 +83,9 @@ export async function addDBDutiesForDateRange(
         .map((d) => d.id);
 
       if (dutiesToDelete.length > 0) {
-        await Promise.all(dutiesToDelete.map((id) => db.duties.delete(id)));
+        await Promise.all(
+          dutiesToDelete.map((id) => documentSession.remove('duties', id))
+        );
       }
     }
   }
@@ -97,17 +99,23 @@ export async function addDBDutiesForDateRange(
 
   const newDuties: DBDuty[] = duties.map((duty) => ({
     ...duty,
-    id: uuidv4(),
+    // The hash *is* the identity. It is a SHA-256 of expenseId, frequency and
+    // execution date, so two devices generating the same window produce the same
+    // row rather than two rows racing on the unique `hash` index — which is what
+    // lets duties sync like any other table.
+    id: duty.hash,
     createdAt: new Date(),
     executionDate: new Date(duty.executionDate),
   }));
 
-  // 4. Insert new duties, skipping duplicates using hash
+  // 4. Insert new duties. Identity is the hash, so a duty this device already has
+  // is skipped rather than duplicated; writing it again would also overwrite the
+  // user's resolved/ignored marks.
   for (const duty of newDuties) {
-    const exists = await db.duties.where({ hash: duty.hash }).first();
+    const exists = await db.duties.get(duty.id);
 
     if (!exists) {
-      await db.duties.add(duty);
+      await documentSession.put('duties', duty);
     }
   }
 
@@ -120,7 +128,7 @@ export async function addDBDutiesForDateRange(
 
 export async function resolveDBDuty(id: string, resolved: boolean) {
   try {
-    await db.duties.update(id, { resolved });
+    await documentSession.update('duties', id, { resolved });
     await setLastUpdated();
     await vaultDriveSync.exportToDrive();
   } catch (e) {
@@ -130,7 +138,7 @@ export async function resolveDBDuty(id: string, resolved: boolean) {
 
 export async function deleteDBDuty(id: string) {
   try {
-    await db.duties.delete(id);
+    await documentSession.remove('duties', id);
     await setLastUpdated();
     await vaultDriveSync.exportToDrive();
     toast(i18n.t('success.deleted-duty'));

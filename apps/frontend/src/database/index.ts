@@ -7,7 +7,7 @@ import type { DBTransaction } from '@/database/transactions.ts';
 import type { DBTag } from '@/database/tags.ts';
 import type { DBSettings } from '@/database/settings.ts';
 
-class AppDB extends Dexie {
+export class AppDB extends Dexie {
   expenses!: Table<DBExpense, string>;
   profits!: Table<DBProfit, string>;
   duties!: Table<DBDuty, string>;

@@ -6,6 +6,7 @@ import { uniqBy } from 'lodash';
 import type { DBExpense } from '@/database/expenses.ts';
 import type { Currency, STRATEGY_PART } from '@/constant.ts';
 import { setLastUpdated } from '@/database/meta.ts';
+import { documentSession } from '@/database/document/document.container.ts';
 import { vaultDriveSync } from '@/database/sync/sync.container.ts';
 import type { DBTag } from '@/database/tags.ts';
 
@@ -45,7 +46,8 @@ export const addDBTransactions = async (bank: string, rows: unknown[][]) => {
       (t) => !existingHashes.has(t.hash)
     );
 
-    await db.transactions.bulkAdd(newUniqueTransactions);
+    for (const transaction of newUniqueTransactions)
+      await documentSession.put('transactions', transaction);
 
     console.log('ADDED: ', newUniqueTransactions.length, ' transactions');
     await setLastUpdated();
@@ -66,7 +68,8 @@ type UpdateDBTransactionReq = {
  * Updates transactions and resolves duties for any updated expenseId.
  */
 export const updateDBTransactions = async (payload: UpdateDBTransactionReq[]) => {
-  await db.transactions.bulkUpdate(payload);
+  for (const { key, changes } of payload)
+    await documentSession.update('transactions', key as string, changes);
 
   // Find all unique expenseIds in the payload
   const expenseIds = Array.from(new Set(payload.map((p) => p.changes.expenseId).filter(Boolean)));
@@ -116,7 +119,7 @@ export const resolveDutiesForExpense = async (expenseId: string) => {
 
   // Update all matched duties: set resolved=true and transactionId
   for (const dutyUpdate of dutiesToUpdate) {
-    await db.duties.update(dutyUpdate.id, {
+    await documentSession.update('duties', dutyUpdate.id, {
       resolved: true,
       transactionId: dutyUpdate.transactionId,
     });

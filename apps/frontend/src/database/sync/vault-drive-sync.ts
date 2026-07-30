@@ -97,7 +97,11 @@ export class VaultDriveSync {
         snapshot === null ? NO_REMOTE_TIMESTAMP : readLastUpdatedFromSnapshot(snapshot),
     });
 
-    if (decision === 'import' && snapshot !== null) await this.local.importSnapshot(snapshot);
+    // Import is deliberately disabled here. `importSnapshot` writes rows straight
+    // into Dexie, which is now a read model projected from the document, so the
+    // document would never learn about them and the next projection would erase
+    // them. This build is **export-only**; importing returns as the document's own
+    // Drive transport, which merges instead of overwriting.
     if (decision === 'export') await this.exportToDrive();
 
     return decision;

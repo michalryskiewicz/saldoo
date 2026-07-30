@@ -145,3 +145,31 @@ Ten slices become six, and the three riskiest disappear:
 - A CRDT framework appears that keeps merge **and** needs no server **and** lets us keep our own key
   model. Fireproof is the nearest miss; a Drive gateway plus our own key handling would be the thing
   to re-evaluate.
+
+## Amendment, 2026-07-30: duty identity is its hash
+
+#37 originally excluded `duties` from sync and recomputed them locally, because
+`addDBDutiesForDateRange` minted `id: uuidv4()` beside a *deterministic* `hash` under a
+unique index — so two devices regenerating the same window produced two rows racing on
+that index.
+
+That worked around the cause instead of removing it. **The `hash` is now the primary
+key**, so the same logical duty is the same row on every device and duties sync like any
+other table.
+
+It also closes a gap the exclusion created. `resolved`, `ignored` and `transactionId` are
+user decisions, not derivable from expenses, so excluding duties meant marking one paid on
+the phone never reached the laptop.
+
+Safe because `hashString` is an untruncated SHA-256; a collision is not a practical
+concern. This was checked before committing to the approach — with a weak hash it would
+mean two different duties sharing a primary key, which is silent data loss.
+
+Costs, accepted knowingly:
+
+- A one-time re-key of existing rows from uuid to hash. The pre-existing unique index on
+  `hash` guarantees no two rows share one, so the re-key cannot collide.
+- Derived data now lives in the synced document. The alternative — syncing only the user's
+  decisions, keyed by hash — needs a second projection shape and a rule for cleaning up
+  states whose duty no longer exists. One mechanism beats two.
+- A device that generated duties further into the future pushes them to the other device.

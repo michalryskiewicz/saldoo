@@ -190,5 +190,5 @@ apps/backend/prisma/data/
 # Machine-local agent config
 .claude/settings.local.json
 
-# Local env backups (contain real secrets)
+# Local env backups
 .env.bak*

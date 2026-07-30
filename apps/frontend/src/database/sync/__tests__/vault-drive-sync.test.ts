@@ -107,14 +107,20 @@ describe('VaultDriveSync', () => {
   });
 
   describe('syncNewestDB', () => {
-    it('imports when the backup is newer than this device', async () => {
+    it('reports an import decision when the backup is newer, but does not apply it', async () => {
+      // This build is export-only. `importSnapshot` writes rows straight into Dexie,
+      // which is now a read model projected from the Yjs document, so an imported row
+      // would be invisible to the document and erased by the next projection. The
+      // decision is still reported so a caller can see the state; only the write is
+      // withheld. Importing returns with the document's own Drive transport, which
+      // merges rather than overwrites.
       const payload = await encryptWithDek(dek, snapshotJson(5_000));
       const drive = fakeDrive({ [DATA_FILE]: JSON.stringify(payload) });
       const local = fakeLocal({ lastUpdated: vi.fn(async () => 1_000) });
       const sync = new VaultDriveSync(drive.gateway, local, () => dek, DATA_FILE);
 
       await expect(sync.syncNewestDB()).resolves.toBe('import');
-      expect(local.importSnapshot).toHaveBeenCalledWith(snapshotJson(5_000));
+      expect(local.importSnapshot).not.toHaveBeenCalled();
     });
 
     it('exports when this device is newer than the backup', async () => {
