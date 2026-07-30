@@ -1,4 +1,10 @@
-export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'blocked';
+export type SyncStatus =
+  | 'idle'
+  | 'syncing'
+  | 'synced'
+  | 'offline'
+  | 'blocked'
+  | 'unreadable-backup';
 
 type Listener = () => void;
 

@@ -25,6 +25,23 @@ export class RemoteDecryptionError extends Error {
   }
 }
 
+/**
+ * Raised when the data file holds bytes this version cannot read at all — a
+ * pre-vault backup, or content nothing here wrote.
+ *
+ * Pre-vault backups were sealed with a key the *server* held, and the server holds
+ * none any more, so there is no migration left to offer. That is precisely why
+ * overwriting them is unacceptable: the file on Drive is the last copy of that data
+ * in existence. Refusing costs the user a manual rename in Drive; the alternative
+ * costs them everything they recorded before the vault existed.
+ */
+export class UnreadableBackupError extends Error {
+  constructor() {
+    super('Drive holds a backup this version cannot read; it will not be overwritten');
+    this.name = 'UnreadableBackupError';
+  }
+}
+
 function isCurrentFormat(value: unknown): value is EncryptedPayload {
   if (typeof value !== 'object' || value === null) return false;
   const payload = value as Partial<EncryptedPayload>;
@@ -86,20 +103,24 @@ export class VaultDriveSync {
     return decision;
   }
 
+  /**
+   * @throws {UnreadableBackupError} when Drive holds bytes that are not a backup
+   * this version can open — never `null`, which the caller acts on by overwriting.
+   */
   private async readRemoteSnapshot(): Promise<string | null> {
     const raw = await this.drive.readFile(this.dataFileName);
-    if (!raw || raw.trim() === '') return null;
+    if (raw === null || raw.trim() === '') return null;
 
     let parsed: unknown;
     try {
       parsed = JSON.parse(raw);
     } catch {
-      return null;
+      throw new UnreadableBackupError();
     }
 
-    // Anything without a format version predates the vault and cannot be opened by
-    // any key we hold, so it is treated as absent and will be replaced.
-    if (!isCurrentFormat(parsed)) return null;
+    // Anything without a format version predates the vault. No key we hold opens it
+    // and no key the server holds exists any more, so it is preserved, not replaced.
+    if (!isCurrentFormat(parsed)) throw new UnreadableBackupError();
 
     try {
       return await decryptWithDek(this.requireDek(), parsed);

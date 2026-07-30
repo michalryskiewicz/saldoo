@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { decideSyncStatus } from '../sync-outcome.service.ts';
 import { DriveUnreachableError } from '../drive-file.gateway.ts';
-import { RemoteDecryptionError } from '../vault-drive-sync.ts';
+import { RemoteDecryptionError, UnreadableBackupError } from '../vault-drive-sync.ts';
 
 describe('decideSyncStatus', () => {
   it('reports a completed sync', () => {
@@ -19,6 +19,14 @@ describe('decideSyncStatus', () => {
     // Carrying on would let a later export overwrite a backup whose key the user
     // may still be able to recover.
     expect(decideSyncStatus({ ok: false, error: new RemoteDecryptionError() })).toBe('blocked');
+  });
+
+  it('reports an unreadable backup as its own status, not as a generic failure', () => {
+    // The user can act on this one — but only if the screen tells them what to do,
+    // which a generic "sync failed" cannot.
+    expect(decideSyncStatus({ ok: false, error: new UnreadableBackupError() })).toBe(
+      'unreadable-backup'
+    );
   });
 
   it('blocks on a failure it does not recognise', () => {
