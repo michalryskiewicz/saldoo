@@ -14,7 +14,10 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: [],
+    // jsdom ships no IndexedDB, and everything from the vault keyfile cache to the
+    // Yjs document store needs one. Without this each such test has to import the
+    // shim itself, and forgetting to leaves a silent gap rather than a failure.
+    setupFiles: ['fake-indexeddb/auto'],
   },
   plugins: [
     react({

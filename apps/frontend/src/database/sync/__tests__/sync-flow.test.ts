@@ -3,7 +3,7 @@ import { db } from '@/database/index.ts';
 import { setLastUpdated, getLastUpdated } from '@/database/meta.ts';
 import { exportDB, importInto } from 'dexie-export-import';
 
-describe.skip('Sync Flow Integration', () => {
+describe('Sync Flow Integration', () => {
   beforeEach(async () => {
     // Clear database before each test
     await db.expenses.clear();
