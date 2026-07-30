@@ -267,6 +267,45 @@ export async function replaceKeyslot(
   return { ...keyfile, keyslots: [...kept, slot] };
 }
 
+/**
+ * Encrypts raw bytes.
+ *
+ * The string form below encodes through `TextEncoder` first, which a Yjs document
+ * update cannot survive — it is already binary, and base64-ing it through the string
+ * API would add a third to a payload that only grows.
+ */
+export async function encryptBytesWithDek(
+  dek: CryptoKey,
+  plaintext: Uint8Array
+): Promise<EncryptedPayload> {
+  const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv: iv as BufferSource },
+    dek,
+    plaintext as BufferSource
+  );
+
+  return {
+    formatVersion: KEYFILE_FORMAT_VERSION,
+    iv: bytesToBase64(iv),
+    ciphertext: bytesToBase64(new Uint8Array(ciphertext)),
+  };
+}
+
+/** The bytes back, for whatever `encryptBytesWithDek` sealed. */
+export async function decryptBytesWithDek(
+  dek: CryptoKey,
+  payload: EncryptedPayload
+): Promise<Uint8Array> {
+  const plaintext = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: base64ToBytes(payload.iv) as BufferSource },
+    dek,
+    base64ToBytes(payload.ciphertext) as BufferSource
+  );
+
+  return new Uint8Array(plaintext);
+}
+
 export async function encryptWithDek(dek: CryptoKey, plaintext: string): Promise<EncryptedPayload> {
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
   const ciphertext = await crypto.subtle.encrypt(

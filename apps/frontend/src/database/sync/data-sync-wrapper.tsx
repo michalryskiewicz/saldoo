@@ -1,7 +1,7 @@
 import { type PropsWithChildren, useEffect, useSyncExternalStore } from 'react';
 import { VaultShellView } from '@/features/vault/views/vault-shell-view.tsx';
-import { vaultDriveSync } from '@/database/sync/sync.container.ts';
 import { openDocument } from '@/database/document/document.container.ts';
+import { documentDriveSync } from '@/database/document/document-drive.container.ts';
 import { outbox } from '@/database/document/outbox.container.ts';
 import { decideSyncStatus } from '@/database/sync/sync-outcome.service.ts';
 import { syncStatusStore } from '@/database/sync/sync-status.store.ts';
@@ -40,8 +40,10 @@ export const DataSyncWrapper = ({ children }: PropsWithChildren) => {
       // than at module load so it cannot fire before the vault is open.
       await outbox.restore();
 
-      const attempt = await vaultDriveSync
-        .syncNewestDB()
+      // The document's own transport: download, merge, upload in one pass. There is
+      // no import-or-export decision left to make, so nothing here can pick a side.
+      const attempt = await documentDriveSync
+        .sync()
         .then(() => ({ ok: true }) as const)
         .catch((error: unknown) => ({ ok: false, error }) as const);
 

@@ -1,4 +1,4 @@
-import { vaultDriveSync } from '@/database/sync/sync.container.ts';
+import { documentDriveSync } from './document-drive.container.ts';
 import { documentDb } from './document.container.ts';
 import { createOutbox } from './outbox.ts';
 import { createIndexedDbOutboxStore } from './outbox-store.ts';
@@ -30,7 +30,7 @@ export const outbox = createOutbox({
   upload: () =>
     asSoleWriter(async () => {
       try {
-        await vaultDriveSync.exportToDrive();
+        await documentDriveSync.sync();
       } catch (error) {
         // Tag the failure as transient or permanent before it reaches the outbox,
         // which deliberately knows nothing about Drive.
