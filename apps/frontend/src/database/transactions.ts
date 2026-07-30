@@ -7,7 +7,7 @@ import type { DBExpense } from '@/database/expenses.ts';
 import type { Currency, STRATEGY_PART } from '@/constant.ts';
 import { setLastUpdated } from '@/database/meta.ts';
 import { documentSession } from '@/database/document/document.container.ts';
-import { vaultDriveSync } from '@/database/sync/sync.container.ts';
+import { outbox } from '@/database/document/outbox.container.ts';
 import type { DBTag } from '@/database/tags.ts';
 
 export type DBTransaction = {
@@ -51,7 +51,7 @@ export const addDBTransactions = async (bank: string, rows: unknown[][]) => {
 
     console.log('ADDED: ', newUniqueTransactions.length, ' transactions');
     await setLastUpdated();
-    await vaultDriveSync.exportToDrive();
+    outbox.markDirty();
     toast(i18n.t('success.upload-transaction'));
   } catch (e) {
     console.error(e);
@@ -79,7 +79,7 @@ export const updateDBTransactions = async (payload: UpdateDBTransactionReq[]) =>
     await resolveDutiesForExpense(expenseId as string);
   }
   await setLastUpdated();
-  await vaultDriveSync.exportToDrive();
+  outbox.markDirty();
 };
 
 /**
@@ -125,5 +125,5 @@ export const resolveDutiesForExpense = async (expenseId: string) => {
     });
   }
   await setLastUpdated();
-  await vaultDriveSync.exportToDrive();
+  outbox.markDirty();
 };

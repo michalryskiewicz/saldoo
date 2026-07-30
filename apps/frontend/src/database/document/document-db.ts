@@ -2,6 +2,9 @@ import Dexie, { type Table } from 'dexie';
 
 export type StoredDocument = { id: string; update: Uint8Array };
 
+/** Whether this device still owes Drive an upload. See `outbox.ts`. */
+export type StoredOutbox = { id: string; dirty: boolean };
+
 /**
  * The persisted Yjs document, on its **own** Dexie database.
  *
@@ -16,10 +19,12 @@ export type StoredDocument = { id: string; update: Uint8Array };
  */
 export class DocumentDB extends Dexie {
   documents!: Table<StoredDocument, string>;
+  outbox!: Table<StoredOutbox, string>;
 
   constructor(name = 'saldoo-document') {
     super(name);
     this.version(1).stores({ documents: '&id' });
+    this.version(2).stores({ documents: '&id', outbox: '&id' });
   }
 }
 

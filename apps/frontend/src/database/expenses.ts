@@ -4,7 +4,7 @@ import type { ExpenseCreateType } from '@/features/expenses/components/expenses-
 import { toast } from 'sonner';
 import i18n from '@/i18n.ts';
 import { documentSession } from '@/database/document/document.container.ts';
-import { vaultDriveSync } from '@/database/sync/sync.container.ts';
+import { outbox } from '@/database/document/outbox.container.ts';
 import { setLastUpdated } from '@/database/meta.ts';
 
 export type DBExpense = {
@@ -34,7 +34,7 @@ export const addDBExpense = async (expense: ExpenseCreateType) => {
       strategyPart: expense.strategyPart as STRATEGY_PART,
     });
     await setLastUpdated();
-    await vaultDriveSync.exportToDrive();
+    outbox.markDirty();
     toast(i18n.t('success.create-expense'));
   } catch (e) {
     console.error(e);
@@ -53,7 +53,7 @@ export const updateDBExpense = async (id: string, expense: ExpenseCreateType) =>
       strategyPart: expense.strategyPart as STRATEGY_PART,
     });
     await setLastUpdated();
-    await vaultDriveSync.exportToDrive();
+    outbox.markDirty();
     toast(i18n.t('success.update-expense'));
   } catch (e) {
     console.error(e);
@@ -65,7 +65,7 @@ export const deleteDBExpense = async (id: string) => {
   try {
     await documentSession.remove('expenses', id);
     await setLastUpdated();
-    await vaultDriveSync.exportToDrive();
+    outbox.markDirty();
     toast(i18n.t('success.deleted-expense'));
   } catch (e) {
     console.error(e);

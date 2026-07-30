@@ -2,6 +2,7 @@ import { type PropsWithChildren, useEffect, useSyncExternalStore } from 'react';
 import { VaultShellView } from '@/features/vault/views/vault-shell-view.tsx';
 import { vaultDriveSync } from '@/database/sync/sync.container.ts';
 import { openDocument } from '@/database/document/document.container.ts';
+import { outbox } from '@/database/document/outbox.container.ts';
 import { decideSyncStatus } from '@/database/sync/sync-outcome.service.ts';
 import { syncStatusStore } from '@/database/sync/sync-status.store.ts';
 import { archivedBackupName } from '@/database/sync/archived-backup-name.service.ts';
@@ -34,6 +35,10 @@ export const DataSyncWrapper = ({ children }: PropsWithChildren) => {
       // that had not been rebuilt yet. Idempotent, so StrictMode's double invoke
       // and the `online` handler both land on the same open.
       await openDocument();
+
+      // Anything a previous run could not send is still owed. Picked up here rather
+      // than at module load so it cannot fire before the vault is open.
+      await outbox.restore();
 
       const attempt = await vaultDriveSync
         .syncNewestDB()
