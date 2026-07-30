@@ -13,6 +13,10 @@ export const KEYFILE_NAME = 'saldoo-keys.json';
  * Deliberately NOT collapsed into "absent": treating a damaged keyfile as a
  * missing one would let the app offer to create a fresh vault, which would strand
  * the user's existing data behind a key nobody holds any more.
+ *
+ * An *empty* keyfile lands here too. Only a file Drive does not have at all is
+ * evidence of a fresh account; a file that exists and says nothing is a write that
+ * never finished, and the vault it belongs to may still be openable.
  */
 export class CorruptKeyfileError extends Error {
   constructor(cause?: unknown) {
@@ -55,7 +59,7 @@ export class DriveKeyfileRepository {
 
   /** @throws {CorruptKeyfileError} when a keyfile is present but unusable. */
   async load(): Promise<KeyfileLookup> {
-    let raw: string;
+    let raw: string | null;
     try {
       raw = await this.drive.readFile(this.fileName);
     } catch (error) {
@@ -64,7 +68,8 @@ export class DriveKeyfileRepository {
       throw error;
     }
 
-    if (raw.trim() === '') return { status: 'absent' };
+    if (raw === null) return { status: 'absent' };
+    if (raw.trim() === '') throw new CorruptKeyfileError();
 
     let parsed: unknown;
     try {

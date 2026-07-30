@@ -14,6 +14,11 @@ const PRESENTATION: Record<
   synced: { icon: Cloud, label: 'sync.synced', className: 'text-muted-foreground' },
   offline: { icon: CloudOff, label: 'sync.offline', className: 'text-muted-foreground' },
   blocked: { icon: ShieldAlert, label: 'sync.blocked', className: 'text-destructive' },
+  'unreadable-backup': {
+    icon: ShieldAlert,
+    label: 'sync.unreadable_backup',
+    className: 'text-destructive',
+  },
 };
 
 /**

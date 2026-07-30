@@ -25,6 +25,9 @@
     "use_passphrase": "Wrócę do hasła",
     "sync_failed_title": "Wstrzymaliśmy synchronizację",
     "sync_failed_description": "Kopia na Twoim Google Drive została zaszyfrowana innym kluczem. Nie nadpisujemy jej, żeby nie stracić danych — odblokuj właściwym hasłem lub kodem awaryjnym.",
+    "unreadable_backup_title": "Na Dysku jest kopia w starym formacie",
+    "unreadable_backup_description": "Nie nadpisujemy jej, bo to jedyna kopia tych danych.",
+    "unreadable_backup_instruction": "W folderze {{directory}} na Google Drive leży plik {{file}}, którego ta wersja nie potrafi odczytać — pochodzi sprzed wprowadzenia hasła do danych, a klucz do niego trzymał serwer i już nie istnieje. Zmień mu nazwę na {{archived}} i odśwież tę stronę: Saldoo założy wtedy nową, zaszyfrowaną kopię, a stary plik zostanie nietknięty.",
     "failed_title": "Nie udało się otworzyć danych",
     "failed_description": "Nie mogliśmy sprawdzić Twojego zabezpieczenia na Google Drive. Odśwież stronę i spróbuj ponownie.",
     "unavailable_title": "Potrzebujemy jednorazowo połączenia",
@@ -35,7 +38,8 @@
     "syncing": "Synchronizuję…",
     "synced": "Zsynchronizowano",
     "offline": "Offline — zmiany zapisane na tym urządzeniu",
-    "blocked": "Synchronizacja wstrzymana"
+    "blocked": "Synchronizacja wstrzymana",
+    "unreadable_backup": "Stara kopia na Dysku"
   },
   "onboarding": {
     "INTRODUCTION": "Wprowadzenie",
