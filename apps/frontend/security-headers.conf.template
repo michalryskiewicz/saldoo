@@ -1,0 +1,28 @@
+#
+# Rendered at image build time by envsubst — see apps/frontend/Dockerfile. Only
+# ${CSP_SCRIPT_EXTRA} and ${CSP_CONNECT_EXTRA} are substituted.
+#
+# This file is `include`d by *every* location block as well as by `server`, and it
+# has to be: nginx does not merge `add_header` across levels. A location that adds
+# a single header of its own silently drops everything inherited, which would strip
+# the CSP from exactly the response that needs it most — the HTML document.
+#
+
+# The data key and the Drive token live in this origin, and the only thing standing
+# between an injected script and both of them is this header. Keep the allowlist as
+# short as the app can actually run on.
+#
+# 'unsafe-inline' for styles is forced by Tailwind's runtime layer and by the
+# <style> block shadcn's chart component writes; removing it needs a nonce, not a
+# one-line edit. There is deliberately no 'unsafe-inline' for scripts.
+add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://accounts.google.com${CSP_SCRIPT_EXTRA}; connect-src 'self' https://www.googleapis.com https://oauth2.googleapis.com https://accounts.google.com${CSP_CONNECT_EXTRA}; frame-src https://accounts.google.com; img-src 'self' data: https://*.googleusercontent.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" always;
+
+# Cover for anything that predates frame-ancestors.
+add_header X-Frame-Options DENY always;
+add_header X-Content-Type-Options nosniff always;
+
+# No path here is a secret, but nothing needs the referrer either — and Google is
+# on the receiving end of every Drive call.
+add_header Referrer-Policy no-referrer always;
+add_header Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()" always;
+add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
