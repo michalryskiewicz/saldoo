@@ -83,28 +83,40 @@ describe('projector', () => {
     expect(await db.expenses.get('e1')).toBeUndefined();
   });
 
-  it('never clears a table, so locally-owned duties survive a projection', async () => {
-    // Duties are recomputed locally and deliberately live only in Dexie. A projector
-    // that rebuilt tables wholesale would delete them on every document change.
-    await db.duties.put({
-      id: 'd1',
+  it('projects duties like any other table, keyed by their hash', async () => {
+    const doc = createDocument();
+    const projector = createProjector(doc, db);
+    projector.start();
+
+    putRecord(doc, 'duties', {
+      id: 'duty-hash-1',
+      hash: 'duty-hash-1',
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       executionDate: new Date('2026-02-01T00:00:00.000Z'),
-      hash: 'duty-hash-1',
       resolved: true,
     });
+    await projector.settled();
 
+    const duty = await db.duties.get('duty-hash-1');
+    expect(duty?.resolved).toBe(true);
+    expect(duty?.executionDate).toBeInstanceOf(Date);
+  });
+
+  it('never clears a table — an untouched row survives another record changing', async () => {
+    // Rebuilding a table wholesale would make useLiveQuery emit [], flashing lists
+    // empty and resetting a form mid-typing.
     const doc = createDocument();
     const projector = createProjector(doc, db);
     projector.start();
 
     putRecord(doc, 'expenses', expense('e1', 'Rent'));
+    putRecord(doc, 'expenses', expense('e2', 'Coffee'));
     await projector.settled();
+
     deleteRecord(doc, 'expenses', 'e1');
     await projector.settled();
 
-    const duty = await db.duties.get('d1');
-    expect(duty?.resolved).toBe(true);
+    expect((await db.expenses.get('e2'))?.description).toBe('Coffee');
   });
 
   it('leaves rows of other records alone when one record changes', async () => {

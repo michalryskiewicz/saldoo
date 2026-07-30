@@ -148,6 +148,49 @@ describe('document', () => {
     expect(readRecord(phone, 'expenses', 'e1')).toBeNull();
   });
 
+  it('carries a duty marked paid on one device to the other', () => {
+    // The reason duty identity became the hash. Before that a duty was keyed by a
+    // random uuid, so the same logical duty existed as two different rows on two
+    // devices and the user's resolved mark could not travel.
+    const laptop = createDocument();
+    const phone = createDocument();
+
+    const duty = {
+      id: 'duty-hash-1',
+      hash: 'duty-hash-1',
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      executionDate: new Date('2026-02-01T00:00:00.000Z'),
+    };
+    putRecord(laptop, 'duties', duty);
+    sync(laptop, phone);
+
+    updateFields(laptop, 'duties', 'duty-hash-1', { resolved: true });
+    sync(laptop, phone);
+
+    expect(readRecord(phone, 'duties', 'duty-hash-1')?.resolved).toBe(true);
+  });
+
+  it('converges when both devices generate the same duty independently', () => {
+    // Deterministic identity means two devices generating the same window produce
+    // one row, not two racing on the unique hash index.
+    const laptop = createDocument();
+    const phone = createDocument();
+
+    const duty = {
+      id: 'duty-hash-1',
+      hash: 'duty-hash-1',
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      executionDate: new Date('2026-02-01T00:00:00.000Z'),
+    };
+    putRecord(laptop, 'duties', duty);
+    putRecord(phone, 'duties', duty);
+
+    sync(laptop, phone);
+
+    expect(readAllRecords(laptop, 'duties')).toHaveLength(1);
+    expect(readAllRecords(phone, 'duties')).toHaveLength(1);
+  });
+
   it('rebuilds dates as real Dates on the receiving device', () => {
     const laptop = createDocument();
     const phone = createDocument();

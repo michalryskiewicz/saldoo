@@ -18,8 +18,8 @@ import { type DocumentTable, decodeRecord } from './record-codec.ts';
  * 1. `useLiveQuery` observes the clear and emits `[]`, so every list flashes empty on
  *    every change, and the single-record reads in the create/edit forms momentarily
  *    return `undefined`, resetting a form the user is typing into.
- * 2. `duties` are recomputed locally and live **only** in Dexie. A whole-database
- *    rebuild would delete them, including the user's own resolved/ignored marks.
+ * 2. A rebuild would drop and re-add rows the user is looking at, so anything derived
+ *    from them re-renders for no reason.
  *
  * So only the records that actually changed are touched, and only in the tables the
  * document owns.
@@ -31,12 +31,13 @@ export interface Projector {
   settled(): Promise<void>;
 }
 
-/** The tables the document owns. `duties` and `meta` are deliberately absent. */
+/** The tables the document owns. `meta` is deliberately absent — it stays local. */
 const PROJECTED_TABLES: readonly DocumentTable[] = [
   'expenses',
   'profits',
   'tags',
   'transactions',
+  'duties',
 ];
 
 /** Exactly the callback shape `Y.Map.observeDeep` declares, so no `any` is needed. */
@@ -67,7 +68,7 @@ export function createProjector(doc: Y.Doc, database: AppDB): Projector {
    * `transaction.expense` and `transaction.tag`.
    */
   const withRelations = (name: DocumentTable, row: Record<string, unknown>) => {
-    if (name !== 'transactions') return row;
+    if (name !== 'transactions' && name !== 'duties') return row;
 
     const expenseId = row.expenseId as string | undefined;
     const tagId = row.tagId as string | undefined;

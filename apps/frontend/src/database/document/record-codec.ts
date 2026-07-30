@@ -24,7 +24,13 @@
  * `Y.applyUpdate`; an in-memory read passes while the data is being destroyed.
  */
 
-export type DocumentTable = 'expenses' | 'profits' | 'tags' | 'transactions' | 'settings';
+export type DocumentTable =
+  | 'expenses'
+  | 'profits'
+  | 'tags'
+  | 'transactions'
+  | 'duties'
+  | 'settings';
 
 /** Fields held as `Date` in Dexie and as epoch milliseconds in the document. */
 const DATE_FIELDS: Record<DocumentTable, readonly string[]> = {
@@ -32,6 +38,7 @@ const DATE_FIELDS: Record<DocumentTable, readonly string[]> = {
   profits: ['createdAt', 'updatedAt', 'execution'],
   tags: ['createdAt', 'updatedAt'],
   transactions: ['createdAt', 'updatedAt'],
+  duties: ['createdAt', 'updatedAt', 'executionDate'],
   settings: [],
 };
 
@@ -46,6 +53,7 @@ const DENORMALISED_FIELDS: Record<DocumentTable, readonly string[]> = {
   profits: [],
   tags: [],
   transactions: ['expense', 'tag'],
+  duties: ['expense', 'transaction'],
   settings: [],
 };
 
@@ -59,6 +67,7 @@ const JSON_FIELDS: Record<DocumentTable, readonly string[]> = {
   profits: [],
   tags: [],
   transactions: ['rawData'],
+  duties: [],
   settings: [],
 };
 

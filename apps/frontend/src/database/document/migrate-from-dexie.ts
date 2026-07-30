@@ -22,12 +22,13 @@ import type { DocumentTable } from './record-codec.ts';
 const MIGRATED_TABLE: DocumentTable = 'settings';
 const MIGRATION_MARKER_ID = '__dexie-migration__';
 
-/** Tables the document owns. `duties` are recomputed locally; `meta` stays in Dexie. */
+/** Tables the document owns. `meta` stays in Dexie. */
 const MIGRATED_TABLES: readonly DocumentTable[] = [
   'expenses',
   'profits',
   'tags',
   'transactions',
+  'duties',
 ];
 
 export async function migrateFromDexie(session: DocumentSession, database: AppDB): Promise<void> {
@@ -42,7 +43,14 @@ export async function migrateFromDexie(session: DocumentSession, database: AppDB
     const rows: object[] = await (database as any)[table].toArray();
 
     for (const row of rows) {
-      await session.put(table, row);
+      // Duties used to be keyed by a random uuid while carrying a deterministic
+      // hash, which is why they could not sync: two devices generating the same
+      // window produced two rows racing on the unique hash index. Identity is the
+      // hash from here on, so existing rows are re-keyed on the way in. The unique
+      // index guarantees no two rows share a hash, so this cannot collide.
+      const record = table === 'duties' ? { ...row, id: (row as { hash: string }).hash } : row;
+
+      await session.put(table, record);
     }
   }
 

@@ -110,9 +110,11 @@ describe('migrate from Dexie', () => {
     await s.close();
   });
 
-  it('leaves duties alone — they are recomputed, not synced', async () => {
+  it('re-keys an existing duty from its uuid to its hash', async () => {
+    // Duties used to carry a random uuid as the primary key and a deterministic hash
+    // beside it, which is exactly why they could not sync. Identity is the hash now.
     await db.duties.put({
-      id: 'd1',
+      id: 'a-random-uuid',
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       executionDate: new Date('2026-02-01T00:00:00.000Z'),
       hash: 'duty-hash-1',
@@ -123,7 +125,9 @@ describe('migrate from Dexie', () => {
     await s.open();
     await migrateFromDexie(s, db);
 
-    expect((await db.duties.get('d1'))?.resolved).toBe(true);
+    const migrated = s.records('duties');
+    expect(migrated.map((d) => d.id)).toEqual(['duty-hash-1']);
+    expect(migrated[0].resolved).toBe(true);
     await s.close();
   });
 });

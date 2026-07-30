@@ -119,7 +119,7 @@ export const resolveDutiesForExpense = async (expenseId: string) => {
 
   // Update all matched duties: set resolved=true and transactionId
   for (const dutyUpdate of dutiesToUpdate) {
-    await db.duties.update(dutyUpdate.id, {
+    await documentSession.update('duties', dutyUpdate.id, {
       resolved: true,
       transactionId: dutyUpdate.transactionId,
     });
