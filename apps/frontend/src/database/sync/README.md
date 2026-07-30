@@ -39,22 +39,41 @@ files it created itself):
 ## Vault lifecycle
 
 `VaultManager` (`@/crypto/vault-manager.ts`) settles the state at app start.
-**The keyfile on Drive is the single source of truth** for whether a vault exists —
-a cached DEK alone is never enough.
+**The keyfile on Drive is the single source of truth** for whether a vault exists.
 
-| Keyfile | Cached DEK | State |
-|---|---|---|
-| missing | — | `needs-setup` (the cache is cleared) |
-| present | missing | `locked` |
-| present | present | `unlocked` |
+| Keyfile | State after start |
+|---|---|
+| missing | `needs-setup` (the keyfile cache is cleared) |
+| present (from Drive or from the cache) | `locked` |
+| cannot be checked, never seen | `unavailable` |
 
-The DEK is cached per device in its **own** Dexie database, `saldoo-vault`.
-Deliberately not in the app database's `meta` table: `exportDB` serialises every
-table it is handed, so a key sitting next to the app's data would be written
-straight into the backup on Drive.
+**An app start always begins `locked`.** The DEK is never persisted — it lives only in
+`VaultSession` (memory) and dies with the tab. It is also non-extractable
+(`importKey(..., extractable: false)`), so even a script running in this origin cannot
+read its bytes; at most it can use the key while the tab is open. That is why
+`addKeyslot`/`replaceKeyslot` take a **secret** rather than the key: a non-extractable
+DEK has no route back to the material it was made from.
+
+The `saldoo-vault` database holds only the keyfile cache — the DEK in its **wrapped**
+form — so the app can start offline. Deliberately a separate database rather than the
+app database's `meta` table: `exportDB` serialises every table it is handed, so
+anything sitting next to the app's data would be written straight into the backup on
+Drive.
 
 `VaultGate` (`@/features/vault/vault-gate.tsx`) sits in front of `DataSyncWrapper`
 and lets nothing through until a DEK is available.
+
+## Idle lock
+
+`createIdleLock` (`@/crypto/idle-lock.service.ts`) closes the vault after 30 minutes
+without activity. Idleness is judged on the **clock, not on a timer having fired**: a
+suspended laptop runs no `setTimeout`, and a background tab has it throttled, so a
+timer alone would let a machine wake hours later with the vault still open. `check()`
+runs when the tab comes back to the front and catches exactly that.
+
+The lock drops the key from the session without going through the gate — which is why
+`resolveVaultGateStatus` re-checks the session on every render and brings `unlocked`
+back to `locked`.
 
 ## Updating `lastUpdated`
 

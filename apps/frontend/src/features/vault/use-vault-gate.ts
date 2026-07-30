@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { vaultManager } from '@/database/sync/sync.container.ts';
+import { vaultSession } from '@/crypto/vault-session.ts';
 import type { UnlockSecret } from '@/crypto/vault.service.ts';
+import { resolveVaultGateStatus } from '@/features/vault/vault-gate-status.service.ts';
+import { useIdleLock } from '@/features/vault/use-idle-lock.ts';
 
 export type VaultGateStatus =
   | 'checking'
@@ -67,5 +70,20 @@ export function useVaultGate() {
     setStatus('unlocked');
   }, []);
 
-  return { status, recoveryCode, isBusy, error, setUp, unlock, confirmRecoveryCodeSaved };
+  const isSessionUnlocked = useSyncExternalStore(
+    (listener) => vaultSession.subscribe(listener),
+    () => vaultSession.isUnlocked()
+  );
+
+  useIdleLock(isSessionUnlocked);
+
+  return {
+    status: resolveVaultGateStatus(status, isSessionUnlocked),
+    recoveryCode,
+    isBusy,
+    error,
+    setUp,
+    unlock,
+    confirmRecoveryCodeSaved,
+  };
 }

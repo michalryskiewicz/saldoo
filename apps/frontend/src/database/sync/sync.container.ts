@@ -1,7 +1,6 @@
 import { getDriveAccessToken } from '@/auth/google/drive-token.ts';
 import { vaultSession } from '@/crypto/vault-session.ts';
 import { VaultManager } from '@/crypto/vault-manager.ts';
-import { createIndexedDbDekStore } from '@/crypto/dek.store.ts';
 import { createIndexedDbKeyfileCache } from '@/crypto/keyfile-cache.store.ts';
 import { createDriveFileGateway } from '@/database/sync/drive-file.gateway.ts';
 import { DriveKeyfileRepository } from '@/database/sync/keyfile.repository.ts';
@@ -12,7 +11,6 @@ const driveFiles = createDriveFileGateway(getDriveAccessToken);
 
 export const vaultManager = new VaultManager(
   new DriveKeyfileRepository(driveFiles),
-  createIndexedDbDekStore(),
   vaultSession,
   createIndexedDbKeyfileCache()
 );
