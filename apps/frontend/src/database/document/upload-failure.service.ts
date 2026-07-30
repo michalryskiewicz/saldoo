@@ -2,6 +2,7 @@ import { DriveAuthRequiredError } from '@/auth/google/drive-token.service.ts';
 import { DriveUnreachableError } from '@/database/sync/drive-file.gateway.ts';
 import { DriveRequestFailedError } from '@/database/sync/googleDriveUtils.ts';
 import { RemoteDecryptionError, UnreadableBackupError } from '@/database/sync/vault-drive-sync.ts';
+import { UnreadableDocumentError } from './document-drive-sync.ts';
 import type { OutboxFailure } from './outbox.ts';
 
 /**
@@ -21,7 +22,11 @@ import type { OutboxFailure } from './outbox.ts';
  */
 export function classifyUploadFailure(error: unknown): OutboxFailure {
   // Nothing the user can do about a backup we cannot open, and nothing a retry fixes.
-  if (error instanceof UnreadableBackupError || error instanceof RemoteDecryptionError) {
+  if (
+    error instanceof UnreadableBackupError ||
+    error instanceof RemoteDecryptionError ||
+    error instanceof UnreadableDocumentError
+  ) {
     return 'permanent';
   }
 

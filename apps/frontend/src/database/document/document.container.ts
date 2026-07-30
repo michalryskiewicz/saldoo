@@ -2,6 +2,7 @@ import { db } from '@/database/index.ts';
 import { createDocumentDb } from './document-db.ts';
 import { createDocumentSession } from './document-session.ts';
 import { createIndexedDbDocumentStore } from './document-store.ts';
+import { dropStaleDutyKeys } from './drop-stale-duty-keys.ts';
 import { migrateFromDexie } from './migrate-from-dexie.ts';
 
 /**
@@ -29,6 +30,10 @@ let opening: Promise<void> | null = null;
  */
 export function openDocument(): Promise<void> {
   opening ??= (async () => {
+    // Before the migration, and on every open rather than once: see the note in
+    // `dropStaleDutyKeys` for why this cannot hang off the migration marker.
+    await dropStaleDutyKeys(db);
+
     await documentSession.open();
     await migrateFromDexie(documentSession, db);
   })();

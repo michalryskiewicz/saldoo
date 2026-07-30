@@ -179,6 +179,21 @@ describe('outbox', () => {
     expect(peak).toBe(1);
   });
 
+  it('returns the same snapshot object until the state actually changes', () => {
+    // useSyncExternalStore compares snapshots by reference. A fresh object each call
+    // makes React re-render forever: "getSnapshot should be cached to avoid an
+    // infinite loop", then "Maximum update depth exceeded".
+    const { outbox } = build(vi.fn(async () => {}));
+
+    const first = outbox.state();
+    expect(outbox.state()).toBe(first);
+
+    outbox.markDirty();
+    const afterChange = outbox.state();
+    expect(afterChange).not.toBe(first);
+    expect(outbox.state()).toBe(afterChange);
+  });
+
   it('tells subscribers when the state changes, so the indicator can follow', async () => {
     const upload = vi.fn(async () => {});
     const { outbox, scheduler } = build(upload);

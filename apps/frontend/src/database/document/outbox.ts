@@ -67,7 +67,17 @@ export function createOutbox({
   let scheduled = false;
   const listeners = new Set<() => void>();
 
+  /**
+   * A stable snapshot, replaced only when the state really changes.
+   *
+   * `useSyncExternalStore` compares snapshots by reference, so building a fresh object
+   * per read makes React re-render forever — it warns "getSnapshot should be cached to
+   * avoid an infinite loop" and then throws "Maximum update depth exceeded".
+   */
+  let snapshot: OutboxState = { pending, failure };
+
   const notify = () => {
+    snapshot = { pending, failure };
     for (const listener of listeners) listener();
   };
 
@@ -138,7 +148,7 @@ export function createOutbox({
     },
 
     state() {
-      return { pending, failure };
+      return snapshot;
     },
 
     subscribe(listener) {
