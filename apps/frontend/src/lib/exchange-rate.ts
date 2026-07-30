@@ -16,8 +16,16 @@ export const convertDataToDesiredCurrency = <T extends Record<string, unknown>>(
   amountKey,
   dateKey,
 }: ConvertDataToDesiredCurrencyProps<T>): T[] => {
-  if (!amountKey || !desiredCurrency || !exchangeRates) {
+  if (!amountKey || !desiredCurrency) {
     return [];
+  }
+
+  // Rates come from a public endpoint that caches NBP data and holds nothing of the
+  // user's. Reporting no records when it cannot be reached emptied every list while
+  // offline — in an app whose premise is that the local database is the truth.
+  // Unconverted and honestly labelled with its own currency beats absent.
+  if (!exchangeRates) {
+    return data;
   }
 
   const result: T[] = [];

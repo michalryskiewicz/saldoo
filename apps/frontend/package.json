@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "lint:check": "eslint .",
     "lint:fix": "eslint --fix .",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.e2e.json --noEmit",
     "preview": "vite preview",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
     "test": "vitest",

@@ -1,6 +1,6 @@
 import type { ListExchangeRatesResponseDTO } from '@/store/exchange-rates.api';
 import { describe, expect, it } from 'vitest';
-import { convertMoney } from '../exchange-rate';
+import { convertDataToDesiredCurrency, convertMoney } from '../exchange-rate';
 
 describe('convertMoney', () => {
   const exchangeRates: ListExchangeRatesResponseDTO = {
@@ -112,5 +112,45 @@ describe('convertMoney', () => {
         effectiveDate: '2025-10-19' as never,
       })
     ).toBeCloseTo(45);
+  });
+});
+
+describe('convertDataToDesiredCurrency', () => {
+  const rates: ListExchangeRatesResponseDTO = {
+    EUR: { '2025-10-19': 4.5 },
+    USD: { '2025-10-19': 4.0 },
+    PLN: { '2025-10-19': 1 },
+  };
+
+  const rows = [
+    { id: 'e1', expense: 100, currency: 'PLN' },
+    { id: 'e2', expense: 20, currency: 'EUR' },
+  ];
+
+  it('keeps the records when there are no rates to convert with', () => {
+    // Rates come from a public endpoint that caches NBP data and holds nothing of the
+    // user's. Returning an empty list when it cannot be reached made every expense
+    // disappear from the screen while offline — in an app whose whole premise is that
+    // the local database is the truth.
+    expect(
+      convertDataToDesiredCurrency({
+        data: rows,
+        exchangeRates: undefined,
+        desiredCurrency: 'PLN',
+        amountKey: 'expense',
+      })
+    ).toEqual(rows);
+  });
+
+  it('reports every record in the desired currency once rates are available', () => {
+    const converted = convertDataToDesiredCurrency({
+      data: rows,
+      exchangeRates: rates,
+      desiredCurrency: 'PLN',
+      amountKey: 'expense',
+    });
+
+    expect(converted).toHaveLength(2);
+    expect(converted.map((row) => row.currency)).toEqual(['PLN', 'PLN']);
   });
 });

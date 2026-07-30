@@ -29,6 +29,7 @@ const MIGRATED_TABLES: readonly DocumentTable[] = [
   'tags',
   'transactions',
   'duties',
+  'settings',
 ];
 
 export async function migrateFromDexie(session: DocumentSession, database: AppDB): Promise<void> {

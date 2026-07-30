@@ -61,13 +61,16 @@ export function RHFMoneyField({
           <FormItem>
             <FormLabel>{label}</FormLabel>
             {description && <FormLabel>{description}</FormLabel>}
-            <FormControl>
-              <InputGroup>
-                {currency && (
-                  <InputGroupAddon>
-                    <InputGroupText>{CURRENCY_SYMBOL[currency]}</InputGroupText>
-                  </InputGroupAddon>
-                )}
+            <InputGroup>
+              {currency && (
+                <InputGroupAddon>
+                  <InputGroupText>{CURRENCY_SYMBOL[currency]}</InputGroupText>
+                </InputGroupAddon>
+              )}
+              {/* Around the input, not the group: wrapping the group put the label's
+                  `for` target — and `aria-invalid` — on a <div>, leaving the number
+                  field with no accessible name at all. */}
+              <FormControl>
                 <InputGroupInput
                   {...field}
                   value={transformValue(field.value)}
@@ -84,33 +87,33 @@ export function RHFMoneyField({
                   pattern={'[0-9]*\\.?[0-9]*'}
                   {...other}
                 />
-                {currency && currencyField && (
-                  <InputGroupAddon align="inline-end">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <InputGroupButton variant="ghost" className="!pr-1.5 text-xs">
-                          {currency}
-                        </InputGroupButton>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="[--radius:0.95rem]">
-                        {Object.keys(CURRENCY_SYMBOL).map((symbol) => {
-                          return (
-                            <DropdownMenuItem
-                              key={symbol}
-                              onClick={() => {
-                                setValue(currencyField, symbol);
-                              }}
-                            >
-                              {symbol}
-                            </DropdownMenuItem>
-                          );
-                        })}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </InputGroupAddon>
-                )}
-              </InputGroup>
-            </FormControl>
+              </FormControl>
+              {currency && currencyField && (
+                <InputGroupAddon align="inline-end">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <InputGroupButton variant="ghost" className="!pr-1.5 text-xs">
+                        {currency}
+                      </InputGroupButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="[--radius:0.95rem]">
+                      {Object.keys(CURRENCY_SYMBOL).map((symbol) => {
+                        return (
+                          <DropdownMenuItem
+                            key={symbol}
+                            onClick={() => {
+                              setValue(currencyField, symbol);
+                            }}
+                          >
+                            {symbol}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </InputGroupAddon>
+              )}
+            </InputGroup>
             {helperText && <FormDescription>{helperText}</FormDescription>}
             <FormMessage />
           </FormItem>
