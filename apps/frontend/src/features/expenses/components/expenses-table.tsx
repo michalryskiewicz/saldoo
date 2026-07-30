@@ -125,6 +125,7 @@ export const ExpensesTable = () => {
           <TabsList>
             {Object.values(FREQUENCY).map((value) => (
               <TabsTrigger
+                key={value}
                 value={value}
                 onClick={() => setFrequency((prev) => (prev === value ? undefined : value))}
               >

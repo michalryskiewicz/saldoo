@@ -21,7 +21,7 @@ export function NavSingleButtonWithIcon({ label, items }: NavSingleButtonWithIco
       {label && <SidebarGroupLabel>{label}</SidebarGroupLabel>}
       <SidebarMenu>
         {items.map((item) => (
-          <SidebarMenuItem>
+          <SidebarMenuItem key={item.url}>
             <SidebarMenuButton asChild tooltip={item.name}>
               <Link to={item.url}>
                 {item.icon && <item.icon />}

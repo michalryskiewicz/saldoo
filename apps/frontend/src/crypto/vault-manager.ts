@@ -1,6 +1,7 @@
 import type { KeyfileCache } from '@/crypto/keyfile-cache.store.ts';
 import type { VaultSession } from '@/crypto/vault-session.ts';
 import { createVault, unlockVault, type Keyfile, type UnlockSecret } from '@/crypto/vault.service.ts';
+import { createSessionKeyCache, type SessionKeyCache } from '@/crypto/session-key-cache.ts';
 
 /**
  * `unavailable` is the one honest dead end: Drive could not be reached and this
@@ -41,7 +42,8 @@ export class VaultManager {
     private readonly keyfiles: KeyfileRepository,
     private readonly session: VaultSession,
     private readonly keyfileCache: KeyfileCache,
-    private readonly vaultFactory: VaultFactory = createVault
+    private readonly vaultFactory: VaultFactory = createVault,
+    private readonly sessionKeys: SessionKeyCache = createSessionKeyCache()
   ) {}
 
   /**
@@ -67,6 +69,15 @@ export class VaultManager {
       return 'unavailable';
     }
 
+    // A reload inside the same browser session skips the passphrase. Closing the
+    // browser, or eight hours, and it is refused and deleted -- see
+    // `session-key-cache.ts` for the reasoning.
+    const cached = await this.sessionKeys.read();
+    if (cached) {
+      this.session.unlock(cached);
+      return 'unlocked';
+    }
+
     return 'locked';
   }
 
@@ -83,6 +94,7 @@ export class VaultManager {
     await this.keyfiles.save(keyfile);
     await this.keyfileCache.write(keyfile);
     this.session.unlock(dek);
+    await this.sessionKeys.write(dek);
 
     return recoveryCode;
   }
@@ -92,7 +104,10 @@ export class VaultManager {
     const keyfile = await this.readableKeyfile();
     if (!keyfile) throw new Error('Cannot unlock: no keyfile available');
 
-    this.session.unlock(await unlockVault(keyfile, secret));
+    const dek = await unlockVault(keyfile, secret);
+
+    this.session.unlock(dek);
+    await this.sessionKeys.write(dek);
   }
 
   /**
@@ -102,6 +117,9 @@ export class VaultManager {
    */
   async lock(): Promise<void> {
     this.session.lock();
+    // The cache has to go with it, or the idle lock would be undone by the next
+    // reload — locking would mean nothing.
+    await this.sessionKeys.clear();
   }
 
   /** Drive's answer when it has one, otherwise the last keyfile this device saw. */

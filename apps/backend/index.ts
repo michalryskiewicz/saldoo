@@ -25,9 +25,14 @@ app.use('/api', apiRouter);
 // from routes/async handlers are funnelled into a consistent JSON response.
 app.use(errorHandler);
 
+// Configurable because 3000 is a popular default and a second app holding it makes
+// every request from the frontend land somewhere else entirely — with confusing
+// symptoms, since the wrong server answers rather than nothing answering.
+const PORT = Number(process.env.PORT ?? 3000);
+
 if (require.main === module) {
-  server.listen(3000, () => {
-    console.log('Server is listening on port 3000');
+  server.listen(PORT, () => {
+    console.log(`Server is listening on port ${PORT}`);
   });
 }
 

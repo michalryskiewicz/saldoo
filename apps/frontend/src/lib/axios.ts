@@ -7,7 +7,10 @@ const axiosInstance = axios.create({
   headers: {
     Accept: 'application/json',
   },
-  withCredentials: true,
+  // No credentials: the backend holds no session and no user data, so there is
+  // nothing to send. Leaving this on made the browser reject every reply, because
+  // the backend's CORS does not set `Access-Control-Allow-Credentials` -- a leftover
+  // from when there was a server-side session to carry.
 });
 
 axiosInstance.interceptors.response.use(
