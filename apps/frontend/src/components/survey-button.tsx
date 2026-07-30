@@ -12,17 +12,28 @@ export const SurveysButton = () => {
   // ===========================================================================
   return (
     <Tooltip>
-      <TooltipTrigger>
-        <a href={SURVEY_URL} target="_blank" rel="noreferrer">
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Submit"
-            className={cn('cursor-pointer  text-white px-4 py-2 rounded-4xl bg-blue-200 ')}
+      {/*
+        Both `asChild`s matter: TooltipTrigger and Button each render a <button> of
+        their own otherwise, and with the link between them that nests a <button>
+        inside a <button> — invalid HTML that React reports as a hydration error.
+        Forwarding both leaves exactly one element: an anchor styled as a button.
+      */}
+      <TooltipTrigger asChild>
+        <Button
+          asChild
+          variant="outline"
+          size="icon"
+          className={cn('cursor-pointer  text-white px-4 py-2 rounded-4xl bg-blue-200 ')}
+        >
+          <a
+            href={SURVEY_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={i18n.t('metrics.fill-survey')}
           >
             <BadgeQuestionMark />
-          </Button>
-        </a>
+          </a>
+        </Button>
       </TooltipTrigger>
       <TooltipContent>
         <p>{i18n.t('metrics.fill-survey')}</p>
