@@ -1,6 +1,7 @@
 import { db } from '@/database/index.ts';
 import { setLastUpdated } from '@/database/meta.ts';
 import { withSettingsDefaults, type Settings } from '@/database/settings.service.ts';
+import { documentSession } from '@/database/document/document.container.ts';
 import { vaultDriveSync } from '@/database/sync/sync.container.ts';
 
 const SETTINGS_ID = 'settings';
@@ -14,7 +15,7 @@ export const getSettings = async (): Promise<Settings> =>
 export const saveSettings = async (patch: Partial<Settings>): Promise<void> => {
   const current = await getSettings();
 
-  await db.settings.put({ id: SETTINGS_ID, ...current, ...patch });
+  await documentSession.put('settings', { id: SETTINGS_ID, ...current, ...patch });
   await setLastUpdated();
   await vaultDriveSync.exportToDrive();
 };

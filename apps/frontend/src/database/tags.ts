@@ -1,5 +1,6 @@
 import { db } from '@/database/index.ts';
 import { v4 as uuidv4 } from 'uuid';
+import { documentSession } from '@/database/document/document.container.ts';
 import { vaultDriveSync } from '@/database/sync/sync.container.ts';
 import { toast } from 'sonner';
 import i18n from '@/i18n.ts';
@@ -21,7 +22,7 @@ export const addDBTags = async (names: string[], userId?: string) => {
       name,
       userId,
     }));
-    await db.tags.bulkAdd(tags);
+    for (const tag of tags) await documentSession.put('tags', tag);
     await setLastUpdated();
     await vaultDriveSync.exportToDrive();
     toast(i18n.t('success.create-tags', { count: names.length }));
@@ -35,7 +36,7 @@ export const removeDBTags = async (names: string[]) => {
   try {
     const tagsToDelete = await db.tags.where('name').anyOf(names).toArray();
     const ids = tagsToDelete.map((tag) => tag.id);
-    await db.tags.bulkDelete(ids);
+    for (const id of ids) await documentSession.remove('tags', id);
     await setLastUpdated();
     await vaultDriveSync.exportToDrive();
     toast(i18n.t('success.deleted-tags', { count: names.length }));

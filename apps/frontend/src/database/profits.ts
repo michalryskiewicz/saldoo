@@ -1,6 +1,6 @@
 import type { Currency, FREQUENCY } from '@/constant.ts';
-import { db } from '@/database/index.ts';
 import { v4 as uuidv4 } from 'uuid';
+import { documentSession } from '@/database/document/document.container.ts';
 import { vaultDriveSync } from '@/database/sync/sync.container.ts';
 import { toast } from 'sonner';
 import i18n from '@/i18n.ts';
@@ -21,7 +21,7 @@ export type DBProfit = {
 
 export const addDBProfit = async (profit: ProfitCreateSchema) => {
   try {
-    await db.profits.add({
+    await documentSession.put('profits', {
       id: uuidv4(),
       createdAt: new Date(),
       ...profit,
@@ -39,7 +39,7 @@ export const addDBProfit = async (profit: ProfitCreateSchema) => {
 
 export const updateDBProfit = async (id: string, profit: ProfitCreateSchema) => {
   try {
-    await db.profits.update(id, {
+    await documentSession.update('profits', id, {
       ...profit,
       updatedAt: new Date(),
       currency: profit.currency as Currency,
@@ -56,7 +56,7 @@ export const updateDBProfit = async (id: string, profit: ProfitCreateSchema) => 
 
 export const deleteDBProfit = async (id: string) => {
   try {
-    await db.profits.delete(id);
+    await documentSession.remove('profits', id);
     await setLastUpdated();
     await vaultDriveSync.exportToDrive();
     toast(i18n.t('success.deleted-profit'));

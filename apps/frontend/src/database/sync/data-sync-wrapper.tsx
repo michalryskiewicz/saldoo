@@ -1,6 +1,7 @@
 import { type PropsWithChildren, useEffect, useSyncExternalStore } from 'react';
 import { VaultShellView } from '@/features/vault/views/vault-shell-view.tsx';
 import { vaultDriveSync } from '@/database/sync/sync.container.ts';
+import { openDocument } from '@/database/document/document.container.ts';
 import { decideSyncStatus } from '@/database/sync/sync-outcome.service.ts';
 import { syncStatusStore } from '@/database/sync/sync-status.store.ts';
 import { archivedBackupName } from '@/database/sync/archived-backup-name.service.ts';
@@ -27,6 +28,12 @@ export const DataSyncWrapper = ({ children }: PropsWithChildren) => {
       // events must not create the Drive folder/file twice.
       if (syncStatusStore.get() === 'syncing') return;
       syncStatusStore.set('syncing');
+
+      // Before anything else: the document is the local truth and Dexie is a read
+      // model projected from it, so a sync running first would be reading a model
+      // that had not been rebuilt yet. Idempotent, so StrictMode's double invoke
+      // and the `online` handler both land on the same open.
+      await openDocument();
 
       const attempt = await vaultDriveSync
         .syncNewestDB()
