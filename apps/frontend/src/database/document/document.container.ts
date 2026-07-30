@@ -10,8 +10,11 @@ import { migrateFromDexie } from './migrate-from-dexie.ts';
  * A singleton because the document *is* the local truth: two sessions would mean two
  * truths racing to project into the same Dexie tables.
  */
+/** One database instance, shared by the document store and the outbox. */
+export const documentDb = createDocumentDb();
+
 export const documentSession = createDocumentSession({
-  store: createIndexedDbDocumentStore(createDocumentDb()),
+  store: createIndexedDbDocumentStore(documentDb),
   database: db,
 });
 

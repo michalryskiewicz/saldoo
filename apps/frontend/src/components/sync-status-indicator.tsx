@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { Cloud, CloudOff, RefreshCw, ShieldAlert } from 'lucide-react';
 import { syncStatusStore, type SyncStatus } from '@/database/sync/sync-status.store.ts';
+import { outbox } from '@/database/document/outbox.container.ts';
 import { cn } from '@/lib/utils.ts';
 import type { TranslationKey } from '@/i18n.ts';
 import i18n from '@/i18n.ts';
@@ -32,7 +33,22 @@ export function SyncStatusIndicator() {
     (listener) => syncStatusStore.subscribe(listener),
     () => syncStatusStore.get()
   );
-  const { icon: Icon, label, className } = PRESENTATION[status];
+  const queued = useSyncExternalStore(
+    (listener) => outbox.subscribe(listener),
+    () => outbox.state()
+  );
+
+  // The outbox wins when it has something to say: a write the user just made and that
+  // has not reached Drive is more urgent to them than how the last sync went.
+  const presentation =
+    queued.failure === 'permanent'
+      ? { icon: ShieldAlert, label: 'sync.upload_failed' as const, className: 'text-destructive' }
+      : queued.pending
+        ? { icon: RefreshCw, label: 'sync.pending' as const, className: 'text-muted-foreground' }
+        : PRESENTATION[status];
+
+  const { icon: Icon, label, className } = presentation;
+  const spinning = status === 'syncing' || queued.pending;
 
   return (
     <span
@@ -40,7 +56,7 @@ export function SyncStatusIndicator() {
       role="status"
       aria-live="polite"
     >
-      <Icon className={cn('size-3.5', status === 'syncing' && 'animate-spin')} aria-hidden />
+      <Icon className={cn('size-3.5', spinning && 'animate-spin')} aria-hidden />
       <span className="hidden sm:inline">{i18n.t(label)}</span>
     </span>
   );

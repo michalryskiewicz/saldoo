@@ -39,7 +39,9 @@
     "synced": "Zsynchronizowano",
     "offline": "Offline — zmiany zapisane na tym urządzeniu",
     "blocked": "Synchronizacja wstrzymana",
-    "unreadable_backup": "Stara kopia na Dysku"
+    "unreadable_backup": "Stara kopia na Dysku",
+    "pending": "Zmiany oczekują na wysłanie",
+    "upload_failed": "Nie udało się wysłać zmian"
   },
   "onboarding": {
     "INTRODUCTION": "Wprowadzenie",
@@ -141,7 +143,6 @@
     "deleted-tags": "Nie udało się usunąć tagów. Spróbuj ponownie później",
     "upload-transaction": "Nie udało się dodać transakcji. Spróbuj ponownie później",
     "update-transactions": "Nie udało się zaktualizować transakcji. Spróbuj ponownie później",
-
     "field-required": "Pole wymagane",
     "min-2-length-required": "Wprowadź co namniej 2 znaki",
     "update-account-settings": "Nie udało się zaktualizować ustawień konta. Spróbuj ponownie później",

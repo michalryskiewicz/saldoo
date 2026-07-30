@@ -1,7 +1,7 @@
 import type { Currency, FREQUENCY } from '@/constant.ts';
 import { v4 as uuidv4 } from 'uuid';
 import { documentSession } from '@/database/document/document.container.ts';
-import { vaultDriveSync } from '@/database/sync/sync.container.ts';
+import { outbox } from '@/database/document/outbox.container.ts';
 import { toast } from 'sonner';
 import i18n from '@/i18n.ts';
 import type { ProfitCreateSchema } from '@/features/profits/components/profits-create.tsx';
@@ -29,7 +29,7 @@ export const addDBProfit = async (profit: ProfitCreateSchema) => {
       frequency: profit.frequency as FREQUENCY,
     });
     await setLastUpdated();
-    await vaultDriveSync.exportToDrive();
+    outbox.markDirty();
     toast(i18n.t('success.create-profit'));
   } catch (e) {
     console.error(e);
@@ -46,7 +46,7 @@ export const updateDBProfit = async (id: string, profit: ProfitCreateSchema) => 
       frequency: profit.frequency as FREQUENCY,
     });
     await setLastUpdated();
-    await vaultDriveSync.exportToDrive();
+    outbox.markDirty();
     toast(i18n.t('success.update-profit'));
   } catch (e) {
     console.error(e);
@@ -58,7 +58,7 @@ export const deleteDBProfit = async (id: string) => {
   try {
     await documentSession.remove('profits', id);
     await setLastUpdated();
-    await vaultDriveSync.exportToDrive();
+    outbox.markDirty();
     toast(i18n.t('success.deleted-profit'));
   } catch (e) {
     console.error(e);
