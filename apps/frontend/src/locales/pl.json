@@ -19,7 +19,7 @@
     "recovery_confirm_label": "Zapisałem kod awaryjny w bezpiecznym miejscu",
     "recovery_continue": "Przejdź do aplikacji",
     "unlock_title": "Odblokuj swoje dane",
-    "unlock_description": "Podaj hasło, którym zaszyfrowałeś dane. Pytamy o nie przy każdym uruchomieniu i po 30 minutach bezczynności — klucz nigdy nie zostaje na urządzeniu.",
+    "unlock_description": "Podaj hasło, którym zaszyfrowałeś dane. Odświeżenie strony go nie wymaga — pytamy ponownie po zamknięciu przeglądarki i po 30 minutach bezczynności.",
     "unlock_button": "Odblokuj",
     "use_recovery_code": "Nie pamiętam hasła — użyję kodu awaryjnego",
     "use_passphrase": "Wrócę do hasła",

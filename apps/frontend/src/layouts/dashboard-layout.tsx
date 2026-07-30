@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import * as React from 'react';
 import { AppSidebar } from '@/components/app-sidebar.tsx';
 import {
@@ -33,7 +34,7 @@ export default function MiniDrawer({ children }: React.PropsWithChildren) {
                 <BreadcrumbList>
                   {breadcrumbs.map((item, idx) => {
                     return (
-                      <>
+                      <Fragment key={item.path}>
                         <BreadcrumbItem className="hidden md:block">
                           <BreadcrumbLink asChild>
                             <Link to={item.path}>{i18n.t(item.label)}</Link>
@@ -42,7 +43,7 @@ export default function MiniDrawer({ children }: React.PropsWithChildren) {
                         {idx !== breadcrumbs?.length - 1 && (
                           <BreadcrumbSeparator className="hidden md:block" />
                         )}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </BreadcrumbList>
