@@ -98,6 +98,14 @@ interface DataTableProps<TData, TValue> {
   children?: (table: ReturnType<typeof useReactTable<TData>>) => ReactNode;
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  /**
+   * What to say when there is nothing to show.
+   *
+   * Passed in because only the caller knows *why* it is empty: "you have no expenses yet" and
+   * "nothing matches what you typed" are different facts, and a table told only that its data is
+   * empty cannot tell them apart. Defaults to the neutral wording.
+   */
+  emptyMessage?: ReactNode;
   getRowId?: (row: TData, index: number) => string;
 }
 
@@ -105,6 +113,7 @@ export function DataTable<TData, TValue>({
   children,
   columns,
   data,
+  emptyMessage,
   getRowId,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -202,7 +211,7 @@ export function DataTable<TData, TValue>({
                 colSpan={columns.length}
                 className="text-muted-foreground h-24 text-center"
               >
-                {i18n.t('table.no_results')}
+                {emptyMessage ?? i18n.t('table.no_results')}
               </TableCell>
             </TableRow>
           )}

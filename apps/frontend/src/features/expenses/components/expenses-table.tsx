@@ -1,8 +1,9 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import { formatFrequency } from '@/lib/formats.ts';
 import { DataTable } from '@/components/ui/data-table.tsx';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs.tsx';
-import { TOTAL, FREQUENCY, SEVERITY } from '@/constant.ts';
+import { TableSearch } from '@/components/ui/table-search.tsx';
+import { searchExpenses } from '@/features/expenses/services/expenses-search.service.ts';
+import { TOTAL } from '@/constant.ts';
 import i18n, { type TranslationKey } from '@/i18n.ts';
 import ExpensesTableActions from '@/features/expenses/components/expenses-table-actions.tsx';
 import { useState } from 'react';
@@ -79,16 +80,12 @@ export const columns: ColumnDef<ExpenseRow>[] = [
 
 export const ExpensesTable = () => {
   const { allExpenses } = useListExpenses();
-  const [severity, setSeverity] = useState<keyof typeof SEVERITY | undefined>(undefined);
-  const [frequency, setFrequency] = useState<keyof typeof FREQUENCY | undefined>(undefined);
+  const [query, setQuery] = useState('');
 
-  let dataToTable = allExpenses ?? [];
-
-  dataToTable = dataToTable.filter((t) => {
-    const severityMatch = severity === undefined || t.severity === severity;
-    const frequencyMatch = frequency === undefined || t.frequency === frequency;
-    return severityMatch && frequencyMatch;
-  });
+  // Filtered before the table sees it, so the summary is a total of what is on the screen. Were
+  // the search inside the table, the rows would narrow and the total would go on reporting the
+  // sum of everything -- a figure that answers a question nobody asked.
+  const dataToTable = searchExpenses(allExpenses ?? [], query);
 
   // A summary row rather than a stored expense, so it is shaped like one on purpose.
   const totalRow: ExpenseRow[] = dataToTable.length
@@ -105,41 +102,12 @@ export const ExpensesTable = () => {
     : [];
 
   return (
-    <DataTable columns={columns} data={[...dataToTable, ...totalRow]}>
-      {() => (
-        <>
-          <div className="flex flex-col w-full justify-start gap-4 lg:flex-row  lg:gap-8">
-            <Tabs value={severity || ''}>
-              <TabsList>
-                {Object.values(SEVERITY).map((value) => (
-                  <TabsTrigger
-                    key={value}
-                    value={value}
-                    onClick={() => setSeverity((prev) => (prev === value ? undefined : value))}
-                  >
-                    {i18n.t(value as TranslationKey)}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-
-            <Tabs value={frequency || ''}>
-              <TabsList>
-                {Object.values(FREQUENCY).map((value) => (
-                  <TabsTrigger
-                    key={value}
-                    value={value}
-                    onClick={() => setFrequency((prev) => (prev === value ? undefined : value))}
-                  >
-                    {i18n.t(value as TranslationKey)}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          </div>
-
-        </>
-      )}
+    <DataTable
+      columns={columns}
+      data={[...dataToTable, ...totalRow]}
+      emptyMessage={query ? i18n.t('table.no_search_results', { query }) : undefined}
+    >
+      {() => <TableSearch value={query} onChange={setQuery} />}
     </DataTable>
   );
 };

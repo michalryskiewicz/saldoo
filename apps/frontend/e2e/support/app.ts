@@ -315,6 +315,37 @@ export class SaldooApp {
     return (await this.page.locator('tfoot tr td').first().textContent())?.trim() ?? '';
   }
 
+  // === Search ===
+
+  async searchFor(query: string): Promise<void> {
+    await this.page
+      .getByRole('searchbox', { name: label('table.search_placeholder') })
+      .fill(query);
+  }
+
+  /** Through the button a person clicks, rather than by emptying the field programmatically. */
+  async clearSearch(): Promise<void> {
+    await this.page.getByRole('button', { name: label('table.clear_search') }).click();
+  }
+
+  /** The summary figure, whatever the table is currently showing. */
+  async footerTotal(): Promise<string> {
+    return (await this.page.locator('tfoot tr td').nth(1).textContent())?.trim() ?? '';
+  }
+
+  /**
+   * That the table says *why* it is empty, naming what was typed.
+   *
+   * "Nothing matches this" and "you have none of these yet" are different facts and the wording
+   * has to tell them apart. The text is built from the same translation the app renders, so a copy
+   * change moves this with it.
+   */
+  async expectNothingMatches(query: string): Promise<void> {
+    await expect(
+      this.page.getByText(label('table.no_search_results').replace('{{query}}', query))
+    ).toBeVisible();
+  }
+
   /**
    * The first cell of every record, in the order they are rendered.
    *
