@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import { CONFIG } from '@/global-config.ts';
 import { pl } from 'date-fns/locale';
-import { type Locale } from '@/i18n.ts';
+import i18n, { type Locale } from '@/i18n.ts';
 import { capitalize } from '@/lib/strings.ts';
 import { FREQUENCY } from '@/constant';
 
@@ -65,7 +65,15 @@ export const formatDate = (date: Date | string) => {
   return format(new Date(date), CONFIG.dateFormat);
 };
 
-export const formatMoney = (amount: number, currency: string, locale?: string) => {
+/**
+ * Money, in the language the app is speaking.
+ *
+ * The locale defaults to the app's rather than to `Intl`'s, which is the browser's. Left to
+ * that default the same figure came out "12 500,00 zł" in a table and "PLN 12,500.00" on a
+ * card — and which one a person saw was decided by their operating system, not by anything
+ * this app chose.
+ */
+export const formatMoney = (amount: number, currency: string, locale: string = i18n.language) => {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,
