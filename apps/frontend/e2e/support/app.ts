@@ -125,6 +125,11 @@ export class SaldooApp {
     await this.page.getByRole('option', { name: option, exact: true }).click();
   }
 
+  /** The create drawer, addressed by its title: the date picker's popover is a `dialog` too. */
+  private get createDrawer(): Locator {
+    return this.page.getByRole('dialog', { name: label('create_expense_title') });
+  }
+
   async addExpense({
     description,
     amount,
@@ -139,7 +144,7 @@ export class SaldooApp {
     await this.openExpenses();
     await this.page.getByRole('button', { name: label('create_expense') }).click();
 
-    const sheet = this.page.getByRole('dialog');
+    const sheet = this.createDrawer;
     await expect(sheet).toBeVisible();
 
     // Exact throughout: 'Kategoria' is also a prefix of 'Kategoria Strategii Budżetu'.
@@ -160,8 +165,9 @@ export class SaldooApp {
     await sheet.getByLabel(label('forms.category'), { exact: true }).click();
     await this.page.getByRole('option').first().click();
 
-    await sheet.getByLabel(label('forms.strategy-part'), { exact: true }).click();
-    await this.page.getByRole('option').first().click();
+    // The strategy part is left alone: it is a segmented control now, and it arrives with the
+    // first part its strategy offers already selected. Clicking through it would be testing the
+    // harness's ability to click rather than anything about the form.
 
     await sheet.getByRole('button', { name: label('submit'), exact: true }).click();
     await expect(sheet).toBeHidden();
@@ -179,7 +185,7 @@ export class SaldooApp {
     await this.openExpenses();
     await this.page.getByRole('button', { name: label('create_expense') }).click();
 
-    const drawer = this.page.getByRole('dialog');
+    const drawer = this.createDrawer;
     await expect(drawer).toBeVisible();
     await expect(drawer.getByRole('button', { name: label('submit') })).toBeVisible();
 
@@ -202,7 +208,7 @@ export class SaldooApp {
 
   async closeCreateForm(): Promise<void> {
     await this.page.keyboard.press('Escape');
-    await expect(this.page.getByRole('dialog')).toBeHidden();
+    await expect(this.createDrawer).toBeHidden();
   }
 
   // === Appearance ===
