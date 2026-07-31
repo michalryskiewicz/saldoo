@@ -113,7 +113,28 @@ export class SaldooApp {
     else await this.unlock(passphrase);
   }
 
-  async addExpense({ description, amount }: { description: string; amount: number }): Promise<void> {
+  /**
+   * Opens a select by its label and picks one option by name.
+   *
+   * The listbox is portalled to the body rather than nested in the sheet, so the option is
+   * looked up on the page while the trigger is looked up inside the form.
+   */
+  private async chooseOption(form: Locator, fieldLabel: string, option: string): Promise<void> {
+    await form.getByLabel(fieldLabel, { exact: true }).click();
+    await this.page.getByRole('option', { name: option, exact: true }).click();
+  }
+
+  async addExpense({
+    description,
+    amount,
+    severity,
+    frequency,
+  }: {
+    description: string;
+    amount: number;
+    severity?: 'LOW' | 'MEDIUM' | 'HIGH';
+    frequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+  }): Promise<void> {
     await this.openExpenses();
     await this.page.getByRole('button', { name: label('create_expense') }).click();
 
@@ -123,6 +144,11 @@ export class SaldooApp {
     // Exact throughout: 'Kategoria' is also a prefix of 'Kategoria Strategii Budżetu'.
     await sheet.getByLabel(label('description'), { exact: true }).fill(description);
     await sheet.getByLabel(label('expense'), { exact: true }).fill(String(amount));
+
+    // Left at the form's own defaults unless asked for, so the tests that do not care about
+    // either keep the shortest path through the form.
+    if (severity) await this.chooseOption(sheet, label('severity'), label(severity));
+    if (frequency) await this.chooseOption(sheet, label('frequency'), label(frequency));
 
     await sheet.getByLabel(label('execution'), { exact: true }).click();
     await this.page.getByRole('gridcell').filter({ hasText: /^15$/ }).first().click();
@@ -278,7 +304,23 @@ export class SaldooApp {
       .click();
   }
 
-  /** The first cell of every body row, in the order they are rendered. */
+  /**
+   * The summary's own label, read from the footer it now belongs to.
+   *
+   * `textContent`, not `innerText`: the latter returns what the styling made of the text, so a
+   * heading-cased label came back as "CAŁKOWITA" and the assertion failed over a `text-transform`.
+   * What this test is about is which element the summary is in, not how it is cased.
+   */
+  async footerLabel(): Promise<string> {
+    return (await this.page.locator('tfoot tr td').first().textContent())?.trim() ?? '';
+  }
+
+  /**
+   * The first cell of every record, in the order they are rendered.
+   *
+   * `tbody` only, which is now the whole of the records: the summary lives in `tfoot`, so it can
+   * no longer show up in this list however the table has been sorted.
+   */
   async rowDescriptions(): Promise<string[]> {
     return this.page.evaluate(() =>
       [...document.querySelectorAll('tbody tr')].map(
