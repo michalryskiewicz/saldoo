@@ -25,6 +25,7 @@ export const columns: ColumnDef<ExpenseRow>[] = [
   },
   {
     accessorKey: 'expense',
+    meta: { mobile: 'figure' as const },
     cell: ({ row }) => {
       const { id, expense, currency } = row.original;
       return <Cell.Money id={id} price={expense} currency={currency} />;
@@ -51,6 +52,7 @@ export const columns: ColumnDef<ExpenseRow>[] = [
   },
   {
     accessorKey: 'frequency',
+    meta: { mobile: 'hidden' as const },
     header: i18n.t('frequency'),
     cell: ({ row }) => {
       const { id, frequency } = row.original;
@@ -64,16 +66,18 @@ export const columns: ColumnDef<ExpenseRow>[] = [
   },
   {
     accessorKey: 'strategyPart',
+    meta: { mobile: 'hidden' as const },
     header: i18n.t('forms.strategy-part'),
     cell: ({ row }) => <Cell.Tags tag={i18n.t(row.original?.strategyPart as TranslationKey)} />,
   },
   {
     id: 'actions',
+    meta: { mobile: 'actions' as const },
     cell: ({ row }) => {
       if (row.original.id === TOTAL) {
         return null;
       }
-      return <ExpensesTableActions row={row} />;
+      return <ExpensesTableActions expenseId={row.original.id} />;
     },
   },
 ];

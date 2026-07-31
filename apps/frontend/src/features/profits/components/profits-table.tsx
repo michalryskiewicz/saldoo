@@ -47,7 +47,7 @@ const columns: ColumnDef<DBProfit>[] = [
       if (row.original.id === TOTAL) {
         return null;
       }
-      return <ProfitsTableActions row={row} />;
+      return <ProfitsTableActions profitId={row.original.id} />;
     },
   },
 ];

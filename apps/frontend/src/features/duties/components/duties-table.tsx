@@ -104,7 +104,7 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
       }
       return (
         <div className="flex items-center justify-end">
-          <DutiesTableActions row={row} />
+          <DutiesTableActions dutyId={row.original.id} />
         </div>
       );
     },
