@@ -11,6 +11,7 @@ import { outbox } from '@/database/document/outbox.container.ts';
 import { toast } from 'sonner';
 import i18n from '@/i18n.ts';
 import { setLastUpdated } from '@/database/meta.ts';
+import { endOfMonth, startOfMonth } from 'date-fns';
 
 // ===========================================================================
 // DB Types
@@ -105,6 +106,22 @@ export async function addDBDutiesForDateRange(
   // return refreshed list
   const allDuties = await db.duties.toArray();
   return allDuties;
+}
+
+/**
+ * Generates the current month's duties, whether or not anybody has opened the Duties screen.
+ *
+ * Without this, duties exist only for ranges someone has looked at — generation used to hang
+ * off that screen's own hook — while the overview reads the whole table to report what has
+ * been paid this month. A device where the screen was never opened reported from nothing.
+ *
+ * Adds only, never sweeps: a sweep needs the full set of expenses to know what belongs, and a
+ * deletion travels to the other device. Sweeping stays where the user is looking at a range.
+ */
+export async function topUpCurrentMonthDuties() {
+  const today = new Date();
+
+  await addDBDutiesForDateRange({ startDate: startOfMonth(today), endDate: endOfMonth(today) });
 }
 
 export async function resolveDBDuty(id: string, resolved: boolean) {
