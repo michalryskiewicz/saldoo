@@ -25,6 +25,7 @@ function label(path: string): string {
 const SYNC_TIMEOUT_MS = 15_000;
 
 const EXPENSES_PATH = '/dashboard/expenses';
+const ACCOUNT_PATH = '/dashboard/account';
 
 export class SaldooApp {
   constructor(readonly page: Page) {}
@@ -134,6 +135,41 @@ export class SaldooApp {
 
     await sheet.getByRole('button', { name: label('submit'), exact: true }).click();
     await expect(sheet).toBeHidden();
+  }
+
+  // === Account settings ===
+
+  async openAccount(): Promise<void> {
+    if (new URL(this.page.url()).pathname !== ACCOUNT_PATH) await this.open(ACCOUNT_PATH);
+
+    await expect(this.page.getByRole('radio', { name: 'PLN', exact: true })).toBeVisible({
+      timeout: SYNC_TIMEOUT_MS,
+    });
+  }
+
+  private radio(name: string): Locator {
+    return this.page.getByRole('radio', { name, exact: true });
+  }
+
+  async chooseStrategy(strategy: string): Promise<void> {
+    await this.radio(strategy).click();
+  }
+
+  async chooseCurrency(currency: string): Promise<void> {
+    await this.radio(currency).click();
+  }
+
+  async saveAccountSettings(): Promise<void> {
+    await this.page.getByRole('button', { name: label('submit'), exact: true }).click();
+    await this.waitUntilSynced();
+  }
+
+  async expectStrategy(strategy: string): Promise<void> {
+    await expect(this.radio(strategy)).toBeChecked();
+  }
+
+  async expectCurrency(currency: string): Promise<void> {
+    await expect(this.radio(currency)).toBeChecked();
   }
 
   // === Sync ===

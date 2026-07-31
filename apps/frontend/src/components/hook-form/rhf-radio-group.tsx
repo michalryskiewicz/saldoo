@@ -36,9 +36,13 @@ export const RHFRadioGroup = ({
             {label && <FormLabel>{label}</FormLabel>}
             {description && <FormDescription>{description}</FormDescription>}
             <FormControl>
+              {/* Controlled, not `defaultValue`: Radix reads that once and then keeps its
+                  own selection, so a form whose value changes underneath it — a reset, or
+                  defaults that arrive after the first render — leaves the dots showing one
+                  thing and the form holding another. */}
               <RadioGroup
                 onValueChange={field.onChange}
-                defaultValue={field.value}
+                value={field.value ?? ''}
                 className="flex flex-col"
               >
                 {options.map((option) => {
