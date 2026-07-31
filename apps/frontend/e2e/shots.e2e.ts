@@ -71,6 +71,13 @@ test('shots: the expenses page in both themes and both widths', async ({ browser
     await device.page.setViewportSize(VIEWPORTS.desktop);
     await app.chooseTheme(theme);
 
+    // Reloaded rather than blurred. The theme survives in storage, and a fresh document is the
+    // only reliable way to be rid of the focus ring the menu hands back to its trigger as it
+    // closes -- blurring races Radix restoring it, and a shot with a ring on a header button has
+    // twice read as a styling defect that was only ever the harness's own last click.
+    await device.page.reload();
+    await app.openExpenses();
+
     for (const [name, viewport] of Object.entries(VIEWPORTS)) {
       await device.page.setViewportSize(viewport);
       await device.page.waitForTimeout(CHART_ANIMATION_MS);

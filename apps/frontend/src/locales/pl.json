@@ -165,8 +165,6 @@
   "preferred_currency": "Wybrana waluta",
   "preferred_currency_description": "Wybierz walutę względem której chcesz by przeliczane były wydatki w aplikacji",
   "this_month": "Ten Miesiąc",
-  "dark_mode": "Tryb Ciemny",
-  "light_mode": "Tryb Jasny",
   "metadata": {
     "home": "Twój partner w finansach",
     "sign-in": "Logowanie",

@@ -19,12 +19,12 @@ export const SurveysButton = () => {
         Forwarding both leaves exactly one element: an anchor styled as a button.
       */}
       <TooltipTrigger asChild>
-        <Button
-          asChild
-          variant="outline"
-          size="icon"
-          className={cn('cursor-pointer  text-white px-4 py-2 rounded-4xl bg-blue-200 ')}
-        >
+        {/* The same ghost icon button as the rest of the header. It used to be a `blue-200` pill
+            with white text — a hardcoded shade answering to no token, and white on that blue is
+            nowhere near readable. Standing beside a bordered theme toggle and a bare Drive mark, it
+            also made three controls doing comparable jobs look like three unrelated things, which
+            is most of why the header read as noise. */}
+        <Button asChild variant="ghost" size="icon" className={cn('cursor-pointer')}>
           <a
             href={SURVEY_URL}
             target="_blank"
