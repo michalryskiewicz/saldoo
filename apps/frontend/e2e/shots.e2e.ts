@@ -87,6 +87,15 @@ test('shots: the expenses page in both themes and both widths', async ({ browser
         fullPage: true,
       });
     }
+
+    // And the create form, which is a screen of its own and cannot be judged from the page behind
+    // it. Desktop width: the drawer is where the two-column pairing shows at all.
+    await device.page.setViewportSize(VIEWPORTS.desktop);
+    await app.openCreateForm();
+    // The viewport, not the full page: the drawer is `position: fixed`, and a full-page capture
+    // walks the document flow and leaves it out of the image entirely.
+    await device.page.screenshot({ path: `shots/expense-form-${theme}.png` });
+    await app.closeCreateForm();
   }
 
   await device.close();

@@ -80,8 +80,23 @@
   "expense": "Expense",
   "severity": "Priority",
   "execution": "Due",
-  "execution_daily": "every day",
-  "execution_monthly": "on day {{day}}",
+  "form_sections": {
+    "what": "What and how much",
+    "when": "When",
+    "classify": "Classification"
+  },
+  "recurrence": {
+    "daily": "every day",
+    "weekly_0": "every Sunday",
+    "weekly_1": "every Monday",
+    "weekly_2": "every Tuesday",
+    "weekly_3": "every Wednesday",
+    "weekly_4": "every Thursday",
+    "weekly_5": "every Friday",
+    "weekly_6": "every Saturday",
+    "monthly": "on day {{day}}",
+    "yearly": "every year, {{date}}"
+  },
   "frequency": "Frequency",
   "tags": "Tags",
   "HIGH": "High",

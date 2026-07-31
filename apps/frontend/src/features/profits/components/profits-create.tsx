@@ -41,13 +41,9 @@ export default function ProfitsCreatePage() {
   const id = useAppSelector((state) => state.preferences.profitsDrawerId);
   const profit = useLiveQuery(() => db.profits.get(id ?? ''), [id]);
 
-/**
- * Today, as the date this is most likely to be.
- *
- * Computed per opening rather than in the module's own defaults: a `new Date()` there is evaluated
- * once when the module is first imported, so a tab left open across midnight would go on offering
- * yesterday.
- */
+  // Today by default, computed per opening rather than in the module's own defaults: a `new Date()`
+  // there is evaluated once on first import, so a tab left open across midnight would go on
+  // offering yesterday.
   const initialValues = useMemo(
     () => (id === NEW_ENTITY_ID ? { ...defaultValues, execution: new Date() } : profit ?? defaultValues),
     [profit, id]

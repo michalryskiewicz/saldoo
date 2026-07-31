@@ -1,4 +1,5 @@
 import { Field, Form } from '@/components/hook-form';
+import { FormSection } from '@/components/hook-form/form-section.tsx';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button.tsx';
 import { NEW_ENTITY_ID } from '@/constant.ts';
@@ -50,13 +51,9 @@ export default function ExpensesCreate() {
   const id = useAppSelector((state) => state.preferences.expensesDrawerId);
   const expense = useLiveQuery(() => db.expenses.get(id ?? ''), [id]);
 
-/**
- * Today, as the date this is most likely to be.
- *
- * Computed per opening rather than in the module's own defaults: a `new Date()` there is evaluated
- * once when the module is first imported, so a tab left open across midnight would go on offering
- * yesterday.
- */
+  // Today by default, computed per opening rather than in the module's own defaults: a `new Date()`
+  // there is evaluated once on first import, so a tab left open across midnight would go on
+  // offering yesterday.
   const initialValues = useMemo(
     () =>
       id === NEW_ENTITY_ID ? { ...defaultValues, execution: new Date() } : expense ?? defaultValues,
@@ -104,56 +101,70 @@ export default function ExpensesCreate() {
             //@ts-expect-error
             resetFields={!expense && { description: '', expense: undefined }}
           >
-            <div className="flex flex-col gap-5">
-              <Field.Text name="description" label={i18n.t('description')} />
+            {/* Grouped by the question each field answers. Seven fields in one run put "what am I
+                buying" exactly as close to "which budget-strategy category is this" as to "how
+                much", and those are not the same question. */}
+            <div className="flex flex-col gap-7">
+              <FormSection title={i18n.t('form_sections.what')}>
+                <Field.Text name="description" label={i18n.t('description')} />
 
-              <Field.Money name="expense" currencyField="currency" label={i18n.t('expense')} />
+                <Field.Money name="expense" currencyField="currency" label={i18n.t('expense')} />
 
-              <Field.Select
-                fullWidth
-                name="severity"
-                label={i18n.t('severity')}
-                options={[
-                  { label: i18n.t('LOW'), value: 'LOW' },
-                  { label: i18n.t('MEDIUM'), value: 'MEDIUM' },
-                  { label: i18n.t('HIGH'), value: 'HIGH' },
-                ]}
-              />
+                <Field.Select
+                  fullWidth
+                  name="severity"
+                  label={i18n.t('severity')}
+                  options={[
+                    { label: i18n.t('LOW'), value: 'LOW' },
+                    { label: i18n.t('MEDIUM'), value: 'MEDIUM' },
+                    { label: i18n.t('HIGH'), value: 'HIGH' },
+                  ]}
+                />
+              </FormSection>
 
-              <Field.Select
-                fullWidth
-                name="frequency"
-                label={i18n.t('frequency')}
-                options={[
-                  { label: i18n.t('DAILY'), value: 'DAILY' },
-                  { label: i18n.t('WEEKLY'), value: 'WEEKLY' },
-                  { label: i18n.t('MONTHLY'), value: 'MONTHLY' },
-                  { label: i18n.t('YEARLY'), value: 'YEARLY' },
-                ]}
-              />
-              <Field.Date
-                name="execution"
-                label={i18n.t('execution')}
-                fullWidth
-                placeholder={i18n.t('execution_placeholder')}
-              />
+              <FormSection title={i18n.t('form_sections.when')}>
+                {/* Side by side, because they are one answer: the table now reads them as one
+                    phrase ("co środę", "15. dnia miesiąca"), and the form should not present them
+                    as two unrelated decisions. */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field.Select
+                    fullWidth
+                    name="frequency"
+                    label={i18n.t('frequency')}
+                    options={[
+                      { label: i18n.t('DAILY'), value: 'DAILY' },
+                      { label: i18n.t('WEEKLY'), value: 'WEEKLY' },
+                      { label: i18n.t('MONTHLY'), value: 'MONTHLY' },
+                      { label: i18n.t('YEARLY'), value: 'YEARLY' },
+                    ]}
+                  />
+                  <Field.Date
+                    name="execution"
+                    label={i18n.t('execution')}
+                    fullWidth
+                    placeholder={i18n.t('execution_placeholder')}
+                  />
+                </div>
+              </FormSection>
 
-              <Field.AutoComplete
-                name="tagId"
-                label={i18n.t('forms.category')}
-                fullWidth
-                helperText={i18n.t('forms.category-helper-text')}
-                placeholder={i18n.t('forms.category-placeholder')}
-                options={tags}
-              />
+              <FormSection title={i18n.t('form_sections.classify')}>
+                <Field.AutoComplete
+                  name="tagId"
+                  label={i18n.t('forms.category')}
+                  fullWidth
+                  helperText={i18n.t('forms.category-helper-text')}
+                  placeholder={i18n.t('forms.category-placeholder')}
+                  options={tags}
+                />
 
-              <Field.Select
-                fullWidth
-                name="strategyPart"
-                label={i18n.t('forms.strategy-part')}
-                infoTooltip={i18n.t('forms.strategy-part-tooltip')}
-                options={budgetingPartsOptions}
-              />
+                <Field.Select
+                  fullWidth
+                  name="strategyPart"
+                  label={i18n.t('forms.strategy-part')}
+                  infoTooltip={i18n.t('forms.strategy-part-tooltip')}
+                  options={budgetingPartsOptions}
+                />
+              </FormSection>
 
               <Button type="submit">{i18n.t(id === NEW_ENTITY_ID ? 'submit' : 'edit')}</Button>
             </div>

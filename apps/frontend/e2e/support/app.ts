@@ -164,6 +164,44 @@ export class SaldooApp {
     await expect(sheet).toBeHidden();
   }
 
+  /**
+   * Opens the create drawer and leaves it open, for looking at rather than filling in.
+   *
+   * It waits for the drawer to stop moving, not merely to exist. Radix slides it in with a
+   * transform, and "visible" is true from the first frame — a screenshot taken then catches it
+   * still off the edge of the screen, which is how the first form shots came back showing only the
+   * page behind it.
+   */
+  async openCreateForm(): Promise<void> {
+    await this.openExpenses();
+    await this.page.getByRole('button', { name: label('create_expense') }).click();
+
+    const drawer = this.page.getByRole('dialog');
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByRole('button', { name: label('submit') })).toBeVisible();
+
+    // Polled until the position stops changing, rather than waited out with a guessed number: the
+    // sheet animates over 500ms and "visible" is true from the first frame, so a shot taken on the
+    // strength of visibility alone catches it still half off the edge.
+    let previous = -1;
+    await expect
+      .poll(
+        async () => {
+          const x = (await drawer.boundingBox())?.x ?? -1;
+          const settled = x >= 0 && x === previous;
+          previous = x;
+          return settled;
+        },
+        { timeout: 5_000, intervals: [100] }
+      )
+      .toBe(true);
+  }
+
+  async closeCreateForm(): Promise<void> {
+    await this.page.keyboard.press('Escape');
+    await expect(this.page.getByRole('dialog')).toBeHidden();
+  }
+
   // === Appearance ===
 
   /** Picks a theme through the header control, the way a person does. */

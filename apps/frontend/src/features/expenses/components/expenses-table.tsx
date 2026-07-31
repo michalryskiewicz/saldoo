@@ -1,5 +1,5 @@
 import type { ColumnDef } from '@tanstack/react-table';
-import { formatFrequency } from '@/lib/formats.ts';
+import { formatRecurrence } from '@/lib/formats.ts';
 import { DataTable } from '@/components/ui/data-table.tsx';
 import { TableSearch } from '@/components/ui/table-search.tsx';
 import { searchExpenses } from '@/features/expenses/services/expenses-search.service.ts';
@@ -43,20 +43,11 @@ export const columns: ColumnDef<ExpenseRow>[] = [
     },
   },
   {
-    accessorKey: 'execution',
-    header: i18n.t('execution'),
-    cell: ({ row }) => {
-      const { id, execution, frequency } = row.original;
-      return <Cell.Text id={id} name={formatFrequency(execution, frequency)} />;
-    },
-  },
-  {
     accessorKey: 'frequency',
-    meta: { mobile: 'hidden' as const },
     header: i18n.t('frequency'),
     cell: ({ row }) => {
-      const { id, frequency } = row.original;
-      return <Cell.Frequency id={id} frequency={frequency} />;
+      const { id, execution, frequency } = row.original;
+      return <Cell.Text id={id} name={formatRecurrence(execution, frequency)} />;
     },
   },
   {
