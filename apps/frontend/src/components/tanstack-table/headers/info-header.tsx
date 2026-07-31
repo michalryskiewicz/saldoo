@@ -13,7 +13,10 @@ export default function InfoHeader<T extends Record<string, unknown>>({
   tooltip,
 }: InfoHeaderProps<T>) {
   return (
-    <div className="flex flex-row gap-0.5 justify-start items-center">
+    // `inline-flex`, so the column's own alignment positions this box. As a block flex with
+    // `justify-start` it sat left however the column was aligned, which is how a right-aligned
+    // money column ended up with a left-aligned heading.
+    <div className="inline-flex flex-row items-center gap-0.5">
       {i18n.t(header)}
 
       <InfoTooltip text={i18n.t(tooltip)} />

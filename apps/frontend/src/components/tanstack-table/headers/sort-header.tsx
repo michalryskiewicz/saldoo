@@ -1,3 +1,8 @@
+// The direction is read from the column, not from props, so memoising this on props alone lets
+// the arrow freeze and the click act on a stale reading — which is exactly what happened: a
+// second click set "ascending" again instead of reversing.
+'use no memo';
+
 import i18n, { type TranslationKey } from '@/i18n.ts';
 import { Button } from '@/components/ui/button.tsx';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
@@ -31,9 +36,9 @@ export default function SortHeader<T extends Record<string, unknown>>({
       // Inherits the heading's own type rather than restating it: the header cell already decided
       // this is small, quiet and uppercase.
       className="-ml-2 h-7 gap-1.5 px-2 text-xs font-medium tracking-wide uppercase"
-      onClick={() => {
-        column.toggleSorting(direction === 'asc');
-      }}
+      // TanStack's own handler, which reads the current state when the click happens rather than
+      // when this rendered.
+      onClick={column.getToggleSortingHandler()}
     >
       {i18n.t(header)}
       <Icon

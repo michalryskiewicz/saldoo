@@ -27,10 +27,9 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
   },
   {
     accessorKey: 'expense',
-    // Right-aligned, because its figures are. A centred heading over right-aligned numbers is
-    // how the header stopped pointing at its own column.
-    header: () => <p className="text-right">{i18n.t('expense')}</p>,
+    header: i18n.t('expense'),
     size: 140,
+    meta: { align: 'right' as const },
     cell: ({ row }) => {
       const { id, expense, currency } = row.original.expense;
       return <Cell.Money id={id} price={expense} currency={currency} />;
@@ -154,29 +153,34 @@ export default function DutiesTable() {
     : [];
 
   return (
-    <>
-      <div className="flex flex-col w-full justify-start gap-4 lg:flex-row lg:gap-8 min-w-0">
-        <DateRangeSelector value={range} onChange={setRange} />
+    <DataTable
+      // @ts-expect-error the duty row carries a nullable expense the column defs narrow themselves
+      columns={columns}
+      data={[...(dataToTable || []), ...totalRow]}
+    >
+      {() => (
+        <>
+          <div className="flex flex-col w-full justify-start gap-4 lg:flex-row lg:gap-8 min-w-0">
+            <DateRangeSelector value={range} onChange={setRange} />
 
-        <div className="flex items-center gap-2 flex-none">
-          <Tabs value={paidFilter}>
-            <TabsList className="flex gap-2 overflow-x-auto whitespace-nowrap">
-              <TabsTrigger value="all" onClick={() => setPaidFilter('all')}>
-                {i18n.t('all') as TranslationKey}
-              </TabsTrigger>
-              <TabsTrigger value="unpaid" onClick={() => setPaidFilter('unpaid')}>
-                {i18n.t('unpaid') as TranslationKey}
-              </TabsTrigger>
-              <TabsTrigger value="paid" onClick={() => setPaidFilter('paid')}>
-                {i18n.t('paid') as TranslationKey}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-      </div>
-      {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
-      {/* @ts-expect-error */}
-      <DataTable columns={columns} data={[...(dataToTable || []), ...totalRow]} />
-    </>
+            <div className="flex items-center gap-2 flex-none">
+              <Tabs value={paidFilter}>
+                <TabsList className="flex gap-2 overflow-x-auto whitespace-nowrap">
+                  <TabsTrigger value="all" onClick={() => setPaidFilter('all')}>
+                    {i18n.t('all') as TranslationKey}
+                  </TabsTrigger>
+                  <TabsTrigger value="unpaid" onClick={() => setPaidFilter('unpaid')}>
+                    {i18n.t('unpaid') as TranslationKey}
+                  </TabsTrigger>
+                  <TabsTrigger value="paid" onClick={() => setPaidFilter('paid')}>
+                    {i18n.t('paid') as TranslationKey}
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          </div>
+        </>
+      )}
+    </DataTable>
   );
 }

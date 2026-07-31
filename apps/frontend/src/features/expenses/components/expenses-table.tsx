@@ -24,6 +24,7 @@ export const columns: ColumnDef<ExpenseRow>[] = [
   {
     accessorKey: 'expense',
     size: 140,
+    meta: { align: 'right' as const },
     cell: ({ row }) => {
       const { id, expense, currency } = row.original;
       return <Cell.Money id={id} price={expense} currency={currency} />;
@@ -111,38 +112,41 @@ export const ExpensesTable = () => {
     : [];
 
   return (
-    <>
-      <div className="flex flex-col w-full justify-start gap-4 lg:flex-row  lg:gap-8">
-        <Tabs value={severity || ''}>
-          <TabsList>
-            {Object.values(SEVERITY).map((value) => (
-              <TabsTrigger
-                key={value}
-                value={value}
-                onClick={() => setSeverity((prev) => (prev === value ? undefined : value))}
-              >
-                {i18n.t(value as TranslationKey)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+    <DataTable columns={columns} data={[...dataToTable, ...totalRow]}>
+      {() => (
+        <>
+          <div className="flex flex-col w-full justify-start gap-4 lg:flex-row  lg:gap-8">
+            <Tabs value={severity || ''}>
+              <TabsList>
+                {Object.values(SEVERITY).map((value) => (
+                  <TabsTrigger
+                    key={value}
+                    value={value}
+                    onClick={() => setSeverity((prev) => (prev === value ? undefined : value))}
+                  >
+                    {i18n.t(value as TranslationKey)}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
 
-        <Tabs value={frequency || ''}>
-          <TabsList>
-            {Object.values(FREQUENCY).map((value) => (
-              <TabsTrigger
-                key={value}
-                value={value}
-                onClick={() => setFrequency((prev) => (prev === value ? undefined : value))}
-              >
-                {i18n.t(value as TranslationKey)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-      </div>
+            <Tabs value={frequency || ''}>
+              <TabsList>
+                {Object.values(FREQUENCY).map((value) => (
+                  <TabsTrigger
+                    key={value}
+                    value={value}
+                    onClick={() => setFrequency((prev) => (prev === value ? undefined : value))}
+                  >
+                    {i18n.t(value as TranslationKey)}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
 
-      <DataTable columns={columns} data={[...dataToTable, ...totalRow]} />
-    </>
+        </>
+      )}
+    </DataTable>
   );
 };

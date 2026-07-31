@@ -265,6 +265,28 @@ export class SaldooApp {
 
   // === Expenses ===
 
+  /**
+   * Clicks a column heading to sort by it.
+   *
+   * Scoped to `thead`: unscoped, "Wydatek" also matches the page's "Dodaj wydatek" button, which
+   * opens the create drawer and silently leaves the table unsorted underneath it.
+   */
+  async sortBy(header: 'description' | 'severity'): Promise<void> {
+    await this.page
+      .locator('thead')
+      .getByRole('button', { name: label(header === 'description' ? 'description' : 'severity') })
+      .click();
+  }
+
+  /** The first cell of every body row, in the order they are rendered. */
+  async rowDescriptions(): Promise<string[]> {
+    return this.page.evaluate(() =>
+      [...document.querySelectorAll('tbody tr')].map(
+        (row) => row.querySelector('td')?.textContent?.trim() ?? ''
+      )
+    );
+  }
+
   private expenseRow(description: string): Locator {
     return this.page.getByRole('row').filter({ hasText: description });
   }

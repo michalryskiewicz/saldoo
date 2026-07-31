@@ -17,6 +17,7 @@ const columns: ColumnDef<DBProfit>[] = [
   {
     accessorKey: 'profit',
     size: 140,
+    meta: { align: 'right' as const },
     cell: ({ row }) => {
       const { id, profit, currency } = row.original;
       return <Cell.Money id={id} price={profit} currency={currency} />;

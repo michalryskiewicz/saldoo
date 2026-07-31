@@ -27,6 +27,7 @@ import i18n from '@/i18n.ts';
 
 const TONE_CLASS = {
   positive: 'text-positive',
+  info: 'text-info',
   muted: 'text-muted-foreground',
   destructive: 'text-destructive',
 } as const;
