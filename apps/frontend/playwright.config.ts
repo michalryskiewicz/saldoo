@@ -19,6 +19,9 @@ export default defineConfig({
   // picked up by the unit runner and vice versa -- they need different environments.
   testMatch: '**/*.e2e.ts',
   fullyParallel: true,
+  // Above the default 30s: a test that waits for the upload debounce to elapse on purpose
+  // spends ten of those seconds doing nothing, and CI runners are slower than this laptop.
+  timeout: 60_000,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   // The html report is what CI uploads on failure; without it the artifact is empty and

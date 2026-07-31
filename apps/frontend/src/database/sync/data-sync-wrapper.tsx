@@ -56,7 +56,23 @@ export const DataSyncWrapper = ({ children }: PropsWithChildren) => {
     const resync = () => void sync();
     window.addEventListener('online', resync);
 
-    return () => window.removeEventListener('online', resync);
+    // Leaving is the moment the upload debounce stops being a saving and turns into a window
+    // where a change exists on this device only. Two events, because they catch different
+    // exits: `visibilitychange` covers switching tab or app, `pagehide` covers navigating
+    // away and closing. Best-effort by nature — the browser need not let the request finish —
+    // which is why the owed flag is persisted as well.
+    const flushIfLeaving = () => {
+      if (document.visibilityState === 'hidden') outbox.flush();
+    };
+    const flushOnUnload = () => outbox.flush();
+    document.addEventListener('visibilitychange', flushIfLeaving);
+    window.addEventListener('pagehide', flushOnUnload);
+
+    return () => {
+      window.removeEventListener('online', resync);
+      document.removeEventListener('visibilitychange', flushIfLeaving);
+      window.removeEventListener('pagehide', flushOnUnload);
+    };
   }, []);
 
   if (status === 'unreadable-backup') {

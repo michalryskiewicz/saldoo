@@ -199,6 +199,35 @@ export class SaldooApp {
   }
 
   /**
+   * Leaves the tab, the way switching away from the app does.
+   *
+   * `visibilityState` is the browser's to set and Playwright cannot, so it is overridden
+   * before the event is dispatched. Everything downstream is the app's own code: the
+   * listener, the flush, the upload. This is also how a test avoids sitting out the upload
+   * debounce without pretending the debounce is shorter than it ships.
+   */
+  async leaveTab(): Promise<void> {
+    await this.page.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+  }
+
+  async returnToTab(): Promise<void> {
+    await this.page.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+  }
+
+  /** Leave, let the flush land, come back — what a person does between two devices. */
+  async publishNow(): Promise<void> {
+    await this.leaveTab();
+    await this.waitUntilSynced();
+    await this.returnToTab();
+  }
+
+  /**
    * A change is saved locally and still owed to Drive.
    *
    * Deliberately not the `sync.offline` label: the outbox outranks the connection status

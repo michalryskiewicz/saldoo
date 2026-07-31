@@ -25,7 +25,7 @@ test('an expense added offline is saved, reported as offline, and sent once reco
   await app.createVault(PASSPHRASE);
   await app.completeOnboarding();
   await app.openExpenses();
-  await app.waitUntilSynced();
+  await app.publishNow();
 
   const beforeOffline = drive.contents(DOCUMENT_FILE);
 
@@ -54,6 +54,47 @@ test('an expense added offline is saved, reported as offline, and sent once reco
   await app.expectExpenses(['Kawa']);
 
   expect(device.problems()).toEqual([]);
+
+  await device.close();
+});
+
+/**
+ * The flush that lets the upload debounce be as long as it is.
+ *
+ * Without it the debounce had to stay near two seconds, because a person who makes one change
+ * and switches away would otherwise leave it on this device alone.
+ */
+test('leaving the tab publishes straight away instead of waiting out the debounce', async ({
+  browser,
+  baseURL,
+}) => {
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  // Counting writes rather than comparing contents: every upload re-encrypts with a fresh
+  // IV, so identical state produces different bytes and "did the file change" answers the
+  // wrong question.
+  const uploads = () => drive.writeLog().filter((write) => write.name === DOCUMENT_FILE).length;
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+  // On the page before the baseline, so the navigation cannot be what triggers an upload.
+  await app.openExpenses();
+  await app.publishNow();
+
+  const before = uploads();
+  await app.addExpense({ description: 'Kawa', amount: 18 });
+
+  // A fixed wait, because the claim is about time: well inside the debounce, nothing has
+  // gone out yet.
+  await device.page.waitForTimeout(1_500);
+  expect(uploads()).toBe(before);
+
+  await app.leaveTab();
+
+  await expect.poll(uploads, { timeout: 5_000 }).toBeGreaterThan(before);
 
   await device.close();
 });

@@ -24,7 +24,7 @@ async function laptopWithVault(browser: Parameters<typeof openDevice>[0], drive:
   // The settings live in the same document as everything else, so a second device can
   // only skip onboarding once this one has published them.
   await app.openExpenses();
-  await app.waitUntilSynced();
+  await app.publishNow();
 
   return { device, app };
 }
@@ -85,14 +85,14 @@ test('a deletion on one device is not restored by the other', async ({ browser, 
 
   const laptop = await laptopWithVault(browser, drive, baseURL!);
   await laptop.app.addExpense({ description: 'Czynsz', amount: 2500 });
-  await laptop.app.waitUntilSynced();
+  await laptop.app.publishNow();
 
   const phone = await phoneJoining(browser, drive, baseURL!);
   await phone.app.openExpenses();
   await phone.app.expectExpenses(['Czynsz']);
 
   await laptop.app.removeExpense('Czynsz');
-  await laptop.app.waitUntilSynced();
+  await laptop.app.publishNow();
 
   // The phone still holds the record, so a merge that treated its copy as news would
   // bring the expense back — the one outcome a delete must never have.

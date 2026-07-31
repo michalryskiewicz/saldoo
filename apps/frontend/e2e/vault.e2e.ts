@@ -25,7 +25,7 @@ test('a device that has never seen this vault asks for the passphrase', async ({
   await firstApp.createVault(PASSPHRASE);
   await firstApp.completeOnboarding();
   await firstApp.openExpenses();
-  await firstApp.waitUntilSynced();
+  await firstApp.publishNow();
 
   // A second context: its own IndexedDB and its own session, so the data key it would
   // need has never existed here. The keyfile on Drive holds only the *wrapped* key.
