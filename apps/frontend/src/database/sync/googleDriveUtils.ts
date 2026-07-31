@@ -27,6 +27,14 @@ export type DriveFileSummary = {
   id: string;
   size: number;
   modifiedTime: string;
+  /**
+   * Drive's own monotonic counter for the file — "every change made to the file on the
+   * server, even those not visible to the user".
+   *
+   * It is read from the *listing*, which is what lets a caller notice the remote has not
+   * moved without downloading the contents to find out.
+   */
+  version: string;
 };
 
 /**
@@ -43,6 +51,13 @@ function listUrl(query: string, fields: string): string {
 }
 
 const FOLDER_MIME = 'application/vnd.google-apps.folder';
+
+type DriveFileListEntry = {
+  id?: string;
+  size?: string;
+  modifiedTime?: string;
+  version?: string;
+};
 
 /** @returns the folder id, or `null` when this account has no Saldoo folder yet. */
 export async function findSaldooFolderId(accessToken: string): Promise<string | null> {
@@ -95,20 +110,21 @@ export async function findFilesInSaldooFolder(
   const response = await driveFetch(
     listUrl(
       `name='${driveQueryLiteral(fileName)}' and '${driveQueryLiteral(folderId)}' in parents and trashed=false`,
-      'files(id,size,modifiedTime)'
+      'files(id,size,modifiedTime,version)'
     ),
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
 
   const data = await response.json();
-  const files: { id?: string; size?: string; modifiedTime?: string }[] = data.files ?? [];
+  const files: DriveFileListEntry[] = data.files ?? [];
 
   return files
-    .filter((file): file is { id: string; size?: string; modifiedTime?: string } => !!file.id)
+    .filter((file): file is DriveFileListEntry & { id: string } => !!file.id)
     .map((file) => ({
       id: file.id,
       size: Number(file.size ?? 0),
       modifiedTime: file.modifiedTime ?? '',
+      version: file.version ?? '',
     }));
 }
 
@@ -151,16 +167,30 @@ export async function readFileFromDrive(accessToken: string, fileId: string): Pr
   return await res.text();
 }
 
-/** @throws {DriveRequestFailedError} — a write that did not land must not look like one that did. */
-export async function writeFileToDrive(accessToken: string, fileId: string, value: string) {
-  await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-    method: 'PATCH',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: value,
-  });
+/**
+ * @returns the file's version *after* the write, so a caller can tell its own write apart
+ * from somebody else's.
+ * @throws {DriveRequestFailedError} — a write that did not land must not look like one
+ * that did.
+ */
+export async function writeFileToDrive(
+  accessToken: string,
+  fileId: string,
+  value: string
+): Promise<string> {
+  const response = await driveFetch(
+    `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media&fields=version`,
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: value,
+    }
+  );
+
+  return (await response.json()).version ?? '';
 }
 
 export async function deleteFileFromDrive(accessToken: string, fileId: string) {

@@ -19,6 +19,8 @@ export type FakeDriveFile = {
   parents: string[];
   content: string;
   modifiedTime: string;
+  /** Drive's monotonic counter, which the sync uses as a write precondition. */
+  version: string;
 };
 
 export type DriveListEntry = {
@@ -26,6 +28,7 @@ export type DriveListEntry = {
   name: string;
   size: string;
   modifiedTime: string;
+  version: string;
 };
 
 /**
@@ -81,7 +84,8 @@ export interface FakeDrive {
   list(query: string): DriveListEntry[];
   create(metadata: { name: string; mimeType?: string; parents?: string[] }): FakeDriveFile;
   read(id: string): FakeDriveFile | undefined;
-  write(id: string, content: string): void;
+  /** @returns the file's version after the write, as Drive reports it. */
+  write(id: string, content: string): string;
   remove(id: string): boolean;
 
   /** Test-facing: the contents of a file by name, or `null` when it does not exist. */
@@ -103,6 +107,11 @@ export function createFakeDrive(): FakeDrive {
   // millisecond resolution would let two writes in one test tie.
   const nextModifiedTime = () => new Date(Date.UTC(2026, 0, 1) + clock++ * 1000).toISOString();
 
+  // One counter for the whole folder, as Drive's is per file but only ever compared for
+  // equality. Every write moves it, which is what makes a stale precondition detectable.
+  let revision = 0;
+  const nextVersion = () => String(++revision);
+
   const byName = (name: string) => [...files.values()].find((file) => file.name === name);
 
   const create = ({
@@ -121,6 +130,7 @@ export function createFakeDrive(): FakeDrive {
       parents: parents ?? [],
       content: '',
       modifiedTime: nextModifiedTime(),
+      version: nextVersion(),
     };
     files.set(file.id, file);
 
@@ -142,6 +152,7 @@ export function createFakeDrive(): FakeDrive {
           name: file.name,
           size: String(new TextEncoder().encode(file.content).length),
           modifiedTime: file.modifiedTime,
+          version: file.version,
         }));
     },
 
@@ -155,7 +166,10 @@ export function createFakeDrive(): FakeDrive {
 
       file.content = content;
       file.modifiedTime = nextModifiedTime();
+      file.version = nextVersion();
       writes.push({ name: file.name, at: writes.length });
+
+      return file.version;
     },
 
     remove(id) {
@@ -171,6 +185,7 @@ export function createFakeDrive(): FakeDrive {
       if (existing) {
         existing.content = content;
         existing.modifiedTime = nextModifiedTime();
+        existing.version = nextVersion();
         return;
       }
 

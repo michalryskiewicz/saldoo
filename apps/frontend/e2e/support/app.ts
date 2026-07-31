@@ -25,6 +25,7 @@ function label(path: string): string {
 const SYNC_TIMEOUT_MS = 15_000;
 
 const EXPENSES_PATH = '/dashboard/expenses';
+const ACCOUNT_PATH = '/dashboard/account';
 
 export class SaldooApp {
   constructor(readonly page: Page) {}
@@ -94,9 +95,11 @@ export class SaldooApp {
     await this.next().click();
     await this.page.getByRole('button', { name: label('metrics.end') }).click();
 
-    // Submitting writes the tags and the settings before it navigates, so the wizard
-    // going away — not the click — is what says onboarding is done.
+    // Submitting writes the tags and the settings and *then* navigates, so the wizard going
+    // away is not the end of it: leaving before that navigation lands means the app steers
+    // the next page away underneath the test.
     await expect(this.page.getByRole('tablist')).toBeHidden({ timeout: SYNC_TIMEOUT_MS });
+    await this.page.waitForURL('**/dashboard');
   }
 
   /** Setup, or unlock, or nothing — whichever this device's state calls for. */
@@ -134,6 +137,51 @@ export class SaldooApp {
     await expect(sheet).toBeHidden();
   }
 
+  // === Account settings ===
+
+  async openAccount(): Promise<void> {
+    if (new URL(this.page.url()).pathname !== ACCOUNT_PATH) await this.open(ACCOUNT_PATH);
+
+    await expect(this.page.getByRole('radio', { name: 'PLN', exact: true })).toBeVisible({
+      timeout: SYNC_TIMEOUT_MS,
+    });
+  }
+
+  private radio(name: string): Locator {
+    return this.page.getByRole('radio', { name, exact: true });
+  }
+
+  async chooseStrategy(strategy: string): Promise<void> {
+    await this.radio(strategy).click();
+  }
+
+  async chooseCurrency(currency: string): Promise<void> {
+    await this.radio(currency).click();
+  }
+
+  async submitAccountSettings(): Promise<void> {
+    await this.page.getByRole('button', { name: label('submit'), exact: true }).click();
+  }
+
+  /**
+   * The saved notice.
+   *
+   * Asserted separately from submitting, and before anything waits on the sync: sonner
+   * dismisses it on its own, so a helper that waited first would be checking whether the
+   * toast was slow rather than whether it appeared.
+   */
+  async expectSavedNotice(): Promise<void> {
+    await expect(this.page.getByText(label('success.update-account-settings'))).toBeVisible();
+  }
+
+  async expectStrategy(strategy: string): Promise<void> {
+    await expect(this.radio(strategy)).toBeChecked();
+  }
+
+  async expectCurrency(currency: string): Promise<void> {
+    await expect(this.radio(currency)).toBeChecked();
+  }
+
   // === Sync ===
 
   private get syncStatus(): Locator {
@@ -148,6 +196,35 @@ export class SaldooApp {
    */
   async waitUntilSynced(): Promise<void> {
     await expect(this.syncStatus).toHaveText(label('sync.synced'), { timeout: SYNC_TIMEOUT_MS });
+  }
+
+  /**
+   * Leaves the tab, the way switching away from the app does.
+   *
+   * `visibilityState` is the browser's to set and Playwright cannot, so it is overridden
+   * before the event is dispatched. Everything downstream is the app's own code: the
+   * listener, the flush, the upload. This is also how a test avoids sitting out the upload
+   * debounce without pretending the debounce is shorter than it ships.
+   */
+  async leaveTab(): Promise<void> {
+    await this.page.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+  }
+
+  async returnToTab(): Promise<void> {
+    await this.page.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+  }
+
+  /** Leave, let the flush land, come back — what a person does between two devices. */
+  async publishNow(): Promise<void> {
+    await this.leaveTab();
+    await this.waitUntilSynced();
+    await this.returnToTab();
   }
 
   /**

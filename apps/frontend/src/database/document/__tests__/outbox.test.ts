@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDocumentDb } from '../document-db.ts';
 import { createIndexedDbOutboxStore } from '../outbox-store.ts';
-import { createOutbox, type Uploader } from '../outbox.ts';
+import { createOutbox, UPLOAD_DEBOUNCE_MS, type Uploader } from '../outbox.ts';
 
 /** A controllable clock and scheduler, so backoff is asserted rather than waited out. */
 function fakeScheduler() {
@@ -205,5 +205,88 @@ describe('outbox', () => {
 
     expect(seen).toContain(true);
     expect(seen).toContain(false);
+  });
+
+  it('does not forget a change made while an upload was already in flight', async () => {
+    let finishUpload: () => void = () => {};
+    const upload = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishUpload = resolve;
+        })
+    );
+    const { outbox, scheduler, name } = build(upload);
+
+    outbox.markDirty();
+    await scheduler.advance(UPLOAD_DEBOUNCE_MS);
+    expect(upload).toHaveBeenCalledTimes(1);
+
+    // A second change lands while the first upload is still going. Whether the bytes
+    // already in flight happen to include it is a race on when the document was encoded,
+    // so it cannot be assumed sent.
+    outbox.markDirty();
+
+    finishUpload();
+    await scheduler.advance(0);
+
+    expect(outbox.state().pending).toBe(true);
+    // And durably owed: clearing the stored flag here would mean not even a reload picks
+    // this change up, leaving it on one device forever.
+    await expect(createIndexedDbOutboxStore(createDocumentDb(name)).read()).resolves.toBe(true);
+
+    finishUpload();
+    await scheduler.advance(UPLOAD_DEBOUNCE_MS);
+    expect(upload).toHaveBeenCalledTimes(2);
+  });
+
+  it('sends what is owed straight away when asked to flush', async () => {
+    const upload = vi.fn(async () => {});
+    const { outbox, scheduler } = build(upload);
+
+    outbox.markDirty();
+    // Nowhere near the debounce: leaving the app is exactly when waiting it out is the one
+    // thing that must not happen.
+    await scheduler.advance(100);
+    expect(upload).not.toHaveBeenCalled();
+
+    outbox.flush();
+    await scheduler.advance(0);
+
+    expect(upload).toHaveBeenCalledTimes(1);
+    expect(outbox.state().pending).toBe(false);
+  });
+
+  it('flushing with nothing owed does not talk to Drive', async () => {
+    const upload = vi.fn(async () => {});
+    const { outbox, scheduler } = build(upload);
+
+    outbox.flush();
+    await scheduler.advance(0);
+
+    expect(upload).not.toHaveBeenCalled();
+  });
+
+  it('flushing during an upload does not start a second one', async () => {
+    let finishUpload: () => void = () => {};
+    const upload = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishUpload = resolve;
+        })
+    );
+    const { outbox, scheduler } = build(upload);
+
+    outbox.markDirty();
+    await scheduler.advance(UPLOAD_DEBOUNCE_MS);
+    expect(upload).toHaveBeenCalledTimes(1);
+
+    // Two uploads racing on one Drive file is the failure the single-writer rule exists to
+    // prevent, and a flush must not be a way around it.
+    outbox.flush();
+    await scheduler.advance(0);
+    expect(upload).toHaveBeenCalledTimes(1);
+
+    finishUpload();
+    await scheduler.advance(0);
   });
 });

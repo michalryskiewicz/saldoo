@@ -47,7 +47,7 @@ test('an old-shaped database is upgraded and its records reach the document', as
 
   // And survived the move to the document, which is what makes it reach another device at
   // all — before this migration these rows were invisible to the sync.
-  await app.waitUntilSynced();
+  await app.publishNow();
   expect(drive.contents(DOCUMENT_FILE)).not.toBeNull();
   expect(drive.contents(DOCUMENT_FILE)).not.toContain('Stary czynsz');
 

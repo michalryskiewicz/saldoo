@@ -27,6 +27,15 @@ export interface Outbox {
    * the record is sitting safely in IndexedDB.
    */
   markDirty(): void;
+  /**
+   * Sends what is owed now, without waiting out the debounce.
+   *
+   * For the moment the user leaves: a tab going hidden or unloading is the one point where
+   * the debounce stops being a saving and becomes a window in which a change exists on this
+   * device only. Does nothing when there is nothing owed, and never starts a second upload
+   * alongside one already running.
+   */
+  flush(): void;
   /** Picks up work left unsent by a previous run. */
   restore(): Promise<void>;
   state(): OutboxState;
@@ -34,11 +43,15 @@ export interface Outbox {
 }
 
 /**
- * Debounce before uploading. Long enough that a burst — typing through a form, or a
- * CSV import writing row after row — becomes one upload; short enough that a user who
- * makes one change and closes the tab does not lose it.
+ * Debounce before uploading, so a burst — typing through a form, or a CSV import writing
+ * row after row — becomes one upload rather than dozens. Each upload carries the whole
+ * document, so collapsing them is worth real bandwidth.
+ *
+ * It can be this long only because {@link Outbox.flush} covers the case it used to have to
+ * cover itself: a person who makes one change and leaves. Without that flush this had to
+ * stay near two seconds, or leaving the app would strand the change on one device.
  */
-export const UPLOAD_DEBOUNCE_MS = 2_000;
+export const UPLOAD_DEBOUNCE_MS = 10_000;
 
 /** First retry delay; doubles each attempt up to the ceiling. */
 const RETRY_BASE_MS = 5_000;
@@ -65,6 +78,15 @@ export function createOutbox({
   let attempts = 0;
   let draining = false;
   let scheduled = false;
+  /**
+   * Bumped by every write, and compared across an upload.
+   *
+   * An upload sends the document as it was encoded, so a change that lands mid-flight may
+   * or may not be in the bytes already going out — that is a race on timing, not something
+   * to assume either way. Without this the upload's success cleared the flag regardless and
+   * the change stayed on one device with nothing left to send it.
+   */
+  let generation = 0;
   const listeners = new Set<() => void>();
 
   /**
@@ -97,12 +119,25 @@ export function createOutbox({
     if (draining || !pending) return;
     draining = true;
 
+    const uploading = generation;
+
     try {
       await upload();
 
-      pending = false;
       failure = undefined;
       attempts = 0;
+
+      if (generation !== uploading) {
+        // Somebody wrote while this was in flight, so the work is still owed. Scheduling is
+        // a no-op when a drain is already queued, and saying it here beats depending on
+        // `markDirty` having queued one.
+        notify();
+        scheduleDrain(UPLOAD_DEBOUNCE_MS);
+
+        return;
+      }
+
+      pending = false;
       // Notify before persisting: the indicator reflects state, and making it wait
       // on IndexedDB would show a stale "pending" for no reason.
       notify();
@@ -130,6 +165,7 @@ export function createOutbox({
       pending = true;
       failure = undefined;
       attempts = 0;
+      generation += 1;
 
       // Fire-and-forget: the flag only has to survive a reload, and waiting on
       // IndexedDB here would make this asynchronous for no benefit.
@@ -137,6 +173,14 @@ export function createOutbox({
 
       notify();
       scheduleDrain(UPLOAD_DEBOUNCE_MS);
+    },
+
+    flush() {
+      // Straight to the drain rather than `scheduleDrain(0)`: a drain already queued for
+      // later would make that a no-op, which is the opposite of what a flush is for.
+      if (!pending || draining) return;
+
+      void drain();
     },
 
     async restore() {

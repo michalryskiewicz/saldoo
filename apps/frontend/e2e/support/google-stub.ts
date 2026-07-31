@@ -48,8 +48,43 @@ window.google.accounts.oauth2 = {
 };
 `;
 
-/** Public NBP rates, which this suite is not about. One fixed table, so totals are stable. */
-const EXCHANGE_RATES = { PLN: {}, USD: {}, EUR: {} };
+/**
+ * Public NBP rates, which this suite is not about — but they cannot be left empty.
+ *
+ * `convertMoney` logs an error for every date it cannot find a rate for, and this suite
+ * fails tests on console errors, so an empty table would turn "the app has no rates" into
+ * a failure about the harness. One fixed rate per currency, quoted for every day in the
+ * requested range, keeps totals stable and the console clean.
+ */
+const FIXED_RATES = { PLN: 1, USD: 4, EUR: 4.5 };
+
+/** A day either side, since a range endpoint is inclusive and callers round differently. */
+const RANGE_MARGIN_DAYS = 1;
+const MAX_RANGE_DAYS = 800;
+
+function ratesForRange(fromDate: string, toDate: string) {
+  const start = new Date(fromDate);
+  const end = new Date(toDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return { PLN: {}, USD: {}, EUR: {} };
+  }
+
+  const days: string[] = [];
+  const cursor = new Date(start.getTime() - RANGE_MARGIN_DAYS * 86_400_000);
+  const last = end.getTime() + RANGE_MARGIN_DAYS * 86_400_000;
+
+  while (cursor.getTime() <= last && days.length < MAX_RANGE_DAYS) {
+    days.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return Object.fromEntries(
+    Object.entries(FIXED_RATES).map(([currency, rate]) => [
+      currency,
+      Object.fromEntries(days.map((day) => [day, rate])),
+    ])
+  );
+}
 
 export type StubOptions = {
   /**
@@ -93,15 +128,24 @@ async function handleDrive(route: Route, url: URL, drive: FakeDrive) {
   if (upload && method === 'PATCH') {
     if (!drive.read(fileId)) return json(route, { error: { code: 404 } }, 404);
 
-    drive.write(fileId, request.postData() ?? '');
+    const version = drive.write(fileId, request.postData() ?? '');
 
-    return json(route, { id: fileId });
+    // The real endpoint only returns what `fields` asks for, and the sync asks for the
+    // version so it can tell its own write apart from somebody else's.
+    return json(route, { id: fileId, version });
   }
 
   if (method === 'GET' && url.searchParams.has('q')) {
     const files = drive.list(url.searchParams.get('q') ?? '');
 
-    return json(route, { files: files.map(({ id, size, modifiedTime }) => ({ id, size, modifiedTime })) });
+    return json(route, {
+      files: files.map(({ id, size, modifiedTime, version }) => ({
+        id,
+        size,
+        modifiedTime,
+        version,
+      })),
+    });
   }
 
   if (method === 'GET' && url.searchParams.get('alt') === 'media') {
@@ -119,7 +163,12 @@ async function handleDrive(route: Route, url: URL, drive: FakeDrive) {
       parents: metadata.parents,
     });
 
-    return json(route, { id: created.id, name: created.name, mimeType: created.mimeType });
+    return json(route, {
+      id: created.id,
+      name: created.name,
+      mimeType: created.mimeType,
+      version: created.version,
+    });
   }
 
   if (method === 'DELETE') {
@@ -179,7 +228,9 @@ export async function installGoogleStub(
   await context.route('**/api/exchange/**', async (route) => {
     if (isOffline()) return route.abort('internetdisconnected');
 
-    await json(route, EXCHANGE_RATES);
+    const [fromDate, toDate] = new URL(route.request().url()).pathname.split('/').slice(-2);
+
+    await json(route, ratesForRange(fromDate, toDate));
   });
 }
 
