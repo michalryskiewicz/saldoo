@@ -58,7 +58,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
         // Striped rather than ruled. A line under every row is noise repeated per row; a
         // stripe is what lets the eye cross a wide row without losing which one it is on —
         // the actual complaint about these tables. Hover still wins over the stripe.
-        "even:bg-muted/30 hover:bg-muted/60 data-[state=selected]:bg-muted transition-colors",
+        "even:bg-muted/30 dark:even:bg-muted/50 hover:bg-muted/60 data-[state=selected]:bg-muted transition-colors",
         className
       )}
       {...props}

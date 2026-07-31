@@ -2,17 +2,15 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button.tsx';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
 import i18n from '@/i18n.ts';
-import type { Row } from '@tanstack/react-table';
-import { type DBProfit, deleteDBProfit } from '@/database/profits.ts';
+import { deleteDBProfit } from '@/database/profits.ts';
 import { useDispatch } from 'react-redux';
 import { serProfitsDrawerId } from '@/store/preferences.slice.ts';
 
 export type ProfitsTableActionsProps = {
-  row: Row<DBProfit>;
+  profitId: string;
 };
 
-export default function ProfitsTableActions({ row }: ProfitsTableActionsProps) {
-  const profitId = row.original.id;
+export default function ProfitsTableActions({ profitId }: ProfitsTableActionsProps) {
   const dispatch = useDispatch();
 
   return (
