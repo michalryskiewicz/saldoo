@@ -1,3 +1,5 @@
+import { Heart } from 'lucide-react';
+
 /**
  * Who made this.
  *
@@ -8,9 +10,11 @@
  */
 export function MadeByCredit() {
   return (
-    <p className="text-muted-foreground text-xs">
-      Made with <span aria-hidden="true">♥️</span>
-      <span className="sr-only"> love </span> by{' '}
+    <p className="text-muted-foreground inline-flex items-center gap-1 text-xs">
+      Made with
+      <Heart className="size-3 fill-current" aria-hidden="true" />
+      <span className="sr-only">love</span>
+      by
       <a
         href="https://rysiuo.it"
         target="_blank"
