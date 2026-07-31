@@ -21,7 +21,6 @@ describe('selectStaleDuties', () => {
     const stale = selectStaleDuties({
       stored: [movedToThe20th],
       expectedHashes: ['the-20th'],
-      keepResolved: true,
       ...JULY,
     });
 
@@ -37,7 +36,6 @@ describe('selectStaleDuties', () => {
     const stale = selectStaleDuties({
       stored: [generatedOnAnotherDevice],
       expectedHashes: [],
-      keepResolved: true,
       ...JULY,
     });
 
@@ -50,7 +48,6 @@ describe('selectStaleDuties', () => {
     const stale = selectStaleDuties({
       stored: [paidBeforeTheExpenseMoved],
       expectedHashes: ['the-20th'],
-      keepResolved: true,
       ...JULY,
     });
 
