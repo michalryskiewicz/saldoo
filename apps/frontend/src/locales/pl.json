@@ -80,8 +80,23 @@
   "expense": "Wydatek",
   "severity": "Priorytet",
   "execution": "Wykonanie",
-  "execution_daily": "codziennie",
-  "execution_monthly": "{{day}}. dnia miesiąca",
+  "form_sections": {
+    "what": "Co i ile",
+    "when": "Kiedy",
+    "classify": "Klasyfikacja"
+  },
+  "recurrence": {
+    "daily": "codziennie",
+    "weekly_0": "co niedzielę",
+    "weekly_1": "co poniedziałek",
+    "weekly_2": "co wtorek",
+    "weekly_3": "co środę",
+    "weekly_4": "co czwartek",
+    "weekly_5": "co piątek",
+    "weekly_6": "co sobotę",
+    "monthly": "{{day}}. dnia miesiąca",
+    "yearly": "co roku, {{date}}"
+  },
   "frequency": "Częstotliwość",
   "tags": "Tagi",
   "HIGH": "Wysoki",
@@ -165,8 +180,6 @@
   "preferred_currency": "Wybrana waluta",
   "preferred_currency_description": "Wybierz walutę względem której chcesz by przeliczane były wydatki w aplikacji",
   "this_month": "Ten Miesiąc",
-  "dark_mode": "Tryb Ciemny",
-  "light_mode": "Tryb Jasny",
   "metadata": {
     "home": "Twój partner w finansach",
     "sign-in": "Logowanie",
@@ -326,6 +339,11 @@
     "light": "Jasny",
     "dark": "Ciemny",
     "system": "Jak w systemie"
+  },
+  "language": {
+    "choose": "Język",
+    "pl": "Polski",
+    "en": "English"
   },
   "table": {
     "selected_count": "Zaznaczono {{selected}} z {{total}}",

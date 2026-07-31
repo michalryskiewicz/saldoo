@@ -3,15 +3,13 @@ import { Button } from '@/components/ui/button.tsx';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
 import i18n from '@/i18n.ts';
 
-import type { Row } from '@tanstack/react-table';
-import { type DBDuty, deleteDBDuty } from '@/database/duty.ts';
+import { deleteDBDuty } from '@/database/duty.ts';
 
 export type DutiesTableActionsProps = {
-  row: Row<DBDuty>;
+  dutyId: string;
 };
 
-export default function DutiesTableActions({ row }: DutiesTableActionsProps) {
-  const dutyId = row.original.id;
+export default function DutiesTableActions({ dutyId }: DutiesTableActionsProps) {
 
   return (
     <Tooltip>

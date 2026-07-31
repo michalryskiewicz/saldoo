@@ -5,7 +5,7 @@ import DateRangeSelector, {
   type DateRange,
 } from '@/features/duties/components/date-range-selector.tsx';
 import i18n, { type TranslationKey } from '@/i18n.ts';
-import { formatFrequency } from '@/lib/formats.ts';
+import { formatRecurrence } from '@/lib/formats.ts';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Cell, Header } from '@/components/tanstack-table';
 import { TOTAL } from '@/constant.ts';
@@ -43,19 +43,11 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
     },
   },
   {
-    accessorKey: 'expense.execution',
-    header: i18n.t('execution'),
-    cell: ({ row }) => {
-      const { id, execution, frequency } = row.original.expense;
-      return <Cell.Text id={id} name={formatFrequency(execution, frequency)} />;
-    },
-  },
-  {
     accessorKey: 'expense.frequency',
     header: i18n.t('frequency'),
     cell: ({ row }) => {
-      const { id, frequency } = row.original.expense;
-      return <Cell.Frequency id={id} frequency={frequency} />;
+      const { id, execution, frequency } = row.original.expense;
+      return <Cell.Text id={id} name={formatRecurrence(execution, frequency)} />;
     },
   },
   {
@@ -104,7 +96,7 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
       }
       return (
         <div className="flex items-center justify-end">
-          <DutiesTableActions row={row} />
+          <DutiesTableActions dutyId={row.original.id} />
         </div>
       );
     },

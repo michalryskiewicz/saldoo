@@ -1,5 +1,5 @@
 import i18n, { type TranslationKey } from '@/i18n.ts';
-import { formatFrequency } from '@/lib/formats.ts';
+import { formatRecurrence } from '@/lib/formats.ts';
 import { matchesSearch } from '@/lib/search.ts';
 import type { DBExpense } from '@/database/expenses.ts';
 
@@ -24,10 +24,10 @@ export type SearchableExpense = Pick<
  * nobody types, so searching "1980" has to reach the raw value.
  */
 export const expenseSearchText = (row: SearchableExpense): string => {
-  // `formatFrequency` answers "-" when it has nothing to say, and that is a mark for the reader
+  // `formatRecurrence` answers "-" when it has nothing to say, and that is a mark for the reader
   // rather than a word about this expense. Left in, typing a hyphen would "match" every row that
   // happens to be missing a date.
-  const recurrence = formatFrequency(row.execution, row.frequency);
+  const recurrence = formatRecurrence(row.execution, row.frequency);
 
   return [
     row.description,

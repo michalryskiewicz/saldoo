@@ -71,8 +71,21 @@ test('shots: the expenses page in both themes and both widths', async ({ browser
     await device.page.setViewportSize(VIEWPORTS.desktop);
     await app.chooseTheme(theme);
 
+    // Reloaded rather than blurred. The theme survives in storage, and a fresh document is the
+    // only reliable way to be rid of the focus ring the menu hands back to its trigger as it
+    // closes -- blurring races Radix restoring it, and a shot with a ring on a header button has
+    // twice read as a styling defect that was only ever the harness's own last click.
+    await device.page.reload();
+    await app.openExpenses();
+
     for (const [name, viewport] of Object.entries(VIEWPORTS)) {
       await device.page.setViewportSize(viewport);
+
+      // Waited for a bar to exist *before* waiting out the animation. The chart's data arrives
+      // from IndexedDB after the page is otherwise ready, so counting the animation from
+      // page-ready is counting from the wrong moment — and a shot taken then shows an empty plot
+      // area, which reads as a chart with no data.
+      await device.page.locator('.recharts-bar-rectangle').first().waitFor();
       await device.page.waitForTimeout(CHART_ANIMATION_MS);
 
       await device.page.screenshot({
@@ -80,6 +93,15 @@ test('shots: the expenses page in both themes and both widths', async ({ browser
         fullPage: true,
       });
     }
+
+    // And the create form, which is a screen of its own and cannot be judged from the page behind
+    // it. Desktop width: the drawer is where the two-column pairing shows at all.
+    await device.page.setViewportSize(VIEWPORTS.desktop);
+    await app.openCreateForm();
+    // The viewport, not the full page: the drawer is `position: fixed`, and a full-page capture
+    // walks the document flow and leaves it out of the image entirely.
+    await device.page.screenshot({ path: `shots/expense-form-${theme}.png` });
+    await app.closeCreateForm();
   }
 
   await device.close();

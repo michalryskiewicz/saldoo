@@ -1,21 +1,29 @@
 import { format } from 'date-fns';
 import { CONFIG } from '@/global-config.ts';
-import { pl } from 'date-fns/locale';
-import i18n, { type Locale } from '@/i18n.ts';
+import { enUS, pl } from 'date-fns/locale';
+import i18n, { type Locale, type TranslationKey } from '@/i18n.ts';
 import { capitalize } from '@/lib/strings.ts';
 import { FREQUENCY } from '@/constant';
 
+/** The date library's locale, following the one the app is running in. */
+const dateLocale = () => (i18n.language === 'en' ? enUS : pl);
+
 /**
- * When a recurring cost falls due, said the way a person would say it.
+ * How often a cost recurs and when, as one phrase.
  *
- * One column carried four unrelated shapes: a weekday for weekly, a bare `15` for monthly, a day
- * and month for yearly, and a `-` for daily. Read down the column, `15` and `środa` and `-` did
- * not look like answers to the same question — and `-` is what a table says when it has nothing,
- * which is not the case for something that happens every day.
+ * This replaces two columns that said the same thing twice: "15. dnia miesiąca" already means
+ * monthly, and reading "15. dnia miesiąca · Miesięczna" across a row is the same fact answered
+ * twice. One phrase carries both — "codziennie", "co piątek", "15. dnia miesiąca", "co roku,
+ * 15 lipca" — and each is unambiguous on its own.
+ *
+ * The weekday comes from the translations rather than from the date library, and it has to:
+ * Polish declines it after "co". `date-fns` gives the nominative ("środa", "sobota") where the
+ * phrase needs the accusative ("co środę", "co sobotę"), and no formatting option produces that.
+ * Seven keys per locale is the honest price of a phrase that reads correctly.
  */
-export const formatFrequency = (date: Date | string | undefined, frequency?: FREQUENCY) => {
+export const formatRecurrence = (date: Date | string | undefined, frequency?: FREQUENCY) => {
   if (frequency === FREQUENCY.DAILY) {
-    return i18n.t('execution_daily');
+    return i18n.t('recurrence.daily');
   }
 
   if (!frequency || !date) {
@@ -23,14 +31,15 @@ export const formatFrequency = (date: Date | string | undefined, frequency?: FRE
   }
 
   const d = new Date(date);
+
   switch (frequency) {
     case FREQUENCY.WEEKLY:
-      return format(d, 'EEEE', { locale: pl }); // e.g. środa
+      return i18n.t(`recurrence.weekly_${d.getDay()}` as TranslationKey);
     case FREQUENCY.MONTHLY:
       // No leading zero: this reads as a sentence, and "05. dnia miesiąca" is not how one is said.
-      return i18n.t('execution_monthly', { day: format(d, 'd') });
+      return i18n.t('recurrence.monthly', { day: format(d, 'd') });
     case FREQUENCY.YEARLY:
-      return format(d, 'd MMMM', { locale: pl }); // e.g. 28 lipca
+      return i18n.t('recurrence.yearly', { date: format(d, 'd MMMM', { locale: dateLocale() }) });
     default:
       return '';
   }
@@ -96,4 +105,24 @@ export const formatMoney = (amount: number, currency: string, locale: string = i
 
 export const formatNumber = (value: number | string) => {
   return Number(value).toFixed(2);
+};
+
+/**
+ * A figure handed over by a chart, as money.
+ *
+ * Every tooltip in the app used to build this itself — the raw number beside the raw currency
+ * *code* — so a chart said "3093.48 EUR" while the table beside it said "3 093,48 €". Same money,
+ * same screen, two notations, and neither of them the one the app had chosen.
+ *
+ * Two things it has to absorb, which is why it exists rather than being an inline `formatMoney`:
+ * Recharts types a tooltip value loosely (it may be a string, or an array for a stacked series),
+ * and the currency comes from settings that may not have loaded yet. Without a currency there is
+ * no honest symbol to show, so the bare number is what is left.
+ */
+export const formatMoneyValue = (value: unknown, currency: string | undefined): string => {
+  const amount = Number(Array.isArray(value) ? value[0] : value);
+
+  if (!Number.isFinite(amount)) return '';
+
+  return currency ? formatMoney(amount, currency) : formatNumber(amount);
 };
