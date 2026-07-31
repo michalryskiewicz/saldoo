@@ -148,7 +148,10 @@ export class SaldooApp {
 
     // Left at the form's own defaults unless asked for, so the tests that do not care about
     // either keep the shortest path through the form.
-    if (severity) await this.chooseOption(sheet, label('severity'), label(severity));
+    //
+    // Priority is a segmented control rather than a select, so it is clicked directly: three
+    // buttons, all of them already on screen, and no list to open first.
+    if (severity) await sheet.getByRole('radio', { name: label(severity), exact: true }).click();
     if (frequency) await this.chooseOption(sheet, label('frequency'), label(frequency));
 
     await sheet.getByLabel(label('execution'), { exact: true }).click();

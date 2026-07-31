@@ -110,8 +110,7 @@ export default function ExpensesCreate() {
 
                 <Field.Money name="expense" currencyField="currency" label={i18n.t('expense')} />
 
-                <Field.Select
-                  fullWidth
+                <Field.Segmented
                   name="severity"
                   label={i18n.t('severity')}
                   options={[
