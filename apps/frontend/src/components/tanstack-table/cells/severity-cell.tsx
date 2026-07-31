@@ -17,9 +17,9 @@ export default function SeverityCell({ id, severity }: SeverityCellProps) {
     <Badge variant="outline" className="text-muted-foreground px-1.5">
       <span
         className={cn('inline-block w-2 h-2 rounded-full mr-1', {
-          'bg-red-500': severity === SEVERITY.HIGH,
-          'bg-amber-500': severity === SEVERITY.MEDIUM,
-          'bg-green-500': severity === SEVERITY.LOW,
+          'bg-severity-high': severity === SEVERITY.HIGH,
+          'bg-severity-medium': severity === SEVERITY.MEDIUM,
+          'bg-severity-low': severity === SEVERITY.LOW,
         })}
       />
 

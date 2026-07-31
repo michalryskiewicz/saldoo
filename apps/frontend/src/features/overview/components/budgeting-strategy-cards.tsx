@@ -73,12 +73,12 @@ export const BudgetingStrategyCards = () => {
             value={formatMoney(realSpent, currency)}
             limit={formatMoney(budgetPlannedSpent, currency)}
             percentage={realPercentageSpent}
-            progressColor="bg-blue-500"
+            progressColor="bg-info"
             details={[
               {
                 label: i18n.t('metrics.planned'),
                 value: formatMoney(plannedSpent, currency),
-                color: 'bg-gray-500',
+                color: 'bg-muted-foreground',
               },
             ]}
             isEmpty={isPartEmpty}

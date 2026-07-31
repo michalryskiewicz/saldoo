@@ -16,6 +16,7 @@ import { useBreadcrumbs } from '@/hooks/use-breadcrumbs';
 import { Link } from 'react-router';
 import { SurveysButton } from '@/components/survey-button.tsx';
 import { SyncStatusIndicator } from '@/components/sync-status-indicator.tsx';
+import { ThemeToggle } from '@/components/theme-toggle.tsx';
 
 export default function MiniDrawer({ children }: React.PropsWithChildren) {
   const { breadcrumbs } = useBreadcrumbs();
@@ -50,6 +51,7 @@ export default function MiniDrawer({ children }: React.PropsWithChildren) {
               </Breadcrumb>
               <div className="flex items-center gap-2">
                 <SyncStatusIndicator />
+                <ThemeToggle />
                 <SurveysButton />
                 <GoogleDriveButton />
               </div>

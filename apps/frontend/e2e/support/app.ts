@@ -137,6 +137,19 @@ export class SaldooApp {
     await expect(sheet).toBeHidden();
   }
 
+  // === Appearance ===
+
+  /** Picks a theme through the header control, the way a person does. */
+  async chooseTheme(theme: 'light' | 'dark' | 'system'): Promise<void> {
+    await this.page.getByRole('button', { name: label('theme.choose') }).click();
+    await this.page.getByRole('menuitem', { name: label(`theme.${theme}`) }).click();
+
+    // The provider writes the class onto <html>, and everything downstream keys off it.
+    if (theme !== 'system') {
+      await expect(this.page.locator('html')).toHaveClass(new RegExp(`\\b${theme}\\b`));
+    }
+  }
+
   // === Account settings ===
 
   async openAccount(): Promise<void> {

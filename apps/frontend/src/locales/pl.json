@@ -317,5 +317,11 @@
     "add_first_duty": "Dodaj pierwsze zobowiązanie",
     "add_savings_goal": "Dodaj cel oszczędnościowy",
     "add_debt": "Dodaj dług"
+  },
+  "theme": {
+    "choose": "Motyw",
+    "light": "Jasny",
+    "dark": "Ciemny",
+    "system": "Jak w systemie"
   }
 }
