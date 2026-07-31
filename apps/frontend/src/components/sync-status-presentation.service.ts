@@ -12,19 +12,28 @@ import type { TranslationKey } from '@/i18n.ts';
 export type SyncPresentation = {
   icon: typeof Cloud;
   label: TranslationKey;
-  /** Destructive states earn colour; the rest stay quiet so the figures keep the attention. */
-  isProblem?: boolean;
+  /**
+   * What colour the mark carries. `muted` is the resting state for everything that is merely
+   * information — the figures on the page should keep the attention, not the plumbing.
+   */
+  tone: 'positive' | 'muted' | 'destructive';
   /** Spinning means work is in flight, and nothing else may spin. */
   isBusy?: boolean;
 };
 
 const BY_SYNC_STATUS: Record<SyncStatus, SyncPresentation> = {
-  idle: { icon: Cloud, label: 'sync.idle' },
-  syncing: { icon: RefreshCw, label: 'sync.syncing', isBusy: true },
-  synced: { icon: Cloud, label: 'sync.synced' },
-  offline: { icon: CloudOff, label: 'sync.offline' },
-  blocked: { icon: ShieldAlert, label: 'sync.blocked', isProblem: true },
-  'unreadable-backup': { icon: ShieldAlert, label: 'sync.unreadable_backup', isProblem: true },
+  idle: { icon: Cloud, label: 'sync.idle', tone: 'muted' },
+  syncing: { icon: RefreshCw, label: 'sync.syncing', tone: 'muted', isBusy: true },
+  // The one state that has earned a colour of its own: everything this device holds is on Drive.
+  synced: { icon: Cloud, label: 'sync.synced', tone: 'positive' },
+  // Not a problem. The data and the key are already here; nothing is broken.
+  offline: { icon: CloudOff, label: 'sync.offline', tone: 'muted' },
+  blocked: { icon: ShieldAlert, label: 'sync.blocked', tone: 'destructive' },
+  'unreadable-backup': {
+    icon: ShieldAlert,
+    label: 'sync.unreadable_backup',
+    tone: 'destructive',
+  },
 };
 
 /**
@@ -51,15 +60,15 @@ export function resolveSyncPresentation({
     return {
       icon: TriangleAlert,
       label: 'metrics.need_to_sync_with_google_drive',
-      isProblem: true,
+      tone: 'destructive',
     };
   }
 
   if (hasFailedPermanently) {
-    return { icon: TriangleAlert, label: 'sync.upload_failed', isProblem: true };
+    return { icon: TriangleAlert, label: 'sync.upload_failed', tone: 'destructive' };
   }
 
-  if (isPending) return { icon: RefreshCw, label: 'sync.pending', isBusy: true };
+  if (isPending) return { icon: RefreshCw, label: 'sync.pending', tone: 'muted', isBusy: true };
 
   return BY_SYNC_STATUS[status];
 }

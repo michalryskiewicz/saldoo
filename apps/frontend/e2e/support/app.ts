@@ -208,7 +208,11 @@ export class SaldooApp {
    * assumption the app is free to change. This reads the same signal the user reads.
    */
   async waitUntilSynced(): Promise<void> {
-    await expect(this.syncStatus).toHaveText(label('sync.synced'), { timeout: SYNC_TIMEOUT_MS });
+    // `aria-label`, because the control is icon-only: the Drive mark says what it is synced with
+    // and colour says how it went, so there is no visible text to assert on.
+    await expect(this.syncStatus).toHaveAttribute('aria-label', label('sync.synced'), {
+      timeout: SYNC_TIMEOUT_MS,
+    });
   }
 
   /**
@@ -248,11 +252,13 @@ export class SaldooApp {
    * matters more to them than how the last sync went.
    */
   async expectChangesPending(): Promise<void> {
-    await expect(this.syncStatus).toHaveText(label('sync.pending'), { timeout: SYNC_TIMEOUT_MS });
+    await expect(this.syncStatus).toHaveAttribute('aria-label', label('sync.pending'), {
+      timeout: SYNC_TIMEOUT_MS,
+    });
   }
 
   async expectNoSyncFailure(): Promise<void> {
-    const status = await this.syncStatus.textContent();
+    const status = await this.syncStatus.getAttribute('aria-label');
 
     expect([label('sync.upload_failed'), label('sync.blocked'), label('sync.unreadable_backup')]).not.toContain(status);
   }

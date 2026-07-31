@@ -73,7 +73,9 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
       className={cn(
         // Quiet, small and uppercase: a column heading is a label, not content. Left as
         // `text-foreground` it competed with the figures underneath it for attention.
-        "text-muted-foreground h-9 px-2 text-left align-middle text-xs font-medium tracking-wide uppercase whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        // A rule between columns, so a cell can be followed across a wide row. Skipped on the
+        // last one, where it would draw a line down the inside of the table's own border.
+        "text-muted-foreground h-9 px-2 text-left align-middle text-xs font-medium tracking-wide uppercase whitespace-nowrap not-last:border-r [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}
@@ -86,7 +88,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "p-2 align-middle whitespace-nowrap not-last:border-r [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}

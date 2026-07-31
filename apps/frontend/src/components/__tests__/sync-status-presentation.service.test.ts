@@ -13,7 +13,7 @@ describe('resolveSyncPresentation', () => {
     const presentation = resolveSyncPresentation(healthy);
 
     expect(presentation.label).toBe('sync.synced');
-    expect(presentation.isProblem).toBeFalsy();
+    expect(presentation.tone).toBe('positive');
     expect(presentation.isBusy).toBeFalsy();
   });
 
@@ -42,7 +42,7 @@ describe('resolveSyncPresentation', () => {
     });
 
     expect(presentation.label).toBe('sync.upload_failed');
-    expect(presentation.isProblem).toBe(true);
+    expect(presentation.tone).toBe('destructive');
   });
 
   it('puts a lost Drive connection ahead of everything', () => {
@@ -55,7 +55,7 @@ describe('resolveSyncPresentation', () => {
     });
 
     expect(presentation.label).toBe('metrics.need_to_sync_with_google_drive');
-    expect(presentation.isProblem).toBe(true);
+    expect(presentation.tone).toBe('destructive');
   });
 
   it('reports offline without calling it a problem', () => {
@@ -64,10 +64,11 @@ describe('resolveSyncPresentation', () => {
     const presentation = resolveSyncPresentation({ ...healthy, status: 'offline' });
 
     expect(presentation.label).toBe('sync.offline');
-    expect(presentation.isProblem).toBeFalsy();
+    // Muted, not destructive and not positive: nothing is broken and nothing is confirmed.
+    expect(presentation.tone).toBe('muted');
   });
 
   it('marks a halted sync as a problem', () => {
-    expect(resolveSyncPresentation({ ...healthy, status: 'blocked' }).isProblem).toBe(true);
+    expect(resolveSyncPresentation({ ...healthy, status: 'blocked' }).tone).toBe('destructive');
   });
 });

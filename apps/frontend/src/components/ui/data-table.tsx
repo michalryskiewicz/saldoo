@@ -79,9 +79,16 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-      {children?.(table)}
-
+      {/* Inside the frame, not floating above it. The filters were rendered outside the border,
+          so nothing said which table they applied to — the complaint was that they looked
+          unrelated to it, and they were. */}
       <div className="overflow-hidden rounded-md border">
+        {children ? (
+          <div className="bg-muted/40 flex flex-wrap items-center gap-3 border-b px-2 py-2">
+            {children(table)}
+          </div>
+        ) : null}
+
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

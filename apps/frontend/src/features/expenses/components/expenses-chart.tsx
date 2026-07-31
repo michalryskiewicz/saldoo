@@ -30,7 +30,9 @@ import { useListExpenses } from '@/features/expenses/hooks/use-list-expenses.tsx
  * ramp for them said "low" in green in one place and in teal in the other. The ramp is for
  * series that mean nothing in particular; severity means something, and it already has tokens.
  *
- * `total` is not a severity, so it stays a chart colour.
+ * The *fill* tier, not the mark tier: a stacked bar is a large area, and the saturation that
+ * makes an 8px dot visible makes a 300px block shout. `total` is not a severity, so it stays a
+ * chart colour.
  */
 const chartConfig = {
   total: {
@@ -39,15 +41,15 @@ const chartConfig = {
   },
   high: {
     label: i18n.t('metrics.HIGH'),
-    color: 'var(--severity-high)',
+    color: 'var(--severity-high-fill)',
   },
   medium: {
     label: i18n.t('metrics.MEDIUM'),
-    color: 'var(--severity-medium)',
+    color: 'var(--severity-medium-fill)',
   },
   low: {
     label: i18n.t('metrics.LOW'),
-    color: 'var(--severity-low)',
+    color: 'var(--severity-low-fill)',
   },
 } satisfies ChartConfig;
 

@@ -47,6 +47,9 @@
   --color-severity-low: var(--severity-low);
   --color-severity-medium: var(--severity-medium);
   --color-severity-high: var(--severity-high);
+  --color-severity-low-fill: var(--severity-low-fill);
+  --color-severity-medium-fill: var(--severity-medium-fill);
+  --color-severity-high-fill: var(--severity-high-fill);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -113,8 +116,25 @@
    * 2.1:1 and stops being visible.
    */
   --severity-low: oklch(0.64 0.21 145);
-  --severity-medium: oklch(0.67 0.19 70);
+  --severity-medium: oklch(0.67 0.17 85);
   --severity-high: oklch(0.75 0.24 25.3);
+
+  /*
+   * The same three meanings, for large areas.
+   *
+   * A separate tier because the two jobs pull in opposite directions: an 8px dot needs
+   * saturation to be seen at all against white, and a 300px bar needs the opposite — at the
+   * dot's chroma a stacked chart reads as a poster. These are lighter and softer, and the
+   * yellow finally sits at a yellow hue (95) rather than at 70, which renders orange.
+   *
+   * Deliberately **not** held to 3:1 against the page, and that is not an oversight: a bar sits
+   * beside other bars with an axis and a legend, so what it has to be distinguishable from is
+   * its neighbours, not the background. The 3:1 rule is for a mark that carries its meaning
+   * alone, which is the tier above.
+   */
+  --severity-low-fill: oklch(0.83 0.14 150);
+  --severity-medium-fill: oklch(0.89 0.16 95);
+  --severity-high-fill: oklch(0.76 0.17 25.3);
 
   --sidebar: oklch(0.985 0.002 247.839);
   --sidebar-foreground: oklch(0.13 0.028 261.692);
@@ -163,8 +183,13 @@
 
   /* Same traffic light, and on a dark card it can be brighter still. */
   --severity-low: oklch(0.78 0.20 145);
-  --severity-medium: oklch(0.82 0.18 70);
+  --severity-medium: oklch(0.85 0.17 90);
   --severity-high: oklch(0.70 0.22 25.3);
+
+  /* Fills go the other way on dark: deeper, so a large area does not glare. */
+  --severity-low-fill: oklch(0.62 0.15 150);
+  --severity-medium-fill: oklch(0.72 0.15 95);
+  --severity-high-fill: oklch(0.58 0.17 25.3);
 
   --sidebar: oklch(0.21 0.034 264.665);
   --sidebar-foreground: oklch(0.985 0.002 247.839);
