@@ -10,6 +10,34 @@ type CreateDutiesForSelectedDateRange = {
   endDate: Date;
 };
 
+type SelectStaleDuties = {
+  stored: DBDuty[];
+  expectedHashes: Iterable<string>;
+  from: Date;
+  to: Date;
+  keepResolved: boolean;
+};
+
+export function selectStaleDuties({
+  stored,
+  expectedHashes,
+  from,
+  to,
+  keepResolved,
+}: SelectStaleDuties) {
+  const expected = new Set(expectedHashes);
+
+  return stored
+    .filter((duty) => {
+      const executionDate = new Date(duty.executionDate).getTime();
+      const inRange = executionDate >= from.getTime() && executionDate <= to.getTime();
+      const isProtected = keepResolved && !!duty.resolved;
+
+      return inRange && !expected.has(duty.hash) && !isProtected;
+    })
+    .map((duty) => duty.id);
+}
+
 async function generateDutyHash(
   executionDate: Date,
   expenseId: string,
