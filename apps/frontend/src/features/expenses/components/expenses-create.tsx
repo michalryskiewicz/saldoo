@@ -2,8 +2,7 @@ import { Field, Form } from '@/components/hook-form';
 import { FormSection } from '@/components/hook-form/form-section.tsx';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button.tsx';
-import { NEW_ENTITY_ID, type STRATEGY_PART } from '@/constant.ts';
-import { STRATEGY_PART_COLOR } from '@/lib/strategy-part-color.ts';
+import { NEW_ENTITY_ID } from '@/constant.ts';
 import i18n from '@/i18n.ts';
 import { useCategories } from '@/features/hooks/use-categories.tsx';
 import { useDispatch } from 'react-redux';
@@ -172,12 +171,8 @@ export default function ExpensesCreate() {
                 <Field.Segmented
                   name="strategyPart"
                   label={i18n.t('forms.strategy-part')}
-                  variant="soft"
                   helperText={i18n.t('forms.strategy-part-tooltip')}
-                  options={budgetingPartsOptions.map((option) => ({
-                    ...option,
-                    color: STRATEGY_PART_COLOR[option.value as STRATEGY_PART],
-                  }))}
+                  options={budgetingPartsOptions}
                 />
               </FormSection>
 
