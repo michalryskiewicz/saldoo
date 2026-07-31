@@ -80,6 +80,12 @@ test('shots: the expenses page in both themes and both widths', async ({ browser
 
     for (const [name, viewport] of Object.entries(VIEWPORTS)) {
       await device.page.setViewportSize(viewport);
+
+      // Waited for a bar to exist *before* waiting out the animation. The chart's data arrives
+      // from IndexedDB after the page is otherwise ready, so counting the animation from
+      // page-ready is counting from the wrong moment — and a shot taken then shows an empty plot
+      // area, which reads as a chart with no data.
+      await device.page.locator('.recharts-bar-rectangle').first().waitFor();
       await device.page.waitForTimeout(CHART_ANIMATION_MS);
 
       await device.page.screenshot({

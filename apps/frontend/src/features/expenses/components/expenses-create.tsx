@@ -54,10 +54,21 @@ export default function ExpensesCreate() {
   // Today by default, computed per opening rather than in the module's own defaults: a `new Date()`
   // there is evaluated once on first import, so a tab left open across midnight would go on
   // offering yesterday.
+  //
+  // The strategy part defaults to the first the chosen strategy offers, rather than to a named one:
+  // which parts exist depends on the strategy, and "80-20" has no `NEEDS` at all — a hardcoded
+  // default would be a value its own select could not show. Without any default the field was
+  // required and empty, so every new expense had to answer it by hand.
   const initialValues = useMemo(
     () =>
-      id === NEW_ENTITY_ID ? { ...defaultValues, execution: new Date() } : expense ?? defaultValues,
-    [expense, id]
+      id === NEW_ENTITY_ID
+        ? {
+            ...defaultValues,
+            execution: new Date(),
+            strategyPart: budgetingPartsOptions[0]?.value,
+          }
+        : expense ?? defaultValues,
+    [budgetingPartsOptions, expense, id]
   );
 
   const handleSubmit = async (values: ExpenseCreateType) => {
