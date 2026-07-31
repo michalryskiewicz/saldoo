@@ -2,7 +2,10 @@ import type { FREQUENCY } from '@/constant.ts';
 import { db } from '@/database/index';
 import type { DBExpense } from '@/database/expenses';
 import { getExpensesInSelectedDateRange } from '@/lib/expenses.ts';
-import { createDutiesForSelectedDateRange } from '@/database/services/duties.service.ts';
+import {
+  createDutiesForSelectedDateRange,
+  selectStaleDuties,
+} from '@/database/services/duties.service.ts';
 import { documentSession } from '@/database/document/document.container.ts';
 import { outbox } from '@/database/document/outbox.container.ts';
 import { toast } from 'sonner';
@@ -33,12 +36,13 @@ type AddDBDutiesForDateRangeProps = {
   endDate: Date;
 };
 
-// New options:
-// - regenFrom: if provided, delete existing duties for affected expenses with executionDate >= regenFrom before inserting new ones.
-// - keepResolved: when regenFrom is provided, keep duties that are already resolved (default: false)
 type AddDBDutiesOptions = {
+  /**
+   * Sweep duties the current expense definitions no longer call for, from this date to the
+   * end of the range. Omit to only add what is missing. A paid duty is never swept — see
+   * `selectStaleDuties`.
+   */
   regenFrom?: Date | null;
-  keepResolved?: boolean;
 };
 
 export async function addDBDutiesForDateRange(
@@ -54,48 +58,25 @@ export async function addDBDutiesForDateRange(
     end: endDate,
   });
 
-  // If caller requested regeneration from a specific date, remove existing future duties
-  if (options?.regenFrom) {
-    const regenFrom = options.regenFrom;
-    const keepResolved = !!options.keepResolved;
-    const expenseIds = expensesThatShouldBeExecuted.map((e) => e.id);
-
-    if (expenseIds.length > 0) {
-      // build a map of current expense frequencies to compare with duties
-      const freqByExpenseId = new Map<string | undefined, FREQUENCY | undefined>(
-        expensesThatShouldBeExecuted.map((e) => [e.id, e.frequency])
-      );
-
-      // load candidate duties for those expenses, then filter by executionDate, resolved flag and frequency change
-      const candidateDuties = await db.duties.where('expenseId').anyOf(expenseIds).toArray();
-
-      const dutiesToDelete = candidateDuties
-        .filter((d) => {
-          const execDate = new Date(d.executionDate);
-          const isOnOrAfter = execDate >= regenFrom;
-          const isUnresolved = !d.resolved;
-          // compare duty frequency with current expense frequency
-          const expenseFreq = freqByExpenseId.get(d.expenseId ?? '');
-          const freqDifferent = expenseFreq !== d.frequency;
-          // delete when on/after regenFrom, frequency changed, and either not keeping resolved or duty is unresolved
-          return isOnOrAfter && freqDifferent && (keepResolved ? true : isUnresolved);
-        })
-        .map((d) => d.id);
-
-      if (dutiesToDelete.length > 0) {
-        await Promise.all(
-          dutiesToDelete.map((id) => documentSession.remove('duties', id))
-        );
-      }
-    }
-  }
-
-  // 3. Generate new duties
+  // 3. Generate the duties the current definitions call for
   const duties = await createDutiesForSelectedDateRange({
     expenses: expensesThatShouldBeExecuted,
     startDate,
     endDate,
   });
+
+  // Sweep whatever the definitions no longer call for. After generation, not before: the
+  // generated set *is* the answer to what still belongs in this range.
+  if (options?.regenFrom) {
+    const stale = selectStaleDuties({
+      stored: await db.duties.toArray(),
+      expectedHashes: duties.map((duty) => duty.hash),
+      from: options.regenFrom,
+      to: endDate,
+    });
+
+    await Promise.all(stale.map((id) => documentSession.remove('duties', id)));
+  }
 
   const newDuties: DBDuty[] = duties.map((duty) => ({
     ...duty,
