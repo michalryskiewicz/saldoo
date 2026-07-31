@@ -325,6 +325,11 @@
     "dark": "Ciemny",
     "system": "Jak w systemie"
   },
+  "language": {
+    "choose": "Język",
+    "pl": "Polski",
+    "en": "English"
+  },
   "table": {
     "selected_count": "Zaznaczono {{selected}} z {{total}}",
     "row_count_one": "{{count}} wiersz",

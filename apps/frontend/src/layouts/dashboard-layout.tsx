@@ -17,6 +17,7 @@ import { Link } from 'react-router';
 import { SurveysButton } from '@/components/survey-button.tsx';
 import { GoogleDriveButton } from '@/components/google-drive/google-drive-button.tsx';
 import { ThemeToggle } from '@/components/theme-toggle.tsx';
+import { LanguageToggle } from '@/components/language-toggle.tsx';
 
 export default function MiniDrawer({ children }: React.PropsWithChildren) {
   const { breadcrumbs } = useBreadcrumbs();
@@ -71,6 +72,7 @@ export default function MiniDrawer({ children }: React.PropsWithChildren) {
                   className="mx-1 data-[orientation=vertical]:h-4"
                 />
                 <ThemeToggle />
+                <LanguageToggle />
                 <SurveysButton />
               </div>
             </div>

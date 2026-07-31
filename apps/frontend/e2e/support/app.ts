@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import pl from '../../src/locales/pl.json' with { type: 'json' };
+import en from '../../src/locales/en.json' with { type: 'json' };
 
 /**
  * The app driven the way a person drives it.
@@ -174,6 +175,25 @@ export class SaldooApp {
     if (theme !== 'system') {
       await expect(this.page.locator('html')).toHaveClass(new RegExp(`\\b${theme}\\b`));
     }
+  }
+
+  /**
+   * Picks a language through the header control.
+   *
+   * The trigger is matched in either language, because this is the one control whose own label has
+   * already changed by the time you want to use it again — reaching for the Polish label to switch
+   * back from English finds nothing.
+   *
+   * The options are the exception to reading every label from the translations: a language names
+   * itself, so "Polski" and "English" are the same words in both files.
+   */
+  async chooseLanguage(language: 'pl' | 'en'): Promise<void> {
+    const trigger = this.page.getByRole('button', { name: pl.language.choose });
+
+    await trigger.or(this.page.getByRole('button', { name: en.language.choose })).first().click();
+    await this.page
+      .getByRole('menuitem', { name: language === 'pl' ? pl.language.pl : pl.language.en })
+      .click();
   }
 
   // === Account settings ===
