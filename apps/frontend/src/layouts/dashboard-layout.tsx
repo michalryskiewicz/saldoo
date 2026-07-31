@@ -58,7 +58,13 @@ export default function MiniDrawer({ children }: React.PropsWithChildren) {
             </div>
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</div>
+        {/* Capped and centred. Nothing constrained the content before, so on a wide screen the
+            dashboard stretched edge to edge and every table spread its columns across the whole
+            span — which is why the rows read as scattered islands rather than as rows. Data does
+            not become easier to read by being further apart. One value, one place to change it. */}
+        <div className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 p-4 pt-0">
+          {children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );
