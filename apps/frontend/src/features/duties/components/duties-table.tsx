@@ -5,7 +5,7 @@ import DateRangeSelector, {
   type DateRange,
 } from '@/features/duties/components/date-range-selector.tsx';
 import i18n, { type TranslationKey } from '@/i18n.ts';
-import { formatFrequency } from '@/lib/formats.ts';
+import { formatRecurrence } from '@/lib/formats.ts';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Cell, Header } from '@/components/tanstack-table';
 import { TOTAL } from '@/constant.ts';
@@ -20,6 +20,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs.tsx';
 const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
   {
     accessorKey: 'expense.description',
+    meta: { grow: true },
     cell: ({ row }) => (
       <Cell.Description id={row.original.id} name={row.original.expense.description} />
     ),
@@ -28,8 +29,6 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
   {
     accessorKey: 'expense',
     header: i18n.t('expense'),
-    size: 140,
-    meta: { align: 'right' as const },
     cell: ({ row }) => {
       const { id, expense, currency } = row.original.expense;
       return <Cell.Money id={id} price={expense} currency={currency} />;
@@ -37,7 +36,6 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
   },
   {
     accessorKey: 'expense.severity',
-    size: 130,
     header: ({ column }) => <Header.Sort column={column} header="severity" />,
     cell: ({ row }) => {
       const { id, severity } = row.original.expense;
@@ -45,27 +43,17 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
     },
   },
   {
-    accessorKey: 'expense.execution',
-    size: 140,
-    header: i18n.t('execution'),
-    cell: ({ row }) => {
-      const { id, execution, frequency } = row.original.expense;
-      return <Cell.Text id={id} name={formatFrequency(execution, frequency)} />;
-    },
-  },
-  {
     accessorKey: 'expense.frequency',
-    size: 140,
     header: i18n.t('frequency'),
     cell: ({ row }) => {
-      const { id, frequency } = row.original.expense;
-      return <Cell.Frequency id={id} frequency={frequency} />;
+      const { id, execution, frequency } = row.original.expense;
+      return <Cell.Text id={id} name={formatRecurrence(execution, frequency)} />;
     },
   },
   {
     id: 'select',
+    meta: { align: 'center' as const },
     accessorKey: 'resolved',
-    size: 110,
     header: i18n.t('resolved'),
     cell: ({ row }) => {
       const { id, resolved, transactionId } = row.original;
@@ -101,7 +89,6 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
     id: 'actions',
     // `size`, not `maxSize`: the table reads the former. With only `maxSize` set this column
     // took an equal share of the width and parked the icon far from its row.
-    size: 56,
     header: () => <span className="sr-only">{i18n.t('open_menu')}</span>,
     cell: ({ row }) => {
       if (row.original.id === TOTAL) {
@@ -109,7 +96,7 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
       }
       return (
         <div className="flex items-center justify-end">
-          <DutiesTableActions row={row} />
+          <DutiesTableActions dutyId={row.original.id} />
         </div>
       );
     },

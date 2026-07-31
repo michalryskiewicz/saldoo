@@ -8,7 +8,13 @@ type DescriptionCellProps = {
 
 export default function DescriptionCell({ id, name }: DescriptionCellProps) {
   if (id === TOTAL) {
-    return <strong>{i18n.t('total')}</strong>;
+    // A label for the band, in the heading's own type: the figure beside it is the thing worth
+    // reading, and bold on both left them competing.
+    return (
+      <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+        {i18n.t('total')}
+      </span>
+    );
   }
 
   if (!name) {

@@ -171,13 +171,19 @@
      `--border` stays faint on purpose: a divider is decoration, a checkbox edge is not. */
   --input: oklch(1 0 0 / 40%);
   --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --chart-6: oklch(0.696 0.17 130.48);
-  --chart-7: oklch(0.7 0.15 200.0);
+  /* The light theme's hues, lifted for a dark surface — not a second palette.
+     These were stock dark-theme chart colours in a different hue order, so a series changed
+     identity with the theme: the expenses bars are `--chart-3`, which meant a deep blue on white
+     and a bright orange on black. Twelve saturated orange bars is most of what "the dark mode is
+     hard to use" looked like. The hue is held to its light value and only lightness and chroma
+     move, which is what a theme is allowed to change about a colour. */
+  --chart-1: oklch(0.72 0.17 41.116);
+  --chart-2: oklch(0.72 0.11 184.704);
+  --chart-3: oklch(0.68 0.11 227.392);
+  --chart-4: oklch(0.85 0.17 84.429);
+  --chart-5: oklch(0.8 0.17 70.08);
+  --chart-6: oklch(0.8 0.16 120.08);
+  --chart-7: oklch(0.8 0.14 190.16);
 
   /* Lighter and less saturated than their light-mode twins: the same hue that reads as
      confident on white turns muddy on a dark card, and fails contrast with it. */

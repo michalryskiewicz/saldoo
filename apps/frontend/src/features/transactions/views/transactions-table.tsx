@@ -14,22 +14,22 @@ import type { DBTag } from '@/database/tags.ts';
 const columns: ColumnDef<DBTransaction & { expense: DBExpense; tag: DBTag }>[] = [
   {
     id: 'select',
+    meta: { align: 'center' as const },
     accessorKey: 'id',
-    size: 30,
     header: ({ table }) => (
       <Checkbox
         checked={
           table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')
         }
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
+        aria-label={i18n.t('table.select_all')}
       />
     ),
     cell: ({ row }) => (
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
+        aria-label={i18n.t('table.select_row')}
       />
     ),
     enableSorting: false,
@@ -37,7 +37,7 @@ const columns: ColumnDef<DBTransaction & { expense: DBExpense; tag: DBTag }>[] =
   },
   {
     accessorKey: 'description',
-    size: 400,
+    meta: { grow: true },
     header: ({ column }) => <Header.Sort column={column} header="description" />,
     filterFn: 'includesString',
     cell: ({ row }) => (
@@ -60,7 +60,7 @@ const columns: ColumnDef<DBTransaction & { expense: DBExpense; tag: DBTag }>[] =
   },
   {
     accessorKey: 'transactionDate',
-    header: 'Transaction Date',
+    header: i18n.t('transaction_date'),
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
     filterFn: 'dateBetweenFilterFn',

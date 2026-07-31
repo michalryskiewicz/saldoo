@@ -8,7 +8,7 @@ type TagsCellProps = {
 export default function TagsCell({ tags, tag }: TagsCellProps) {
   if (tag) {
     return (
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="inline-flex flex-wrap items-center gap-2">
         <Badge variant="outline" className="text-muted-foreground px-1.5">
           {tag}
         </Badge>
@@ -21,7 +21,7 @@ export default function TagsCell({ tags, tag }: TagsCellProps) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="inline-flex flex-wrap items-center gap-2">
       {tags?.map((tag: string) => {
         return (
           <Badge key={tag} variant="outline" className="text-muted-foreground px-1.5">

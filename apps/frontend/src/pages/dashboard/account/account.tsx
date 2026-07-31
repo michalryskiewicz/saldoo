@@ -18,6 +18,7 @@ import { SavingsChart } from '@/features/account/components/savings-chart.tsx';
 import { addDBTags, removeDBTags } from '@/database/tags.ts';
 import { useListTags } from '@/database/hooks/use-list-tags.tsx';
 import { toast } from 'sonner';
+import { MadeByCredit } from '@/components/made-by-credit.tsx';
 
 const formSchema = z.object({
   currency: z.string(),
@@ -155,6 +156,10 @@ export default function Account() {
                 <Button className="mt-6 ml-auto">{i18n.t('submit')}</Button>
               </div>
             </Form>
+
+            <div className="mt-8 flex justify-center border-t pt-6">
+              <MadeByCredit />
+            </div>
           </div>
         </div>
       </div>

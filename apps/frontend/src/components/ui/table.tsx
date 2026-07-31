@@ -42,7 +42,7 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
     <tfoot
       data-slot="table-footer"
       className={cn(
-        "bg-muted/50 border-t font-medium [&>tr]:last:border-b-0",
+        "bg-muted/50 border-t-2 font-medium [&>tr]:last:border-b-0",
         className
       )}
       {...props}
@@ -58,7 +58,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
         // Striped rather than ruled. A line under every row is noise repeated per row; a
         // stripe is what lets the eye cross a wide row without losing which one it is on —
         // the actual complaint about these tables. Hover still wins over the stripe.
-        "even:bg-muted/30 hover:bg-muted/60 data-[state=selected]:bg-muted transition-colors",
+        "even:bg-muted/30 dark:even:bg-muted/50 hover:bg-muted/60 data-[state=selected]:bg-muted transition-colors",
         className
       )}
       {...props}
@@ -75,7 +75,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
         // `text-foreground` it competed with the figures underneath it for attention.
         // A rule between columns, so a cell can be followed across a wide row. Skipped on the
         // last one, where it would draw a line down the inside of the table's own border.
-        "text-muted-foreground h-9 px-2 text-left align-middle text-xs font-medium tracking-wide uppercase whitespace-nowrap not-last:border-r [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "text-muted-foreground h-9 px-3 text-left align-middle text-xs font-medium tracking-wide uppercase whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}
@@ -88,7 +88,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "p-2 align-middle whitespace-nowrap not-last:border-r [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "px-3 py-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}

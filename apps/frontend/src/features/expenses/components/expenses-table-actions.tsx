@@ -2,17 +2,15 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button.tsx';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
 import i18n from '@/i18n.ts';
-import type { Row } from '@tanstack/react-table';
 import { useDispatch } from 'react-redux';
 import { setExpensesDrawerId } from '@/store/preferences.slice.ts';
-import { type DBExpense, deleteDBExpense } from '@/database/expenses';
+import { deleteDBExpense } from '@/database/expenses';
 
 export type ExpensesTableActionsProps = {
-  row: Row<DBExpense>;
+  expenseId: string;
 };
 
-export default function ExpensesTableActions({ row }: ExpensesTableActionsProps) {
-  const expenseId = row.original.id;
+export default function ExpensesTableActions({ expenseId }: ExpensesTableActionsProps) {
   const dispatch = useDispatch();
 
   return (

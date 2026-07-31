@@ -6,6 +6,7 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
+  BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb.tsx';
 import { Separator } from '@/components/ui/separator.tsx';
@@ -16,6 +17,7 @@ import { Link } from 'react-router';
 import { SurveysButton } from '@/components/survey-button.tsx';
 import { GoogleDriveButton } from '@/components/google-drive/google-drive-button.tsx';
 import { ThemeToggle } from '@/components/theme-toggle.tsx';
+import { LanguageToggle } from '@/components/language-toggle.tsx';
 
 export default function MiniDrawer({ children }: React.PropsWithChildren) {
   const { breadcrumbs } = useBreadcrumbs();
@@ -25,33 +27,53 @@ export default function MiniDrawer({ children }: React.PropsWithChildren) {
       <AppSidebar />
 
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4 w-full">
+        {/* Bordered and stuck to the top. With no line under it the header and the page were one
+            undivided field, so nothing marked where navigation stopped and content began — which
+            is most of what made this hard to read. */}
+        <header className="bg-background/95 sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b backdrop-blur">
+          <div className="flex w-full items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-            <div className="w-full flex flex-row items-center justify-between align-middle">
+            <div className="flex w-full flex-row items-center justify-between align-middle">
               <Breadcrumb>
                 <BreadcrumbList>
                   {breadcrumbs.map((item, idx) => {
+                    const isCurrentPage = idx === breadcrumbs.length - 1;
+
                     return (
                       <Fragment key={item.path}>
+                        {/* The page you are on is not a link to itself, and it is the one crumb
+                            worth reading. Every crumb linked and weighted alike left the trail
+                            with no answer to "where am I". */}
                         <BreadcrumbItem className="hidden md:block">
-                          <BreadcrumbLink asChild>
-                            <Link to={item.path}>{i18n.t(item.label)}</Link>
-                          </BreadcrumbLink>
+                          {isCurrentPage ? (
+                            <BreadcrumbPage className="font-medium">
+                              {i18n.t(item.label)}
+                            </BreadcrumbPage>
+                          ) : (
+                            <BreadcrumbLink asChild>
+                              <Link to={item.path}>{i18n.t(item.label)}</Link>
+                            </BreadcrumbLink>
+                          )}
                         </BreadcrumbItem>
-                        {idx !== breadcrumbs?.length - 1 && (
-                          <BreadcrumbSeparator className="hidden md:block" />
-                        )}
+                        {!isCurrentPage && <BreadcrumbSeparator className="hidden md:block" />}
                       </Fragment>
                     );
                   })}
                 </BreadcrumbList>
               </Breadcrumb>
-              <div className="flex items-center gap-2">
-                <ThemeToggle />
-                <SurveysButton />
+
+              {/* Fenced off from the trail. These act on the application rather than on where you
+                  are in it, and standing in one undivided row they read as more navigation. */}
+              <div className="flex items-center gap-1">
                 <GoogleDriveButton />
+                <Separator
+                  orientation="vertical"
+                  className="mx-1 data-[orientation=vertical]:h-4"
+                />
+                <ThemeToggle />
+                <LanguageToggle />
+                <SurveysButton />
               </div>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { BadgeCheck, ChevronsUpDown, LogOut, Moon, Sun, User } from 'lucide-react';
+import { BadgeCheck, ChevronsUpDown, LogOut, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -20,13 +20,11 @@ import { useAuth } from '@/auth/hooks';
 import { useRouter } from '@/routes/hooks';
 import { paths } from '@/routes/paths';
 import i18n from '@/i18n.ts';
-import { useTheme } from '@/components/theme-provider.tsx';
 import { Link } from 'react-router';
 
 export function NavUser() {
   const router = useRouter();
   const { isMobile } = useSidebar();
-  const { theme, setTheme } = useTheme();
   const { user } = useAuth();
 
   return (
@@ -70,18 +68,9 @@ export function NavUser() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                onClick={() => {
-                  setTheme(theme === 'dark' ? 'light' : 'dark');
-                }}
-              >
-                {theme === 'dark' ? <Sun /> : <Moon />}
-                {theme === 'dark' ? i18n.t('light_mode') : i18n.t('dark_mode')}
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-
-            <DropdownMenuSeparator />
+            {/* No theme item. It lives in the header, where it is one click rather than two, and
+                two homes for one control is the duplication that made this menu and the header
+                read as the same menu twice. This one is about who is signed in. */}
             <DropdownMenuGroup>
               <Link to={paths.account.root}>
                 <DropdownMenuItem>
