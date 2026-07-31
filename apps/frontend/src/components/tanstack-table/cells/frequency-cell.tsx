@@ -1,5 +1,4 @@
 import { FREQUENCY, TOTAL } from '@/constant.ts';
-import { Badge } from '@/components/ui/badge.tsx';
 import i18n from '@/i18n.ts';
 
 type FrequencyCellProps = {
@@ -10,12 +9,11 @@ type FrequencyCellProps = {
 /**
  * How often a cost recurs, as a word.
  *
- * There is deliberately no coloured dot. The label already said "Tygodniowa", so the dot
- * carried nothing the reader did not have — and blue/green/amber/purple are assigned
- * categories rather than a scale anybody can learn. It also spent the same greens and ambers
- * that mean *urgency* one column over, so a row said green twice about two unrelated things.
+ * Plain text, matching the execution column beside it. Two earlier versions were worse: a
+ * coloured dot spent the greens and ambers that mean *urgency* one column over, and the muted
+ * outline badge that replaced it was the palest thing in the row and read as disabled.
  *
- * Colour in this table now says exactly one thing, which is what makes the severity dot worth
+ * Colour in this table says exactly one thing — severity — which is what makes that dot worth
  * looking at.
  */
 export default function FrequencyCell({ id, frequency }: FrequencyCellProps) {
@@ -23,9 +21,5 @@ export default function FrequencyCell({ id, frequency }: FrequencyCellProps) {
     return null;
   }
 
-  return (
-    <Badge variant="outline" className="text-muted-foreground px-1.5 font-normal">
-      {i18n.t(frequency)}
-    </Badge>
-  );
+  return <p>{i18n.t(frequency)}</p>;
 }

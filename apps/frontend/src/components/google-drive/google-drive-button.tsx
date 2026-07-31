@@ -1,95 +1,94 @@
-import { Button } from '@/components/ui/button.tsx';
+import { useSyncExternalStore } from 'react';
+import { syncStatusStore } from '@/database/sync/sync-status.store.ts';
+import { outbox } from '@/database/document/outbox.container.ts';
 import { driveTokenService } from '@/auth/google/drive-token.ts';
 import { useGoogleDriveAuthStatus } from '@/components/google-drive/use-google-drive-auth-status.tsx';
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip.tsx';
+import { GoogleDriveGlyph } from '@/components/google-drive/google-drive-glyph.tsx';
+import { resolveSyncPresentation } from '@/components/sync-status-presentation.service.ts';
+import { Button } from '@/components/ui/button.tsx';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
 import { cn } from '@/lib/utils.ts';
 import i18n from '@/i18n.ts';
 
 /**
- * Fallback for the rare case where Google will not renew the Drive token silently —
- * normally the connection is kept alive without any interaction.
+ * The Drive mark, carrying the sync state.
+ *
+ * One control rather than the two that used to sit side by side saying overlapping things — a text
+ * status that knew about the outbox and the last sync, beside a Drive icon that knew only whether
+ * a token was held, so a green icon could sit next to "changes waiting to be sent".
+ *
+ * No text. The Drive mark already says *what* the data is synced with, which a generic cloud does
+ * not, and the rest is carried by colour, spin and the tooltip: spinning while anything is in
+ * flight, `positive` when Drive holds everything, `destructive` when something needs attention.
+ *
+ * Reconnecting is the only thing a person can act on, so it is the only state that is a button.
+ * The rest is a `status` — dressing information as a button invites clicks that do nothing.
  */
-export function GoogleDriveButton() {
-  const isLoggedIn = useGoogleDriveAuthStatus();
 
-  const login = async () => {
-    await driveTokenService.connect();
-    window.location.reload();
-  };
+const TONE_CLASS = {
+  positive: 'text-positive',
+  info: 'text-info',
+  muted: 'text-muted-foreground',
+  destructive: 'text-destructive',
+} as const;
+
+export function GoogleDriveButton() {
+  const status = useSyncExternalStore(
+    (listener) => syncStatusStore.subscribe(listener),
+    () => syncStatusStore.get()
+  );
+  const queued = useSyncExternalStore(
+    (listener) => outbox.subscribe(listener),
+    () => outbox.state()
+  );
+  const isDriveConnected = useGoogleDriveAuthStatus();
+
+  const { label, tone, isBusy } = resolveSyncPresentation({
+    status,
+    isPending: queued.pending,
+    hasFailedPermanently: queued.failure === 'permanent',
+    isDriveConnected,
+  });
+
+  const text = i18n.t(label);
+  const glyph = <GoogleDriveGlyph className={cn('size-4', isBusy && 'animate-spin')} />;
+
+  if (!isDriveConnected) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={text}
+            className="text-destructive hover:text-destructive size-8"
+            onClick={() => {
+              void driveTokenService.connect().then(() => window.location.reload());
+            }}
+          >
+            {glyph}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{text}</TooltipContent>
+      </Tooltip>
+    );
+  }
 
   return (
     <Tooltip>
-      {/* `asChild`, or both this and Button render a <button> and one nests in the other —
-          invalid HTML that React reports as a hydration error. Same fix as `survey-button`. */}
       <TooltipTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label={
-            isLoggedIn
-              ? i18n.t('metrics.google_drive_in_sync')
-              : i18n.t('metrics.need_to_sync_with_google_drive')
-          }
-          onClick={() => login()}
-          className={cn(
-            ' cursor-pointer  text-white px-4 py-2 rounded',
-            isLoggedIn ? 'bg-green-600' : 'bg-red-600'
-          )}
-          disabled={isLoggedIn}
+        {/* `aria-label` rather than visible text: with the label gone, this is the only thing a
+            screen reader has, and `aria-live` means the state change is announced. */}
+        <span
+          role="status"
+          aria-live="polite"
+          aria-label={text}
+          className={cn('flex size-8 items-center justify-center', TONE_CLASS[tone])}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-            <rect width="256" height="256" fill="none" />
-            <path
-              d="M93.65,35.76A8,8,0,0,1,100.43,32h55.14a8,8,0,0,1,6.78,3.76l68.43,112.18a8,8,0,0,1,.17,8.21L203.62,204a8,8,0,0,1-6.94,4H59.32a8,8,0,0,1-6.94-4L25.05,156.15a8,8,0,0,1,.17-8.21Z"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="16"
-            />
-            <line
-              x1="55.12"
-              y1="206.8"
-              x2="159.41"
-              y2="32.98"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="16"
-            />
-            <line
-              x1="200.88"
-              y1="206.8"
-              x2="96.59"
-              y2="32.98"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="16"
-            />
-            <line
-              x1="24"
-              y1="152"
-              x2="232"
-              y2="152"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="16"
-            />
-          </svg>
-        </Button>
+          {glyph}
+        </span>
       </TooltipTrigger>
-      <TooltipContent>
-        {isLoggedIn ? (
-          <p>{i18n.t('metrics.google_drive_in_sync')}</p>
-        ) : (
-          <p>{i18n.t('metrics.need_to_sync_with_google_drive')}</p>
-        )}
-      </TooltipContent>
+      <TooltipContent>{text}</TooltipContent>
     </Tooltip>
   );
 }

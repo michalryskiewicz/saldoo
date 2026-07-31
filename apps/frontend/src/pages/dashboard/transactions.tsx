@@ -1,11 +1,5 @@
 import i18n from '@/i18n.ts';
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemTitle,
-} from '@/components/ui/item.tsx';
+import { PageHeader } from '@/components/page-header.tsx';
 import { Button } from '@/components/ui/button.tsx';
 import { setTransactionsDrawerId } from '@/store/preferences.slice.ts';
 import { NEW_ENTITY_ID } from '@/constant.ts';
@@ -18,19 +12,11 @@ export default function Transactions() {
 
   return (
     <>
-      <Item className="px-0">
-        <ItemContent>
-          <ItemTitle className="scroll-m-20 text-2xl font-semibold tracking-tight">
-            {i18n.t('transactions')}
-          </ItemTitle>
-          <ItemDescription>{i18n.t('transactions_subtitle')}</ItemDescription>
-        </ItemContent>
-        <ItemActions>
-          <Button onClick={() => dispatch(setTransactionsDrawerId(NEW_ENTITY_ID))}>
-            {i18n.t('create_transactions')}
-          </Button>
-        </ItemActions>
-      </Item>
+      <PageHeader title={i18n.t('transactions')} description={i18n.t('transactions_subtitle')}>
+        <Button onClick={() => dispatch(setTransactionsDrawerId(NEW_ENTITY_ID))}>
+          {i18n.t('create_transactions')}
+        </Button>
+      </PageHeader>
 
       <TransactionsCreate />
 

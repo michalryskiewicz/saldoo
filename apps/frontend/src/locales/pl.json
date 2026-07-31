@@ -323,5 +323,10 @@
     "light": "Jasny",
     "dark": "Ciemny",
     "system": "Jak w systemie"
+  },
+  "table": {
+    "selected_count": "Zaznaczono {{selected}} z {{total}}",
+    "rows_per_page": "Wierszy na stronę",
+    "page_of": "Strona {{page}} z {{pages}}"
   }
 }

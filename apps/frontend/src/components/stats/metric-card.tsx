@@ -112,7 +112,7 @@ export function MetricCard({
           <div className="text-[1.2rem] font-medium leading-none text-foreground tabular-nums">
             {value}
           </div>
-          <div className="text-xs leading-none text-muted-foreground">/ {limit}</div>
+          <div className="text-xs leading-none text-muted-foreground tabular-nums">/ {limit}</div>
         </div>
 
         <div className="mt-3">

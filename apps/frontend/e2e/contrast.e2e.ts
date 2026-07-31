@@ -50,6 +50,9 @@ const PAIRS: Pair[] = [
     minimum: GRAPHIC_MINIMUM,
   },
   { name: 'severity high dot', foreground: '--severity-high', background: '--card', minimum: GRAPHIC_MINIMUM },
+  // The boundary of a control the user has to find — an empty checkbox, an unfocused field.
+  // WCAG 1.4.11 asks 3:1 of exactly this, and it is what made the checkboxes look disabled.
+  { name: 'control border', foreground: '--input', background: '--background', minimum: GRAPHIC_MINIMUM },
 ];
 
 function channelLuminance(value: number): number {
@@ -67,35 +70,54 @@ function contrastRatio(a: [number, number, number], b: [number, number, number])
   return (lighter + 0.05) / (darker + 0.05);
 }
 
+type Measured = { name: string; minimum: number; foreground: Rgb; background: Rgb };
+type Rgb = [number, number, number];
+
 /**
- * Resolves each token to sRGB by painting it.
+ * Resolves each pair to the sRGB the screen will actually show.
  *
- * The tokens are `oklch`, and a canvas makes the browser do that conversion — which is both
- * the correct one and the one the user's screen will actually perform.
+ * A canvas is used so the browser performs the `oklch` conversion rather than this file
+ * approximating it. The foreground is painted **over** the background rather than measured on
+ * its own, because several tokens carry alpha — `--border` and `--input` are
+ * `oklch(1 0 0 / 10%)` in dark mode — and a translucent colour read off a transparent canvas
+ * measures as though it were opaque. That is how a pair can pass here and be invisible on
+ * screen.
  */
-async function resolveTokens(page: import('@playwright/test').Page, tokens: string[]) {
-  return page.evaluate((names) => {
+async function measure(
+  page: import('@playwright/test').Page,
+  pairs: Pair[]
+): Promise<Measured[]> {
+  return page.evaluate((declared) => {
     const canvas = document.createElement('canvas');
     canvas.width = 1;
     canvas.height = 1;
     const context = canvas.getContext('2d')!;
     const styles = getComputedStyle(document.documentElement);
 
-    const resolved: Record<string, [number, number, number]> = {};
-
-    for (const name of names) {
-      const declared = styles.getPropertyValue(name).trim();
-
+    const paint = (colours: string[]): [number, number, number] => {
       context.clearRect(0, 0, 1, 1);
-      context.fillStyle = declared;
-      context.fillRect(0, 0, 1, 1);
-
+      for (const colour of colours) {
+        context.fillStyle = colour;
+        context.fillRect(0, 0, 1, 1);
+      }
       const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
-      resolved[name] = [r, g, b];
-    }
 
-    return resolved;
-  }, tokens);
+      return [r, g, b];
+    };
+
+    return declared.map((pair) => {
+      const background = styles.getPropertyValue(pair.background).trim();
+      const foreground = styles.getPropertyValue(pair.foreground).trim();
+
+      return {
+        name: pair.name,
+        minimum: pair.minimum,
+        // Opaque white underneath, so a translucent background composites the way the page does.
+        background: paint(['#fff', background]),
+        foreground: paint(['#fff', background, foreground]),
+      };
+    });
+  }, pairs);
 }
 
 for (const theme of ['light', 'dark'] as const) {
@@ -112,14 +134,11 @@ for (const theme of ['light', 'dark'] as const) {
     await app.completeOnboarding();
     await app.chooseTheme(theme);
 
-    const tokens = [...new Set(PAIRS.flatMap((pair) => [pair.foreground, pair.background]))];
-    const resolved = await resolveTokens(device.page, tokens);
+    const measured = await measure(device.page, PAIRS);
 
     // Every pair in one go, so a run reports all of them rather than the first.
-    const failures = PAIRS.map((pair) => ({
-      pair,
-      ratio: contrastRatio(resolved[pair.foreground], resolved[pair.background]),
-    }))
+    const failures = measured
+      .map((pair) => ({ pair, ratio: contrastRatio(pair.foreground, pair.background) }))
       .filter(({ pair, ratio }) => ratio < pair.minimum)
       .map(({ pair, ratio }) => `${pair.name}: ${ratio.toFixed(2)}:1, needs ${pair.minimum}:1`);
 

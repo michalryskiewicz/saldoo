@@ -47,6 +47,10 @@
   --color-severity-low: var(--severity-low);
   --color-severity-medium: var(--severity-medium);
   --color-severity-high: var(--severity-high);
+  --color-severity-low-fill: var(--severity-low-fill);
+  --color-severity-medium-fill: var(--severity-medium-fill);
+  --color-severity-high-fill: var(--severity-high-fill);
+  --color-severity-fill-foreground: var(--severity-fill-foreground);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -75,8 +79,14 @@
   --accent: oklch(0.967 0.003 264.542);
   --accent-foreground: oklch(0.21 0.034 264.665);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.928 0.006 264.531);
-  --input: oklch(0.928 0.006 264.531);
+  --border: oklch(0.885 0.008 264.531);
+  /*
+   * Darker than `--border`, and deliberately so. This draws the boundary of a control the
+   * user has to find — an empty checkbox, an unfocused field — and WCAG asks 3:1 of that.
+   * At the shade it shared with the dividers it measured 1.24:1 and the checkboxes read as
+   * disabled. The contrast test holds it.
+   */
+  --input: oklch(0.62 0.014 264.531);
   --ring: oklch(0.707 0.022 261.325);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -97,11 +107,38 @@
   --warning: oklch(0.49 0.145 48.0);
   --info: oklch(0.546 0.245 262.881);
 
-  /* One scale, three steps, and the only place hue carries urgency. Colour is all these dots
-     have, so they answer to the 3:1 non-text rule rather than to taste. */
-  --severity-low: oklch(0.527 0.154 150.069);
-  --severity-medium: oklch(0.555 0.163 48.998);
-  --severity-high: oklch(0.637 0.237 25.331);
+  /*
+   * A traffic light, as bright as the contrast floor allows.
+   *
+   * Colour is all these dots and bars have, so they answer to the 3:1 non-text rule. The
+   * values are the *lightest* that still clear it on white — 3.07, 3.09 and 3.08 — rather than
+   * a comfortable margin, because every step darker trades recognisability for headroom nobody
+   * asked for. Going brighter than this is not a matter of taste: amber at oklch(0.75) measures
+   * 2.1:1 and stops being visible.
+   */
+  --severity-low: oklch(0.64 0.21 145);
+  --severity-medium: oklch(0.67 0.17 85);
+  --severity-high: oklch(0.75 0.24 25.3);
+
+  /*
+   * The same three meanings, for large areas.
+   *
+   * A separate tier because the two jobs pull in opposite directions: an 8px dot needs
+   * saturation to be seen at all against white, and a 300px bar needs the opposite — at the
+   * dot's chroma a stacked chart reads as a poster. These are lighter and softer, and the
+   * yellow finally sits at a yellow hue (95) rather than at 70, which renders orange.
+   *
+   * Deliberately **not** held to 3:1 against the page, and that is not an oversight: a bar sits
+   * beside other bars with an axis and a legend, so what it has to be distinguishable from is
+   * its neighbours, not the background. The 3:1 rule is for a mark that carries its meaning
+   * alone, which is the tier above.
+   */
+  --severity-low-fill: oklch(0.80 0.16 150);
+  --severity-medium-fill: oklch(0.87 0.16 95);
+  --severity-high-fill: oklch(0.72 0.19 25.3);
+  /* Chips and bars carry dark text, in both themes: the fill is the same mid-light colour in
+     each, so one foreground serves both and the chip cannot drift from the bar. */
+  --severity-fill-foreground: oklch(0.22 0.02 260);
 
   --sidebar: oklch(0.985 0.002 247.839);
   --sidebar-foreground: oklch(0.13 0.028 261.692);
@@ -130,7 +167,9 @@
   --accent-foreground: oklch(0.985 0.002 247.839);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  /* 15% white on a near-black card measured 1.45:1 — a control boundary nobody could find.
+     `--border` stays faint on purpose: a divider is decoration, a checkbox edge is not. */
+  --input: oklch(1 0 0 / 40%);
   --ring: oklch(0.551 0.027 264.364);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
@@ -146,9 +185,18 @@
   --warning: oklch(0.828 0.189 84.429);
   --info: oklch(0.707 0.165 254.624);
 
-  --severity-low: oklch(0.792 0.209 151.711);
-  --severity-medium: oklch(0.828 0.189 84.429);
-  --severity-high: oklch(0.704 0.191 22.216);
+  /* Same traffic light, and on a dark card it can be brighter still. */
+  --severity-low: oklch(0.78 0.20 145);
+  --severity-medium: oklch(0.85 0.17 90);
+  --severity-high: oklch(0.70 0.22 25.3);
+
+  /* The fills do not change with the theme. A chip in the table and a bar in the chart have to
+     be the same colour to read as the same fact, and splitting them per theme is how they
+     drifted apart in the first place. */
+  --severity-low-fill: oklch(0.80 0.16 150);
+  --severity-medium-fill: oklch(0.87 0.16 95);
+  --severity-high-fill: oklch(0.72 0.19 25.3);
+  --severity-fill-foreground: oklch(0.22 0.02 260);
 
   --sidebar: oklch(0.21 0.034 264.665);
   --sidebar-foreground: oklch(0.985 0.002 247.839);

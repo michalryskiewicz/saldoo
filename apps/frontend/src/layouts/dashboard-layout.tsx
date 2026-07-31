@@ -11,11 +11,10 @@ import {
 import { Separator } from '@/components/ui/separator.tsx';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar.tsx';
 import i18n from '@/i18n.ts';
-import { GoogleDriveButton } from '@/components/google-drive/google-drive-button.tsx';
 import { useBreadcrumbs } from '@/hooks/use-breadcrumbs';
 import { Link } from 'react-router';
 import { SurveysButton } from '@/components/survey-button.tsx';
-import { SyncStatusIndicator } from '@/components/sync-status-indicator.tsx';
+import { GoogleDriveButton } from '@/components/google-drive/google-drive-button.tsx';
 import { ThemeToggle } from '@/components/theme-toggle.tsx';
 
 export default function MiniDrawer({ children }: React.PropsWithChildren) {
@@ -50,7 +49,6 @@ export default function MiniDrawer({ children }: React.PropsWithChildren) {
                 </BreadcrumbList>
               </Breadcrumb>
               <div className="flex items-center gap-2">
-                <SyncStatusIndicator />
                 <ThemeToggle />
                 <SurveysButton />
                 <GoogleDriveButton />
@@ -58,7 +56,13 @@ export default function MiniDrawer({ children }: React.PropsWithChildren) {
             </div>
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</div>
+        {/* Capped and centred. Nothing constrained the content before, so on a wide screen the
+            dashboard stretched edge to edge and every table spread its columns across the whole
+            span — which is why the rows read as scattered islands rather than as rows. Data does
+            not become easier to read by being further apart. One value, one place to change it. */}
+        <div className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 p-4 pt-0">
+          {children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

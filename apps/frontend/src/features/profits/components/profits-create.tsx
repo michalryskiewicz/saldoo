@@ -42,11 +42,11 @@ export default function ProfitsCreatePage() {
 
   const handleSubmit = async (values: ProfitCreateSchema): Promise<void> => {
     if (!id) return;
-    if (id === NEW_ENTITY_ID) {
-      await addDBProfit(values);
-    } else {
-      await updateDBProfit(id, values);
-    }
+
+    const saved =
+      id === NEW_ENTITY_ID ? await addDBProfit(values) : await updateDBProfit(id, values);
+    if (!saved) return;
+
     dispatch(serProfitsDrawerId(''));
   };
 

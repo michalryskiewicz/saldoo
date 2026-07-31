@@ -22,6 +22,11 @@ export type DBExpense = {
   tagId?: string;
 };
 
+/**
+ * @returns whether the write landed. Callers close a drawer on the strength of this: reporting
+ * nothing made a save that never happened look exactly like one that did, and the only
+ * difference was a toast that is easy to miss.
+ */
 export const addDBExpense = async (expense: ExpenseCreateType) => {
   try {
     await documentSession.put('expenses', {
@@ -36,12 +41,21 @@ export const addDBExpense = async (expense: ExpenseCreateType) => {
     await setLastUpdated();
     outbox.markDirty();
     toast(i18n.t('success.create-expense'));
+
+    return true;
   } catch (e) {
     console.error(e);
     toast(i18n.t('errors.create-expense'));
+
+    return false;
   }
 };
 
+/**
+ * @returns whether the write landed. Callers close a drawer on the strength of this: reporting
+ * nothing made a save that never happened look exactly like one that did, and the only
+ * difference was a toast that is easy to miss.
+ */
 export const updateDBExpense = async (id: string, expense: ExpenseCreateType) => {
   try {
     await documentSession.update('expenses', id, {
@@ -55,9 +69,13 @@ export const updateDBExpense = async (id: string, expense: ExpenseCreateType) =>
     await setLastUpdated();
     outbox.markDirty();
     toast(i18n.t('success.update-expense'));
+
+    return true;
   } catch (e) {
     console.error(e);
     toast(i18n.t('errors.update-expense'));
+
+    return false;
   }
 };
 

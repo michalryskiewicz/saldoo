@@ -196,3 +196,4 @@ apps/backend/prisma/data/
 # Playwright
 apps/frontend/playwright-report/
 apps/frontend/test-results/
+apps/frontend/shots/

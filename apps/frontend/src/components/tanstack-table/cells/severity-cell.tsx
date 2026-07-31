@@ -13,16 +13,17 @@ export default function SeverityCell({ id, severity }: SeverityCellProps) {
     return null;
   }
 
+  // Filled with the same colour the chart uses for this severity, so the table and the graph
+  // read as one fact rather than two. A dot in the mark tier could not do that: the value that
+  // makes an 8px dot visible on white is not the value a 300px bar can wear.
   return (
-    <Badge variant="outline" className="text-muted-foreground px-1.5">
-      <span
-        className={cn('inline-block w-2 h-2 rounded-full mr-1', {
-          'bg-severity-high': severity === SEVERITY.HIGH,
-          'bg-severity-medium': severity === SEVERITY.MEDIUM,
-          'bg-severity-low': severity === SEVERITY.LOW,
-        })}
-      />
-
+    <Badge
+      className={cn('text-severity-fill-foreground border-transparent px-2 font-medium', {
+        'bg-severity-high-fill': severity === SEVERITY.HIGH,
+        'bg-severity-medium-fill': severity === SEVERITY.MEDIUM,
+        'bg-severity-low-fill': severity === SEVERITY.LOW,
+      })}
+    >
       {i18n.t(severity)}
     </Badge>
   );

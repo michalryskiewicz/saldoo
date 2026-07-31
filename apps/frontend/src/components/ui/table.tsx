@@ -55,7 +55,10 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors",
+        // Striped rather than ruled. A line under every row is noise repeated per row; a
+        // stripe is what lets the eye cross a wide row without losing which one it is on —
+        // the actual complaint about these tables. Hover still wins over the stripe.
+        "even:bg-muted/30 hover:bg-muted/60 data-[state=selected]:bg-muted transition-colors",
         className
       )}
       {...props}
@@ -68,7 +71,11 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        // Quiet, small and uppercase: a column heading is a label, not content. Left as
+        // `text-foreground` it competed with the figures underneath it for attention.
+        // A rule between columns, so a cell can be followed across a wide row. Skipped on the
+        // last one, where it would draw a line down the inside of the table's own border.
+        "text-muted-foreground h-9 px-2 text-left align-middle text-xs font-medium tracking-wide uppercase whitespace-nowrap not-last:border-r [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}
@@ -81,7 +88,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "p-2 align-middle whitespace-nowrap not-last:border-r [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}

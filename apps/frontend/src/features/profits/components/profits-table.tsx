@@ -16,6 +16,8 @@ const columns: ColumnDef<DBProfit>[] = [
   },
   {
     accessorKey: 'profit',
+    size: 140,
+    meta: { align: 'right' as const },
     cell: ({ row }) => {
       const { id, profit, currency } = row.original;
       return <Cell.Money id={id} price={profit} currency={currency} />;
@@ -26,6 +28,7 @@ const columns: ColumnDef<DBProfit>[] = [
   },
   {
     accessorKey: 'execution',
+    size: 140,
     header: i18n.t('execution'),
     cell: ({ row }) => {
       const { id, execution, frequency } = row.original;
@@ -34,6 +37,7 @@ const columns: ColumnDef<DBProfit>[] = [
   },
   {
     accessorKey: 'frequency',
+    size: 140,
     header: i18n.t('frequency'),
     cell: ({ row }) => {
       const { id, frequency } = row.original;
@@ -42,7 +46,7 @@ const columns: ColumnDef<DBProfit>[] = [
   },
   {
     id: 'actions',
-    maxSize: 30,
+    size: 56,
     cell: ({ row }) => {
       if (row.original.id === TOTAL) {
         return null;

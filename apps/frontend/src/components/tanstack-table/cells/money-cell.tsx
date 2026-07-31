@@ -15,7 +15,9 @@ export default function MoneyCell({ id, price, currency }: MoneyCellProps) {
   }
 
   return (
-    <p className={cn('text-right max-w-20 ', { 'font-bold': id === TOTAL })}>
+    // `tabular-nums` so a column of figures lines up on the decimal. Alignment is declared on
+    // the column, so the heading above cannot disagree with it.
+    <p className={cn('tabular-nums whitespace-nowrap', { 'font-bold': id === TOTAL })}>
       {formatMoney(price, currency, 'pl')}
     </p>
   );

@@ -208,7 +208,11 @@ export class SaldooApp {
    * assumption the app is free to change. This reads the same signal the user reads.
    */
   async waitUntilSynced(): Promise<void> {
-    await expect(this.syncStatus).toHaveText(label('sync.synced'), { timeout: SYNC_TIMEOUT_MS });
+    // `aria-label`, because the control is icon-only: the Drive mark says what it is synced with
+    // and colour says how it went, so there is no visible text to assert on.
+    await expect(this.syncStatus).toHaveAttribute('aria-label', label('sync.synced'), {
+      timeout: SYNC_TIMEOUT_MS,
+    });
   }
 
   /**
@@ -248,16 +252,40 @@ export class SaldooApp {
    * matters more to them than how the last sync went.
    */
   async expectChangesPending(): Promise<void> {
-    await expect(this.syncStatus).toHaveText(label('sync.pending'), { timeout: SYNC_TIMEOUT_MS });
+    await expect(this.syncStatus).toHaveAttribute('aria-label', label('sync.pending'), {
+      timeout: SYNC_TIMEOUT_MS,
+    });
   }
 
   async expectNoSyncFailure(): Promise<void> {
-    const status = await this.syncStatus.textContent();
+    const status = await this.syncStatus.getAttribute('aria-label');
 
     expect([label('sync.upload_failed'), label('sync.blocked'), label('sync.unreadable_backup')]).not.toContain(status);
   }
 
   // === Expenses ===
+
+  /**
+   * Clicks a column heading to sort by it.
+   *
+   * Scoped to `thead`: unscoped, "Wydatek" also matches the page's "Dodaj wydatek" button, which
+   * opens the create drawer and silently leaves the table unsorted underneath it.
+   */
+  async sortBy(header: 'description' | 'severity'): Promise<void> {
+    await this.page
+      .locator('thead')
+      .getByRole('button', { name: label(header === 'description' ? 'description' : 'severity') })
+      .click();
+  }
+
+  /** The first cell of every body row, in the order they are rendered. */
+  async rowDescriptions(): Promise<string[]> {
+    return this.page.evaluate(() =>
+      [...document.querySelectorAll('tbody tr')].map(
+        (row) => row.querySelector('td')?.textContent?.trim() ?? ''
+      )
+    );
+  }
 
   private expenseRow(description: string): Locator {
     return this.page.getByRole('row').filter({ hasText: description });

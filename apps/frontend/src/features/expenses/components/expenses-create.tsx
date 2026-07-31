@@ -51,11 +51,14 @@ export default function ExpensesCreate() {
 
   const handleSubmit = async (values: ExpenseCreateType) => {
     if (!id) return;
-    if (id === NEW_ENTITY_ID) {
-      await addDBExpense(values);
-    } else {
-      await updateDBExpense(id, values);
-    }
+
+    const saved =
+      id === NEW_ENTITY_ID ? await addDBExpense(values) : await updateDBExpense(id, values);
+
+    // Staying open is the point: a drawer that shuts either way is why a failed save was
+    // indistinguishable from a successful one, and the toast alone was easy to miss.
+    if (!saved) return;
+
     return dispatch(setExpensesDrawerId(''));
   };
 

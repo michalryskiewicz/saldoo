@@ -23,6 +23,17 @@ import { Link } from 'react-router';
 
 import { useListExpenses } from '@/features/expenses/hooks/use-list-expenses.tsx';
 
+/**
+ * Severity keeps the colours it has in the table.
+ *
+ * These three bars are the same fact the priority column states, so reaching into the chart
+ * ramp for them said "low" in green in one place and in teal in the other. The ramp is for
+ * series that mean nothing in particular; severity means something, and it already has tokens.
+ *
+ * The *fill* tier, not the mark tier: a stacked bar is a large area, and the saturation that
+ * makes an 8px dot visible makes a 300px block shout. `total` is not a severity, so it stays a
+ * chart colour.
+ */
 const chartConfig = {
   total: {
     label: i18n.t('metrics.totalExpense'),
@@ -30,15 +41,15 @@ const chartConfig = {
   },
   high: {
     label: i18n.t('metrics.HIGH'),
-    color: 'var(--chart-1)',
+    color: 'var(--severity-high-fill)',
   },
   medium: {
     label: i18n.t('metrics.MEDIUM'),
-    color: 'var(--chart-4)',
+    color: 'var(--severity-medium-fill)',
   },
   low: {
     label: i18n.t('metrics.LOW'),
-    color: 'var(--chart-2)',
+    color: 'var(--severity-low-fill)',
   },
 } satisfies ChartConfig;
 
