@@ -24,17 +24,21 @@ const FILE_NAME = 'saldoo-keys.json';
 
 const aToken = async () => 'token';
 
-const aFile = (id: string, overrides: { size?: number; modifiedTime?: string } = {}) => ({
+const aFile = (
+  id: string,
+  overrides: { size?: number; modifiedTime?: string; version?: string } = {}
+) => ({
   id,
   size: overrides.size ?? 481,
   modifiedTime: overrides.modifiedTime ?? '2026-07-28T13:22:00.000Z',
+  version: overrides.version ?? '1',
 });
 
 beforeEach(() => {
   vi.mocked(findFilesInSaldooFolder).mockResolvedValue([aFile('file-id')]);
   vi.mocked(createFileInSaldooFolder).mockResolvedValue('created-id');
   vi.mocked(readFileFromDrive).mockResolvedValue('{}');
-  vi.mocked(writeFileToDrive).mockResolvedValue(undefined);
+  vi.mocked(writeFileToDrive).mockResolvedValue('2');
 });
 
 describe('createDriveFileGateway', () => {

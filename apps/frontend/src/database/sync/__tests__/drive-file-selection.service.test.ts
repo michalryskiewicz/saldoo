@@ -1,7 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { selectDriveFile } from '../drive-file-selection.service.ts';
 
-const file = (id: string, size: number, modifiedTime: string) => ({ id, size, modifiedTime });
+const file = (id: string, size: number, modifiedTime: string) => ({
+  id,
+  size,
+  modifiedTime,
+  // Carried by the listing, but never part of choosing between candidates.
+  version: '1',
+});
 
 describe('selectDriveFile', () => {
   it('has nothing to select from an empty folder', () => {

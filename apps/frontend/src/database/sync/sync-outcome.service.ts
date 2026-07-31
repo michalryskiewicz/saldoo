@@ -1,3 +1,4 @@
+import { ConcurrentWritesError } from '@/database/document/document-drive-sync.ts';
 import { DriveUnreachableError } from '@/database/sync/drive-file.gateway.ts';
 import { UnreadableBackupError } from '@/database/sync/vault-drive-sync.ts';
 import type { SyncStatus } from '@/database/sync/sync-status.store.ts';
@@ -20,6 +21,11 @@ export type SyncAttempt = { ok: true } | { ok: false; error: unknown };
 export function decideSyncStatus(attempt: SyncAttempt): SyncStatus {
   if (attempt.ok) return 'synced';
   if (attempt.error instanceof DriveUnreachableError) return 'offline';
+  // Contention is not a halt: nothing is lost, the local document still holds everything,
+  // and the outbox is what tells the user a change has not left the device yet. Blocking
+  // the whole app behind a full-screen warning because another device also wrote would be
+  // alarming and wrong.
+  if (attempt.error instanceof ConcurrentWritesError) return 'idle';
   if (attempt.error instanceof UnreadableBackupError) return 'unreadable-backup';
 
   return 'blocked';

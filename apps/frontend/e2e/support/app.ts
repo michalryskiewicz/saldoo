@@ -94,9 +94,11 @@ export class SaldooApp {
     await this.next().click();
     await this.page.getByRole('button', { name: label('metrics.end') }).click();
 
-    // Submitting writes the tags and the settings before it navigates, so the wizard
-    // going away — not the click — is what says onboarding is done.
+    // Submitting writes the tags and the settings and *then* navigates, so the wizard going
+    // away is not the end of it: leaving before that navigation lands means the app steers
+    // the next page away underneath the test.
     await expect(this.page.getByRole('tablist')).toBeHidden({ timeout: SYNC_TIMEOUT_MS });
+    await this.page.waitForURL('**/dashboard');
   }
 
   /** Setup, or unlock, or nothing — whichever this device's state calls for. */

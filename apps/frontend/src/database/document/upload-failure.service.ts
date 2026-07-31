@@ -2,7 +2,7 @@ import { DriveAuthRequiredError } from '@/auth/google/drive-token.service.ts';
 import { DriveUnreachableError } from '@/database/sync/drive-file.gateway.ts';
 import { DriveRequestFailedError } from '@/database/sync/googleDriveUtils.ts';
 import { RemoteDecryptionError, UnreadableBackupError } from '@/database/sync/vault-drive-sync.ts';
-import { UnreadableDocumentError } from './document-drive-sync.ts';
+import { ConcurrentWritesError, UnreadableDocumentError } from './document-drive-sync.ts';
 import type { OutboxFailure } from './outbox.ts';
 
 /**
@@ -29,6 +29,10 @@ export function classifyUploadFailure(error: unknown): OutboxFailure {
   ) {
     return 'permanent';
   }
+
+  // Another device writing at the same time. Stated rather than left to the catch-all,
+  // because it is the one failure that is *expected* to happen and clears by itself.
+  if (error instanceof ConcurrentWritesError) return 'transient';
 
   const cause = error instanceof DriveUnreachableError ? error.cause : error;
 
