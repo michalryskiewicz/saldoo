@@ -62,7 +62,12 @@ export function RHFMoneyField({
             <FormLabel>{label}</FormLabel>
             {description && <FormLabel>{description}</FormLabel>}
             <InputGroup>
-              {currency && (
+              {/* The symbol only when nothing else states the currency. With the picker on the
+                  right the field said it twice and in two notations — "zł" leading, "PLN"
+                  trailing — which is the same inconsistency the charts had. Exactly one is always
+                  present: the picker where the currency can be changed, the symbol where it
+                  cannot. */}
+              {currency && !currencyField && (
                 <InputGroupAddon>
                   <InputGroupText>{CURRENCY_SYMBOL[currency]}</InputGroupText>
                 </InputGroupAddon>

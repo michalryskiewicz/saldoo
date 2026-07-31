@@ -26,12 +26,17 @@ type TableSearchProps = {
  */
 export function TableSearch({ value, onChange, placeholder }: TableSearchProps) {
   return (
-    <InputGroup className="w-full sm:max-w-xs">
+    <InputGroup className="w-full sm:max-w-[420px]">
       <InputGroupAddon align="inline-start">
         <Search aria-hidden />
       </InputGroupAddon>
 
       <InputGroupInput
+        // `type="search"` for the role it gives the field, without the clear button the browser
+        // draws for free — that one sat beside the app's own and the field offered two ways to
+        // clear it, in two different shapes. Hiding the browser's keeps the semantics and the
+        // button that matches everything else.
+        className="[&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
         type="search"
         value={value}
         onChange={(event) => onChange(event.target.value)}
