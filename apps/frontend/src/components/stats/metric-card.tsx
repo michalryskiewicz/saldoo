@@ -34,7 +34,7 @@ export function MetricCard({
   limit,
   percentage,
   status,
-  statusColor = 'text-emerald-600 dark:text-emerald-400',
+  statusColor = 'text-positive',
   progressColor,
   details,
   actionLabel,
@@ -77,11 +77,11 @@ export function MetricCard({
       return (
         <div className="relative h-1 w-full overflow-hidden rounded-full bg-muted">
           <div
-            className="absolute left-0 h-full bg-emerald-500 transition-all duration-300"
+            className="absolute left-0 h-full bg-positive transition-all duration-300"
             style={{ width: `${writesPercentage}%` }}
           />
           <div
-            className="absolute h-full bg-blue-500 transition-all duration-300"
+            className="absolute h-full bg-info transition-all duration-300"
             style={{
               left: `${writesPercentage}%`,
               width: `${readsPercentage}%`,
@@ -144,7 +144,7 @@ export function MetricCard({
 
           {warningMessage && (
             <div className="pt-2">
-              <div className="text-sm text-amber-700 dark:text-amber-400">{warningMessage}</div>
+              <div className="text-sm text-warning">{warningMessage}</div>
             </div>
           )}
         </div>
@@ -153,7 +153,7 @@ export function MetricCard({
           <div className="absolute bottom-0 left-0 right-0">
             <Button
               variant="ghost"
-              className="h-8 w-full rounded-none text-blue-500 gap-0 justify-start hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 bg-muted/50"
+              className="h-8 w-full rounded-none text-info gap-0 justify-start hover:brightness-110 bg-muted/50"
               onClick={onActionClick}
             >
               {actionIcon}

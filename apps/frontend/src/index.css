@@ -33,6 +33,21 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+
+  /*
+   * What a colour *means* here, so a screen never has to reach for a palette shade and
+   * decide again. shadcn ships primary/muted/destructive; money needs its own words, and
+   * without them every card invented its own green.
+   */
+  --color-positive: var(--positive);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-severity-low: var(--severity-low);
+  --color-severity-medium: var(--severity-medium);
+  --color-severity-high: var(--severity-high);
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -70,6 +85,24 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --chart-6: oklch(0.769 0.188 120.08);
   --chart-7: oklch(0.769 0.188 190.16);
+
+  /*
+   * Money going the right way, something to look at, and something to act on.
+   *
+   * Darker than the shade these hues are usually reached for: on white, emerald-600 lands at
+   * 3.65:1 and amber-600 at 3.20:1, both short of the 4.5:1 that text owes a reader. The
+   * contrast test holds these values to that, in both themes.
+   */
+  --positive: oklch(0.508 0.118 165.612);
+  --warning: oklch(0.49 0.145 48.0);
+  --info: oklch(0.546 0.245 262.881);
+
+  /* One scale, three steps, and the only place hue carries urgency. Colour is all these dots
+     have, so they answer to the 3:1 non-text rule rather than to taste. */
+  --severity-low: oklch(0.527 0.154 150.069);
+  --severity-medium: oklch(0.555 0.163 48.998);
+  --severity-high: oklch(0.637 0.237 25.331);
+
   --sidebar: oklch(0.985 0.002 247.839);
   --sidebar-foreground: oklch(0.13 0.028 261.692);
   --sidebar-primary: oklch(0.21 0.034 264.665);
@@ -104,6 +137,19 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
+  --chart-6: oklch(0.696 0.17 130.48);
+  --chart-7: oklch(0.7 0.15 200.0);
+
+  /* Lighter and less saturated than their light-mode twins: the same hue that reads as
+     confident on white turns muddy on a dark card, and fails contrast with it. */
+  --positive: oklch(0.765 0.177 163.223);
+  --warning: oklch(0.828 0.189 84.429);
+  --info: oklch(0.707 0.165 254.624);
+
+  --severity-low: oklch(0.792 0.209 151.711);
+  --severity-medium: oklch(0.828 0.189 84.429);
+  --severity-high: oklch(0.704 0.191 22.216);
+
   --sidebar: oklch(0.21 0.034 264.665);
   --sidebar-foreground: oklch(0.985 0.002 247.839);
   --sidebar-primary: oklch(0.488 0.243 264.376);
