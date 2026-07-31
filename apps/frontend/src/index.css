@@ -75,8 +75,14 @@
   --accent: oklch(0.967 0.003 264.542);
   --accent-foreground: oklch(0.21 0.034 264.665);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.928 0.006 264.531);
-  --input: oklch(0.928 0.006 264.531);
+  --border: oklch(0.885 0.008 264.531);
+  /*
+   * Darker than `--border`, and deliberately so. This draws the boundary of a control the
+   * user has to find — an empty checkbox, an unfocused field — and WCAG asks 3:1 of that.
+   * At the shade it shared with the dividers it measured 1.24:1 and the checkboxes read as
+   * disabled. The contrast test holds it.
+   */
+  --input: oklch(0.62 0.014 264.531);
   --ring: oklch(0.707 0.022 261.325);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -130,7 +136,9 @@
   --accent-foreground: oklch(0.985 0.002 247.839);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  /* 15% white on a near-black card measured 1.45:1 — a control boundary nobody could find.
+     `--border` stays faint on purpose: a divider is decoration, a checkbox edge is not. */
+  --input: oklch(1 0 0 / 40%);
   --ring: oklch(0.551 0.027 264.364);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);

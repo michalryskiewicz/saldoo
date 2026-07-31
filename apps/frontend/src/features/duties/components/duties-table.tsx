@@ -27,7 +27,10 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
   },
   {
     accessorKey: 'expense',
-    header: i18n.t('expense'),
+    // Right-aligned, because its figures are. A centred heading over right-aligned numbers is
+    // how the header stopped pointing at its own column.
+    header: () => <p className="text-right">{i18n.t('expense')}</p>,
+    size: 140,
     cell: ({ row }) => {
       const { id, expense, currency } = row.original.expense;
       return <Cell.Money id={id} price={expense} currency={currency} />;
@@ -35,6 +38,7 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
   },
   {
     accessorKey: 'expense.severity',
+    size: 130,
     header: ({ column }) => <Header.Sort column={column} header="severity" />,
     cell: ({ row }) => {
       const { id, severity } = row.original.expense;
@@ -43,6 +47,7 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
   },
   {
     accessorKey: 'expense.execution',
+    size: 140,
     header: i18n.t('execution'),
     cell: ({ row }) => {
       const { id, execution, frequency } = row.original.expense;
@@ -51,6 +56,7 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
   },
   {
     accessorKey: 'expense.frequency',
+    size: 140,
     header: i18n.t('frequency'),
     cell: ({ row }) => {
       const { id, frequency } = row.original.expense;
@@ -60,6 +66,7 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
   {
     id: 'select',
     accessorKey: 'resolved',
+    size: 110,
     header: i18n.t('resolved'),
     cell: ({ row }) => {
       const { id, resolved, transactionId } = row.original;
@@ -93,7 +100,9 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
   },
   {
     id: 'actions',
-    maxSize: 40,
+    // `size`, not `maxSize`: the table reads the former. With only `maxSize` set this column
+    // took an equal share of the width and parked the icon far from its row.
+    size: 56,
     header: () => <span className="sr-only">{i18n.t('open_menu')}</span>,
     cell: ({ row }) => {
       if (row.original.id === TOTAL) {
