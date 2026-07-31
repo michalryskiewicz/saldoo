@@ -19,6 +19,11 @@ export type DBProfit = {
   execution?: Date;
 };
 
+/**
+ * @returns whether the write landed. Callers close a drawer on the strength of this: reporting
+ * nothing made a save that never happened look exactly like one that did, and the only
+ * difference was a toast that is easy to miss.
+ */
 export const addDBProfit = async (profit: ProfitCreateSchema) => {
   try {
     await documentSession.put('profits', {
@@ -31,12 +36,21 @@ export const addDBProfit = async (profit: ProfitCreateSchema) => {
     await setLastUpdated();
     outbox.markDirty();
     toast(i18n.t('success.create-profit'));
+
+    return true;
   } catch (e) {
     console.error(e);
     toast(i18n.t('errors.create-profit'));
+
+    return false;
   }
 };
 
+/**
+ * @returns whether the write landed. Callers close a drawer on the strength of this: reporting
+ * nothing made a save that never happened look exactly like one that did, and the only
+ * difference was a toast that is easy to miss.
+ */
 export const updateDBProfit = async (id: string, profit: ProfitCreateSchema) => {
   try {
     await documentSession.update('profits', id, {
@@ -48,9 +62,13 @@ export const updateDBProfit = async (id: string, profit: ProfitCreateSchema) => 
     await setLastUpdated();
     outbox.markDirty();
     toast(i18n.t('success.update-profit'));
+
+    return true;
   } catch (e) {
     console.error(e);
     toast(i18n.t('errors.update-profit'));
+
+    return false;
   }
 };
 
