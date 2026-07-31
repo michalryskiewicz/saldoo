@@ -8,7 +8,7 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart';
 import i18n, { type TranslationKey } from '@/i18n.ts';
-import { formatMonth, formatNumber } from '@/lib/formats.ts';
+import { formatMonth, formatMoneyValue } from '@/lib/formats.ts';
 import { useIsMobile } from '@/hooks/use-mobile.ts';
 import { Link } from 'react-router';
 import { paths } from '@/routes/paths.ts';
@@ -95,20 +95,14 @@ export function ChartAreaInteractive() {
                         />
                         {chartConfig[name as keyof typeof chartConfig]?.label || name}
                         <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
-                          {value}
-                          <span className="text-muted-foreground font-normal">
-                            {data?.settings?.currency || ''}
-                          </span>
+                          {formatMoneyValue(value, data?.settings?.currency)}
                         </div>
                         {/* Add this after the last item */}
                         {index === 1 && (
                           <div className="text-foreground mt-1.5 flex basis-full items-center border-t pt-1.5 text-xs font-medium">
                             {i18n.t('total')}
                             <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
-                              {formatNumber(item.payload.totalProfits - item.payload.totalExpense)}
-                              <span className="text-muted-foreground font-normal">
-                                {data?.settings?.currency || ''}
-                              </span>
+                              {formatMoneyValue(item.payload.totalProfits - item.payload.totalExpense, data?.settings?.currency)}
                             </div>
                           </div>
                         )}

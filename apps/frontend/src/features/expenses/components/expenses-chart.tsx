@@ -14,7 +14,7 @@ import {
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs.tsx';
 import { useState } from 'react';
-import { formatMonth } from '@/lib/formats.ts';
+import { formatMonth, formatMoneyValue } from '@/lib/formats.ts';
 import { useSettings } from '@/features/settings/use-settings.ts';
 import { useSidebar } from '@/components/ui/sidebar.tsx';
 import { paths } from '@/routes/paths';
@@ -124,20 +124,14 @@ export const ExpensesChart = () => {
                           />
                           {chartConfig[name as keyof typeof chartConfig]?.label || name}
                           <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
-                            {value}
-                            <span className="text-muted-foreground font-normal">
-                              {settings?.currency || ''}
-                            </span>
+                            {formatMoneyValue(value, settings?.currency)}
                           </div>
                           {/* Add this after the last item */}
                           {index === 2 && (
                             <div className="text-foreground mt-1.5 flex basis-full items-center border-t pt-1.5 text-xs font-medium">
                               {i18n.t('total')}
                               <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
-                                {item.payload.total}
-                                <span className="text-muted-foreground font-normal">
-                                  {settings?.currency || ''}
-                                </span>
+                                {formatMoneyValue(item.payload.total, settings?.currency)}
                               </div>
                             </div>
                           )}

@@ -17,6 +17,9 @@ import {
 } from '@tanstack/react-table';
 
 import { partitionTotalRow } from '@/components/ui/data-table-rows.service.ts';
+import { DataTableMobileList } from '@/components/ui/data-table-mobile-list.tsx';
+import type { MobileRole } from '@/components/ui/data-table-mobile.service.ts';
+import { useIsMobile } from '@/hooks/use-mobile.ts';
 import { cn } from '@/lib/utils.ts';
 import i18n from '@/i18n.ts';
 
@@ -64,6 +67,12 @@ declare module '@tanstack/react-table' {
      * column to be narrower, not because anything had asked it to be that wide.
      */
     grow?: boolean;
+    /**
+     * What this column becomes below `md`, where the row is rebuilt as a line of text rather
+     * than scrolled sideways. Defaults to a supporting detail, or to the title for the column
+     * that grows. See `data-table-mobile.service.ts`.
+     */
+    mobile?: MobileRole;
   }
   /* eslint-enable @typescript-eslint/no-unused-vars */
 }
@@ -83,10 +92,29 @@ import { dateBetweenFilterFn } from '../tanstack-table';
 /** Room for fifty rows before anybody has to reach for a pager. */
 const DEFAULT_PAGE_SIZE = 50;
 
+/**
+ * The table's chrome: whatever sits above the rows and the pager that sits below them.
+ *
+ * One class for both, because the complaint was that the filters, the rows and the pager looked
+ * like three unrelated things stacked up — and they were. The pager was rendered *outside* the
+ * border with a margin of its own, so nothing tied it to the table it pages. Sharing the frame's
+ * edges, the same tint, and the same horizontal padding as the cells is what makes the three read
+ * as one object: the chrome lines up with the data instead of floating near it.
+ */
+const CHROME_ROW = 'bg-muted/30 px-3 py-2';
+
 interface DataTableProps<TData, TValue> {
   children?: (table: ReturnType<typeof useReactTable<TData>>) => ReactNode;
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  /**
+   * What to say when there is nothing to show.
+   *
+   * Passed in because only the caller knows *why* it is empty: "you have no expenses yet" and
+   * "nothing matches what you typed" are different facts, and a table told only that its data is
+   * empty cannot tell them apart. Defaults to the neutral wording.
+   */
+  emptyMessage?: ReactNode;
   getRowId?: (row: TData, index: number) => string;
 }
 
@@ -94,6 +122,7 @@ export function DataTable<TData, TValue>({
   children,
   columns,
   data,
+  emptyMessage,
   getRowId,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -133,6 +162,7 @@ export function DataTable<TData, TValue>({
     },
   });
 
+  const isMobile = useIsMobile();
   const { records, total } = partitionTotalRow(table.getRowModel().rows);
 
   const renderCells = (row: Row<TData>) =>
@@ -150,17 +180,24 @@ export function DataTable<TData, TValue>({
     });
 
   return (
-    <div>
-      {/* Inside the frame, not floating above it. The filters were rendered outside the border,
-          so nothing said which table they applied to — the complaint was that they looked
-          unrelated to it, and they were. */}
-      <div className="overflow-hidden rounded-md border">
-        {children ? (
-          <div className="bg-muted/40 flex flex-wrap items-center gap-3 border-b px-2 py-2">
-            {children(table)}
-          </div>
-        ) : null}
+    <div className="overflow-hidden rounded-md border">
+      {children ? (
+        <div className={cn(CHROME_ROW, 'flex flex-wrap items-center gap-3 border-b')}>
+          {children(table)}
+        </div>
+      ) : null}
 
+      {/* Below `md` the rows are not rows. Swapped rather than restyled: eight columns cannot be
+          dense and readable at 390px, so the honest choice is what to stop showing -- and a table
+          left to scroll sideways makes that choice by hiding five columns behind a gesture nothing
+          announces. */}
+      {isMobile ? (
+        <DataTableMobileList
+          records={records}
+          total={total}
+          emptyMessage={emptyMessage ?? i18n.t('table.no_results')}
+        />
+      ) : (
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -195,7 +232,7 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="text-muted-foreground h-24 text-center"
                 >
-                  {i18n.t('table.no_results')}
+                  {emptyMessage ?? i18n.t('table.no_results')}
                 </TableCell>
               </TableRow>
             )}
@@ -211,9 +248,9 @@ export function DataTable<TData, TValue>({
             </TableFooter>
           ) : null}
         </Table>
-      </div>
+      )}
 
-      <div className="mt-2">
+      <div className={cn(CHROME_ROW, 'border-t')}>
         <DataTablePagination table={table} />
       </div>
     </div>

@@ -15,7 +15,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import { formatMoney, formatMonth } from '@/lib/formats.ts';
+import { formatMoney, formatMonth, formatMoneyValue } from '@/lib/formats.ts';
 import i18n from '@/i18n';
 import { useOverviewData } from '@/features/overview/hooks/use-overview-data.tsx';
 import { EmptyState } from '@/components/stats/empty-state.tsx';
@@ -77,10 +77,7 @@ export function ChartRadarDots() {
                         <div className="text-muted-foreground flex min-w-[130px] items-center text-xs gap-1">
                           {chartConfig[name as keyof typeof chartConfig]?.label || name}
                           <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
-                            {value}
-                            <span className="text-muted-foreground font-normal">
-                              {data?.settings?.currency}
-                            </span>
+                            {formatMoneyValue(value, data?.settings?.currency)}
                           </div>
                         </div>
                       );
