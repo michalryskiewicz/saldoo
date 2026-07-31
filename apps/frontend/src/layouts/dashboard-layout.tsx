@@ -11,7 +11,6 @@ import {
 import { Separator } from '@/components/ui/separator.tsx';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar.tsx';
 import i18n from '@/i18n.ts';
-import { GoogleDriveButton } from '@/components/google-drive/google-drive-button.tsx';
 import { useBreadcrumbs } from '@/hooks/use-breadcrumbs';
 import { Link } from 'react-router';
 import { SurveysButton } from '@/components/survey-button.tsx';
@@ -53,7 +52,6 @@ export default function MiniDrawer({ children }: React.PropsWithChildren) {
                 <SyncStatusIndicator />
                 <ThemeToggle />
                 <SurveysButton />
-                <GoogleDriveButton />
               </div>
             </div>
           </div>

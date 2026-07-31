@@ -1,32 +1,25 @@
 import { useSyncExternalStore } from 'react';
-import { Cloud, CloudOff, RefreshCw, ShieldAlert } from 'lucide-react';
-import { syncStatusStore, type SyncStatus } from '@/database/sync/sync-status.store.ts';
+import { syncStatusStore } from '@/database/sync/sync-status.store.ts';
 import { outbox } from '@/database/document/outbox.container.ts';
+import { driveTokenService } from '@/auth/google/drive-token.ts';
+import { useGoogleDriveAuthStatus } from '@/components/google-drive/use-google-drive-auth-status.tsx';
+import { resolveSyncPresentation } from '@/components/sync-status-presentation.service.ts';
+import { Button } from '@/components/ui/button.tsx';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
 import { cn } from '@/lib/utils.ts';
-import type { TranslationKey } from '@/i18n.ts';
 import i18n from '@/i18n.ts';
 
-const PRESENTATION: Record<
-  SyncStatus,
-  { icon: typeof Cloud; label: TranslationKey; className: string }
-> = {
-  idle: { icon: Cloud, label: 'sync.idle', className: 'text-muted-foreground' },
-  syncing: { icon: RefreshCw, label: 'sync.syncing', className: 'text-muted-foreground' },
-  synced: { icon: Cloud, label: 'sync.synced', className: 'text-muted-foreground' },
-  offline: { icon: CloudOff, label: 'sync.offline', className: 'text-muted-foreground' },
-  blocked: { icon: ShieldAlert, label: 'sync.blocked', className: 'text-destructive' },
-  'unreadable-backup': {
-    icon: ShieldAlert,
-    label: 'sync.unreadable_backup',
-    className: 'text-destructive',
-  },
-};
-
 /**
- * Says where this device stands with Drive.
+ * One control for where this device stands with Drive.
  *
- * Sync stopped being a blocking screen, so this is the only place the user learns
- * that a change has not left the device yet.
+ * It used to be two, side by side, saying overlapping things: a text status that knew about the
+ * outbox and the last sync, and a Drive button that knew only whether a token was held. They
+ * could disagree — a green Drive icon beside "changes waiting to be sent" — and neither said
+ * what the other knew.
+ *
+ * The icon *is* the status now: it spins while anything is in flight, stays quiet when Drive has
+ * everything, and turns destructive when something needs attention. Reconnecting is the one thing
+ * a person can actually do about any of it, so it is the only state that becomes a button.
  */
 export function SyncStatusIndicator() {
   const status = useSyncExternalStore(
@@ -37,27 +30,57 @@ export function SyncStatusIndicator() {
     (listener) => outbox.subscribe(listener),
     () => outbox.state()
   );
+  const isDriveConnected = useGoogleDriveAuthStatus();
 
-  // The outbox wins when it has something to say: a write the user just made and that
-  // has not reached Drive is more urgent to them than how the last sync went.
-  const presentation =
-    queued.failure === 'permanent'
-      ? { icon: ShieldAlert, label: 'sync.upload_failed' as const, className: 'text-destructive' }
-      : queued.pending
-        ? { icon: RefreshCw, label: 'sync.pending' as const, className: 'text-muted-foreground' }
-        : PRESENTATION[status];
+  const { icon: Icon, label, isProblem, isBusy } = resolveSyncPresentation({
+    status,
+    isPending: queued.pending,
+    hasFailedPermanently: queued.failure === 'permanent',
+    isDriveConnected,
+  });
 
-  const { icon: Icon, label, className } = presentation;
-  const spinning = status === 'syncing' || queued.pending;
+  const text = i18n.t(label);
+
+  const body = (
+    <>
+      <Icon className={cn('size-3.5 shrink-0', isBusy && 'animate-spin')} aria-hidden />
+      <span className="hidden sm:inline">{text}</span>
+    </>
+  );
+
+  // The one state a person can act on. Dressing the others as buttons would invite clicks
+  // that do nothing.
+  if (!isDriveConnected) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              void driveTokenService.connect().then(() => window.location.reload());
+            }}
+            className="text-destructive hover:text-destructive h-8 gap-1.5 px-2 text-xs"
+          >
+            {body}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{text}</TooltipContent>
+      </Tooltip>
+    );
+  }
 
   return (
     <span
-      className={cn('flex items-center gap-1.5 text-xs', className)}
+      className={cn(
+        'flex items-center gap-1.5 text-xs',
+        isProblem ? 'text-destructive' : 'text-muted-foreground'
+      )}
       role="status"
       aria-live="polite"
+      title={text}
     >
-      <Icon className={cn('size-3.5', spinning && 'animate-spin')} aria-hidden />
-      <span className="hidden sm:inline">{i18n.t(label)}</span>
+      {body}
     </span>
   );
 }
