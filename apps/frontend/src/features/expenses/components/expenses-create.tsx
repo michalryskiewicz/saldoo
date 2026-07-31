@@ -124,7 +124,6 @@ export default function ExpensesCreate() {
                 <Field.Segmented
                   name="severity"
                   label={i18n.t('severity')}
-                  variant="solid"
                   options={[
                     { label: i18n.t('LOW'), value: 'LOW', color: 'var(--severity-low-fill)' },
                     { label: i18n.t('MEDIUM'), value: 'MEDIUM', color: 'var(--severity-medium-fill)' },

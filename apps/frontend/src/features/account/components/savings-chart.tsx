@@ -10,7 +10,6 @@ import {
 import { useWatch } from 'react-hook-form';
 import i18n, { type TranslationKey } from '@/i18n';
 import { BUDGETING_STRATEGIES, STRATEGY_PART } from '@/constant.ts';
-import { STRATEGY_PART_COLOR } from '@/lib/strategy-part-color.ts';
 
 const chartConfig = {
   expanses: {
@@ -18,31 +17,31 @@ const chartConfig = {
   },
   [STRATEGY_PART.NEEDS]: {
     label: i18n.t(STRATEGY_PART.NEEDS),
-    color: STRATEGY_PART_COLOR[STRATEGY_PART.NEEDS],
+    color: 'var(--chart-1)',
   },
   [STRATEGY_PART.WANTS]: {
     label: i18n.t(STRATEGY_PART.WANTS),
-    color: STRATEGY_PART_COLOR[STRATEGY_PART.WANTS],
+    color: 'var(--chart-2)',
   },
   [STRATEGY_PART.SAVINGS]: {
     label: i18n.t(STRATEGY_PART.SAVINGS),
-    color: STRATEGY_PART_COLOR[STRATEGY_PART.SAVINGS],
+    color: 'var(--chart-3)',
   },
   [STRATEGY_PART.NEEDS_AND_WANTS]: {
     label: i18n.t(STRATEGY_PART.NEEDS_AND_WANTS),
-    color: STRATEGY_PART_COLOR[STRATEGY_PART.NEEDS_AND_WANTS],
+    color: 'var(--chart-4)',
   },
   [STRATEGY_PART.DEBTS]: {
     label: i18n.t(STRATEGY_PART.DEBTS),
-    color: STRATEGY_PART_COLOR[STRATEGY_PART.DEBTS],
+    color: 'var(--chart-5)',
   },
   [STRATEGY_PART.LONG_TERM_SAVINGS]: {
     label: i18n.t(STRATEGY_PART.LONG_TERM_SAVINGS),
-    color: STRATEGY_PART_COLOR[STRATEGY_PART.LONG_TERM_SAVINGS],
+    color: 'var(--chart-6)',
   },
   [STRATEGY_PART.SHORT_TERM_SAVINGS]: {
     label: i18n.t(STRATEGY_PART.SHORT_TERM_SAVINGS),
-    color: STRATEGY_PART_COLOR[STRATEGY_PART.SHORT_TERM_SAVINGS],
+    color: 'var(--chart-7)',
   },
 } satisfies ChartConfig;
 
