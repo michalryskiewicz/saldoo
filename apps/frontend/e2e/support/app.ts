@@ -125,6 +125,11 @@ export class SaldooApp {
     await this.page.getByRole('option', { name: option, exact: true }).click();
   }
 
+  /** The create drawer, addressed by its title: the date picker's popover is a `dialog` too. */
+  private get createDrawer(): Locator {
+    return this.page.getByRole('dialog', { name: label('create_expense_title') });
+  }
+
   async addExpense({
     description,
     amount,
@@ -139,7 +144,7 @@ export class SaldooApp {
     await this.openExpenses();
     await this.page.getByRole('button', { name: label('create_expense') }).click();
 
-    const sheet = this.page.getByRole('dialog');
+    const sheet = this.createDrawer;
     await expect(sheet).toBeVisible();
 
     // Exact throughout: 'Kategoria' is also a prefix of 'Kategoria Strategii Budżetu'.
@@ -148,7 +153,10 @@ export class SaldooApp {
 
     // Left at the form's own defaults unless asked for, so the tests that do not care about
     // either keep the shortest path through the form.
-    if (severity) await this.chooseOption(sheet, label('severity'), label(severity));
+    //
+    // Priority is a segmented control rather than a select, so it is clicked directly: three
+    // buttons, all of them already on screen, and no list to open first.
+    if (severity) await sheet.getByRole('radio', { name: label(severity), exact: true }).click();
     if (frequency) await this.chooseOption(sheet, label('frequency'), label(frequency));
 
     await sheet.getByLabel(label('execution'), { exact: true }).click();
@@ -157,11 +165,50 @@ export class SaldooApp {
     await sheet.getByLabel(label('forms.category'), { exact: true }).click();
     await this.page.getByRole('option').first().click();
 
-    await sheet.getByLabel(label('forms.strategy-part'), { exact: true }).click();
-    await this.page.getByRole('option').first().click();
+    // The strategy part is left alone: it is a segmented control now, and it arrives with the
+    // first part its strategy offers already selected. Clicking through it would be testing the
+    // harness's ability to click rather than anything about the form.
 
     await sheet.getByRole('button', { name: label('submit'), exact: true }).click();
     await expect(sheet).toBeHidden();
+  }
+
+  /**
+   * Opens the create drawer and leaves it open, for looking at rather than filling in.
+   *
+   * It waits for the drawer to stop moving, not merely to exist. Radix slides it in with a
+   * transform, and "visible" is true from the first frame — a screenshot taken then catches it
+   * still off the edge of the screen, which is how the first form shots came back showing only the
+   * page behind it.
+   */
+  async openCreateForm(): Promise<void> {
+    await this.openExpenses();
+    await this.page.getByRole('button', { name: label('create_expense') }).click();
+
+    const drawer = this.createDrawer;
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByRole('button', { name: label('submit') })).toBeVisible();
+
+    // Polled until the position stops changing, rather than waited out with a guessed number: the
+    // sheet animates over 500ms and "visible" is true from the first frame, so a shot taken on the
+    // strength of visibility alone catches it still half off the edge.
+    let previous = -1;
+    await expect
+      .poll(
+        async () => {
+          const x = (await drawer.boundingBox())?.x ?? -1;
+          const settled = x >= 0 && x === previous;
+          previous = x;
+          return settled;
+        },
+        { timeout: 5_000, intervals: [100] }
+      )
+      .toBe(true);
+  }
+
+  async closeCreateForm(): Promise<void> {
+    await this.page.keyboard.press('Escape');
+    await expect(this.createDrawer).toBeHidden();
   }
 
   // === Appearance ===
