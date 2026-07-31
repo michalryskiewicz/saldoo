@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatFrequency, formatMoney } from '../formats.ts';
+import { formatFrequency, formatMoney, formatMoneyValue } from '../formats.ts';
 import { FREQUENCY } from '@/constant.ts';
 
 describe('formatMoney', () => {
@@ -27,6 +27,38 @@ describe('formatMoney', () => {
 
   it('keeps two decimals, so a column of figures lines up', () => {
     expect(formatMoney(7, 'PLN')).toMatch(/7,00/);
+  });
+});
+
+describe('formatMoneyValue', () => {
+  it('renders a symbol, not a currency code', () => {
+    // The complaint: a chart said "3093.48 EUR" where the table beside it said "€".
+    const formatted = formatMoneyValue(3093.48, 'EUR');
+
+    expect(formatted).toContain('€');
+    expect(formatted).not.toContain('EUR');
+  });
+
+  it('formats the way the rest of the app does', () => {
+    expect(formatMoneyValue(2500, 'PLN')).toBe(formatMoney(2500, 'PLN'));
+  });
+
+  it('takes the string a chart hands it', () => {
+    expect(formatMoneyValue('2500', 'PLN')).toBe(formatMoney(2500, 'PLN'));
+  });
+
+  it('takes the first entry of a stacked series', () => {
+    expect(formatMoneyValue([2500, 400], 'PLN')).toBe(formatMoney(2500, 'PLN'));
+  });
+
+  it('falls back to a bare number before the currency has loaded', () => {
+    // There is no honest symbol to show yet, and guessing one would be worse than none.
+    expect(formatMoneyValue(2500, undefined)).toBe('2500.00');
+  });
+
+  it('says nothing when there is no number', () => {
+    expect(formatMoneyValue(undefined, 'PLN')).toBe('');
+    expect(formatMoneyValue('nie liczba', 'PLN')).toBe('');
   });
 });
 

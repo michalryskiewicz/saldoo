@@ -97,3 +97,23 @@ export const formatMoney = (amount: number, currency: string, locale: string = i
 export const formatNumber = (value: number | string) => {
   return Number(value).toFixed(2);
 };
+
+/**
+ * A figure handed over by a chart, as money.
+ *
+ * Every tooltip in the app used to build this itself — the raw number beside the raw currency
+ * *code* — so a chart said "3093.48 EUR" while the table beside it said "3 093,48 €". Same money,
+ * same screen, two notations, and neither of them the one the app had chosen.
+ *
+ * Two things it has to absorb, which is why it exists rather than being an inline `formatMoney`:
+ * Recharts types a tooltip value loosely (it may be a string, or an array for a stacked series),
+ * and the currency comes from settings that may not have loaded yet. Without a currency there is
+ * no honest symbol to show, so the bare number is what is left.
+ */
+export const formatMoneyValue = (value: unknown, currency: string | undefined): string => {
+  const amount = Number(Array.isArray(value) ? value[0] : value);
+
+  if (!Number.isFinite(amount)) return '';
+
+  return currency ? formatMoney(amount, currency) : formatNumber(amount);
+};

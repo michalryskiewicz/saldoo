@@ -18,6 +18,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/database';
 import { useAppSelector } from '@/store/store.ts';
 import { checkIfOpen } from '@/lib/helpers.ts';
+import { useMemo } from 'react';
 
 const formSchema = z.object({
   description: z
@@ -48,6 +49,19 @@ export default function ExpensesCreate() {
 
   const id = useAppSelector((state) => state.preferences.expensesDrawerId);
   const expense = useLiveQuery(() => db.expenses.get(id ?? ''), [id]);
+
+/**
+ * Today, as the date this is most likely to be.
+ *
+ * Computed per opening rather than in the module's own defaults: a `new Date()` there is evaluated
+ * once when the module is first imported, so a tab left open across midnight would go on offering
+ * yesterday.
+ */
+  const initialValues = useMemo(
+    () =>
+      id === NEW_ENTITY_ID ? { ...defaultValues, execution: new Date() } : expense ?? defaultValues,
+    [expense, id]
+  );
 
   const handleSubmit = async (values: ExpenseCreateType) => {
     if (!id) return;
@@ -83,7 +97,7 @@ export default function ExpensesCreate() {
           <Form
             //eslint-disable-next-line @typescript-eslint/ban-ts-comment
             //@ts-expect-error
-            initialValues={expense ?? defaultValues}
+            initialValues={initialValues}
             schema={formSchema}
             onSubmit={handleSubmit}
             //eslint-disable-next-line @typescript-eslint/ban-ts-comment

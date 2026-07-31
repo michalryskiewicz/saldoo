@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button.tsx';
 import { useDispatch } from 'react-redux';
 import { useAppSelector } from '@/store/store.ts';
+import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/database';
 import { addDBProfit, updateDBProfit } from '@/database/profits.ts';
@@ -40,6 +41,18 @@ export default function ProfitsCreatePage() {
   const id = useAppSelector((state) => state.preferences.profitsDrawerId);
   const profit = useLiveQuery(() => db.profits.get(id ?? ''), [id]);
 
+/**
+ * Today, as the date this is most likely to be.
+ *
+ * Computed per opening rather than in the module's own defaults: a `new Date()` there is evaluated
+ * once when the module is first imported, so a tab left open across midnight would go on offering
+ * yesterday.
+ */
+  const initialValues = useMemo(
+    () => (id === NEW_ENTITY_ID ? { ...defaultValues, execution: new Date() } : profit ?? defaultValues),
+    [profit, id]
+  );
+
   const handleSubmit = async (values: ProfitCreateSchema): Promise<void> => {
     if (!id) return;
 
@@ -67,7 +80,7 @@ export default function ProfitsCreatePage() {
 
         <div className="flex flex-col gap-1.5 p-4">
           <Form
-            initialValues={id === NEW_ENTITY_ID ? defaultValues : profit || defaultValues}
+            initialValues={initialValues}
             schema={formSchema}
             onSubmit={handleSubmit}
           >
