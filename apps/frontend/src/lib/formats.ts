@@ -5,18 +5,32 @@ import i18n, { type Locale } from '@/i18n.ts';
 import { capitalize } from '@/lib/strings.ts';
 import { FREQUENCY } from '@/constant';
 
+/**
+ * When a recurring cost falls due, said the way a person would say it.
+ *
+ * One column carried four unrelated shapes: a weekday for weekly, a bare `15` for monthly, a day
+ * and month for yearly, and a `-` for daily. Read down the column, `15` and `środa` and `-` did
+ * not look like answers to the same question — and `-` is what a table says when it has nothing,
+ * which is not the case for something that happens every day.
+ */
 export const formatFrequency = (date: Date | string | undefined, frequency?: FREQUENCY) => {
-  if (frequency === FREQUENCY.DAILY || !frequency || !date) {
+  if (frequency === FREQUENCY.DAILY) {
+    return i18n.t('execution_daily');
+  }
+
+  if (!frequency || !date) {
     return '-';
   }
+
   const d = new Date(date);
   switch (frequency) {
     case FREQUENCY.WEEKLY:
-      return format(d, 'EEEE', { locale: pl }); // e.g. Monday
+      return format(d, 'EEEE', { locale: pl }); // e.g. środa
     case FREQUENCY.MONTHLY:
-      return format(d, 'dd'); // e.g. 01, 28
+      // No leading zero: this reads as a sentence, and "05. dnia miesiąca" is not how one is said.
+      return i18n.t('execution_monthly', { day: format(d, 'd') });
     case FREQUENCY.YEARLY:
-      return format(d, 'dd MMMM', { locale: pl }); // e.g. 28 Lipca
+      return format(d, 'd MMMM', { locale: pl }); // e.g. 28 lipca
     default:
       return '';
   }

@@ -10,21 +10,31 @@ import {
   SelectValue,
 } from '@/components/ui/select.tsx';
 import i18n from '@/i18n.ts';
+import { countRecords } from '@/components/ui/data-table-rows.service.ts';
 
 interface DataTablePaginationProps<TData> {
   table: Table<TData>;
 }
 
 export function DataTablePagination<TData>({ table }: DataTablePaginationProps<TData>) {
+  const selected = table.getFilteredSelectedRowModel().rows.length;
+  // Not `rows.length`: the summary row is shaped like a record, so counting rows claimed six
+  // expenses where there were five.
+  const records = countRecords(table.getFilteredRowModel().rows);
+
   return (
-    <div className="flex items-center justify-between px-2">
+    // Stacked until there is room for a row. Held side by side at 390px, the row count and the
+    // page-size label were squeezed into each other's letters — "5 wierszy" wrapped through
+    // "Wierszy na stronę" and neither was readable.
+    <div className="flex flex-col gap-3 px-2 sm:flex-row sm:items-center sm:justify-between">
+      {/* A selection count only once there is a selection. Most of these tables cannot select at
+          all, and "0 z 6" on one of those offers a number for something the reader cannot do. */}
       <div className="text-muted-foreground flex-1 text-sm">
-        {i18n.t('table.selected_count', {
-          selected: table.getFilteredSelectedRowModel().rows.length,
-          total: table.getFilteredRowModel().rows.length,
-        })}
+        {selected > 0
+          ? i18n.t('table.selected_count', { selected, total: records })
+          : i18n.t('table.row_count', { count: records })}
       </div>
-      <div className="flex items-center space-x-6 lg:space-x-8">
+      <div className="flex flex-wrap items-center justify-between gap-4 sm:justify-end sm:gap-6 lg:gap-8">
         <div className="flex items-center space-x-2">
           <p className="text-sm font-medium">{i18n.t('table.rows_per_page')}</p>
           <Select
@@ -59,7 +69,7 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
             onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
           >
-            <span className="sr-only">Go to first page</span>
+            <span className="sr-only">{i18n.t('table.first_page')}</span>
             <ChevronsLeft />
           </Button>
           <Button
@@ -69,7 +79,7 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            <span className="sr-only">Go to previous page</span>
+            <span className="sr-only">{i18n.t('table.previous_page')}</span>
             <ChevronLeft />
           </Button>
           <Button
@@ -79,7 +89,7 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            <span className="sr-only">Go to next page</span>
+            <span className="sr-only">{i18n.t('table.next_page')}</span>
             <ChevronRight />
           </Button>
           <Button
@@ -89,7 +99,7 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
             onClick={() => table.setPageIndex(table.getPageCount() - 1)}
             disabled={!table.getCanNextPage()}
           >
-            <span className="sr-only">Go to last page</span>
+            <span className="sr-only">{i18n.t('table.last_page')}</span>
             <ChevronsRight />
           </Button>
         </div>

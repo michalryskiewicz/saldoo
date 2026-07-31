@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { formatMoney } from '../formats.ts';
+import { formatFrequency, formatMoney } from '../formats.ts';
+import { FREQUENCY } from '@/constant.ts';
 
 describe('formatMoney', () => {
   it('formats in Polish regardless of the machine it runs on', () => {
@@ -26,5 +27,42 @@ describe('formatMoney', () => {
 
   it('keeps two decimals, so a column of figures lines up', () => {
     expect(formatMoney(7, 'PLN')).toMatch(/7,00/);
+  });
+});
+
+describe('formatFrequency', () => {
+  // 15 July 2026 was a Wednesday.
+  const wednesday = new Date('2026-07-15T00:00:00');
+
+  it('answers a daily cost with words rather than a dash', () => {
+    // A dash is what a table prints when it has nothing to say, and "every day" is not nothing.
+    expect(formatFrequency(wednesday, FREQUENCY.DAILY)).toBe('codziennie');
+  });
+
+  it('says which day of the month, not a bare number', () => {
+    expect(formatFrequency(wednesday, FREQUENCY.MONTHLY)).toBe('15. dnia miesiąca');
+  });
+
+  it('drops the leading zero, because the phrase is read aloud', () => {
+    expect(formatFrequency(new Date('2026-07-05T00:00:00'), FREQUENCY.MONTHLY)).toBe(
+      '5. dnia miesiąca'
+    );
+  });
+
+  it('names the weekday for a weekly cost', () => {
+    expect(formatFrequency(wednesday, FREQUENCY.WEEKLY)).toBe('środa');
+  });
+
+  it('gives the day and month for a yearly cost', () => {
+    expect(formatFrequency(wednesday, FREQUENCY.YEARLY)).toBe('15 lipca');
+  });
+
+  it('needs no date to know a daily cost recurs daily', () => {
+    expect(formatFrequency(undefined, FREQUENCY.DAILY)).toBe('codziennie');
+  });
+
+  it('falls back to a dash when there is genuinely nothing to say', () => {
+    expect(formatFrequency(undefined, FREQUENCY.MONTHLY)).toBe('-');
+    expect(formatFrequency(wednesday, undefined)).toBe('-');
   });
 });

@@ -80,6 +80,8 @@
   "expense": "Wydatek",
   "severity": "Priorytet",
   "execution": "Wykonanie",
+  "execution_daily": "codziennie",
+  "execution_monthly": "{{day}}. dnia miesiąca",
   "frequency": "Częstotliwość",
   "tags": "Tagi",
   "HIGH": "Wysoki",
@@ -257,6 +259,7 @@
   "LONG_TERM_SAVINGS": "Długo Okresowe Oszczędności",
   "SHORT_TERM_SAVINGS": "Krótko Okresowe Oszczędności",
   "transactions": "Transakcje",
+  "transaction_date": "Data transakcji",
   "transactions_subtitle": "Lista transakcji zaciągnięta z różnych banków. Dane te pozwolą nam precyzyjniej przeanalizować twoje wydatki i dać Ci lepszy wgląd w Twoje finanse.",
   "create_transactions": "Dodaj transakcje",
   "already_have_an_account": "Masz już konto?",
@@ -326,7 +329,18 @@
   },
   "table": {
     "selected_count": "Zaznaczono {{selected}} z {{total}}",
+    "row_count_one": "{{count}} wiersz",
+    "row_count_few": "{{count}} wiersze",
+    "row_count_many": "{{count}} wierszy",
+    "row_count_other": "{{count}} wiersza",
+    "no_results": "Brak wyników",
+    "select_all": "Zaznacz wszystkie wiersze",
+    "select_row": "Zaznacz wiersz",
     "rows_per_page": "Wierszy na stronę",
-    "page_of": "Strona {{page}} z {{pages}}"
+    "page_of": "Strona {{page}} z {{pages}}",
+    "first_page": "Pierwsza strona",
+    "previous_page": "Poprzednia strona",
+    "next_page": "Następna strona",
+    "last_page": "Ostatnia strona"
   }
 }
