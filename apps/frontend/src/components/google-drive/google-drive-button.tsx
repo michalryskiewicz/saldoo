@@ -19,7 +19,9 @@ export function GoogleDriveButton() {
 
   return (
     <Tooltip>
-      <TooltipTrigger>
+      {/* `asChild`, or both this and Button render a <button> and one nests in the other —
+          invalid HTML that React reports as a hydration error. Same fix as `survey-button`. */}
+      <TooltipTrigger asChild>
         <Button
           variant="outline"
           size="icon"
