@@ -24,7 +24,12 @@ test('a budgeting strategy chosen in settings is still chosen after a reload', a
 
   await app.openAccount();
   await app.chooseStrategy('60-30-10');
-  await app.saveAccountSettings();
+  await app.submitAccountSettings();
+
+  // Saving with no word about it is why choosing a strategy read as "it does not work":
+  // there was nothing on screen either way.
+  await app.expectSavedNotice();
+  await app.waitUntilSynced();
 
   await app.openAccount();
   await app.expectStrategy('60-30-10');
@@ -51,7 +56,9 @@ test('a currency chosen in settings survives a reload too', async ({ browser, ba
 
   await app.openAccount();
   await app.chooseCurrency('EUR');
-  await app.saveAccountSettings();
+  await app.submitAccountSettings();
+  await app.expectSavedNotice();
+  await app.waitUntilSynced();
 
   await device.page.reload();
   await app.openAccount();

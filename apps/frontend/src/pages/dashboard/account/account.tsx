@@ -17,6 +17,7 @@ import ContentLoading from '@/components/loaders/content-loading.tsx';
 import { SavingsChart } from '@/features/account/components/savings-chart.tsx';
 import { addDBTags, removeDBTags } from '@/database/tags.ts';
 import { useListTags } from '@/database/hooks/use-list-tags.tsx';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   currency: z.string(),
@@ -31,10 +32,23 @@ export default function Account() {
   const { tagsNames, isLoading: areTagsLoading } = useListTags();
 
   const onSubmit = async (values: UpdateProfileForm): Promise<void> => {
-    await saveSettings({
-      currency: values.currency as Currency,
-      strategy: values.strategy as BudgetingStrategy,
-    });
+    // The tag mutators announce themselves, so this covers only the settings. Without it a
+    // person who changed nothing but the strategy got no word either way, which reads as the
+    // screen not working rather than as a save that happened quietly.
+    try {
+      await saveSettings({
+        currency: values.currency as Currency,
+        strategy: values.strategy as BudgetingStrategy,
+      });
+      toast(i18n.t('success.update-account-settings'));
+    } catch (error) {
+      // React Hook Form swallows whatever a submit handler throws, so an unreported failure
+      // here is indistinguishable from a success.
+      console.error(error);
+      toast(i18n.t('errors.update-account-settings'));
+      return;
+    }
+
     const originalTags = tagsNames ?? [];
     const newTags = values.tags;
 
@@ -48,7 +62,6 @@ export default function Account() {
     if (removedTags.length > 0) {
       await removeDBTags(removedTags);
     }
-
   };
 
   if (isLoading || areTagsLoading) {

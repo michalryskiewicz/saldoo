@@ -159,9 +159,19 @@ export class SaldooApp {
     await this.radio(currency).click();
   }
 
-  async saveAccountSettings(): Promise<void> {
+  async submitAccountSettings(): Promise<void> {
     await this.page.getByRole('button', { name: label('submit'), exact: true }).click();
-    await this.waitUntilSynced();
+  }
+
+  /**
+   * The saved notice.
+   *
+   * Asserted separately from submitting, and before anything waits on the sync: sonner
+   * dismisses it on its own, so a helper that waited first would be checking whether the
+   * toast was slow rather than whether it appeared.
+   */
+  async expectSavedNotice(): Promise<void> {
+    await expect(this.page.getByText(label('success.update-account-settings'))).toBeVisible();
   }
 
   async expectStrategy(strategy: string): Promise<void> {
