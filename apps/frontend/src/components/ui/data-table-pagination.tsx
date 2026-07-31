@@ -26,7 +26,10 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
     // Stacked until there is room for a row. Held side by side at 390px, the row count and the
     // page-size label were squeezed into each other's letters — "5 wierszy" wrapped through
     // "Wierszy na stronę" and neither was readable.
-    <div className="flex flex-col gap-3 px-2 sm:flex-row sm:items-center sm:justify-between">
+    //
+    // No padding of its own: it sits in the table's footer band, which owns the padding that
+    // lines this up with the cells above it.
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       {/* A selection count only once there is a selection. Most of these tables cannot select at
           all, and "0 z 6" on one of those offers a number for something the reader cannot do. */}
       <div className="text-muted-foreground flex-1 text-sm">

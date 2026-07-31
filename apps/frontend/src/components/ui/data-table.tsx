@@ -83,6 +83,17 @@ import { dateBetweenFilterFn } from '../tanstack-table';
 /** Room for fifty rows before anybody has to reach for a pager. */
 const DEFAULT_PAGE_SIZE = 50;
 
+/**
+ * The table's chrome: whatever sits above the rows and the pager that sits below them.
+ *
+ * One class for both, because the complaint was that the filters, the rows and the pager looked
+ * like three unrelated things stacked up — and they were. The pager was rendered *outside* the
+ * border with a margin of its own, so nothing tied it to the table it pages. Sharing the frame's
+ * edges, the same tint, and the same horizontal padding as the cells is what makes the three read
+ * as one object: the chrome lines up with the data instead of floating near it.
+ */
+const CHROME_ROW = 'bg-muted/30 px-3 py-2';
+
 interface DataTableProps<TData, TValue> {
   children?: (table: ReturnType<typeof useReactTable<TData>>) => ReactNode;
   columns: ColumnDef<TData, TValue>[];
@@ -150,70 +161,65 @@ export function DataTable<TData, TValue>({
     });
 
   return (
-    <div>
-      {/* Inside the frame, not floating above it. The filters were rendered outside the border,
-          so nothing said which table they applied to — the complaint was that they looked
-          unrelated to it, and they were. */}
-      <div className="overflow-hidden rounded-md border">
-        {children ? (
-          <div className="bg-muted/40 flex flex-wrap items-center gap-3 border-b px-2 py-2">
-            {children(table)}
-          </div>
-        ) : null}
+    <div className="overflow-hidden rounded-md border">
+      {children ? (
+        <div className={cn(CHROME_ROW, 'flex flex-wrap items-center gap-3 border-b')}>
+          {children(table)}
+        </div>
+      ) : null}
 
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  const { align, grow } = header.column.columnDef.meta ?? {};
+      <Table>
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                const { align, grow } = header.column.columnDef.meta ?? {};
 
-                  return (
-                    <TableHead
-                      key={header.id}
-                      className={cn(alignmentClass(resolveAlign(align, grow)), widthClass(grow))}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  );
-                })}
+                return (
+                  <TableHead
+                    key={header.id}
+                    className={cn(alignmentClass(resolveAlign(align, grow)), widthClass(grow))}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                );
+              })}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {records.length ? (
+            records.map((row) => (
+              <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
+                {renderCells(row)}
               </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {records.length ? (
-              records.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
-                  {renderCells(row)}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="text-muted-foreground h-24 text-center"
-                >
-                  {i18n.t('table.no_results')}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell
+                colSpan={columns.length}
+                className="text-muted-foreground h-24 text-center"
+              >
+                {i18n.t('table.no_results')}
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
 
-          {/* A summary is not another record, so it is not in the body. Appending it there put it
+        {/* A summary is not another record, so it is not in the body. Appending it there put it
               at the mercy of anything that reorders rows, and left it wearing the body's stripe
               and hover as though it could be clicked or counted. `tfoot` makes "at the bottom" a
               property of the markup instead of a property of the current sort. */}
-          {total ? (
-            <TableFooter>
-              <TableRow className="hover:bg-transparent">{renderCells(total)}</TableRow>
-            </TableFooter>
-          ) : null}
-        </Table>
-      </div>
+        {total ? (
+          <TableFooter>
+            <TableRow className="hover:bg-transparent">{renderCells(total)}</TableRow>
+          </TableFooter>
+        ) : null}
+      </Table>
 
-      <div className="mt-2">
+      <div className={cn(CHROME_ROW, 'border-t')}>
         <DataTablePagination table={table} />
       </div>
     </div>
