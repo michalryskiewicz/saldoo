@@ -4,7 +4,6 @@
 'use no memo';
 
 import i18n, { type TranslationKey } from '@/i18n.ts';
-import { Button } from '@/components/ui/button.tsx';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 import type { Column } from '@tanstack/react-table';
@@ -17,10 +16,15 @@ type SortHeaderProps<T extends Record<string, unknown>> = {
 /**
  * A column heading that can be sorted, and that says what it did.
  *
- * The old icon was one `ArrowUpDown` in every state, so a sorted column looked exactly like an
- * unsorted one — the arrow answered "you may sort by this" rather than "this is how it is sorted".
- * Direction is a single arrow now, and the resting state is a faint hint that firms up on hover: a
- * heading should not shout an affordance at somebody who is reading.
+ * It is a plain button rather than a `Button`: a heading is a label, and giving it the filled
+ * hover of a control made a row of headings read as a row of buttons — which is what it looked
+ * like, because it was one. What a heading owes the reader is that clicking does something and
+ * which way it is sorted, and text that firms up under the cursor carries both without pretending
+ * to be a control.
+ *
+ * The direction is a single arrow. One `ArrowUpDown` in every state left a sorted column looking
+ * exactly like an unsorted one — it answered "you may sort by this" rather than "this is how it
+ * is sorted".
  */
 export default function SortHeader<T extends Record<string, unknown>>({
   header,
@@ -30,12 +34,14 @@ export default function SortHeader<T extends Record<string, unknown>>({
   const Icon = direction === 'asc' ? ArrowUp : direction === 'desc' ? ArrowDown : ChevronsUpDown;
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      // Inherits the heading's own type rather than restating it: the header cell already decided
-      // this is small, quiet and uppercase.
-      className="-ml-2 h-7 gap-1.5 px-2 text-xs font-medium tracking-wide uppercase"
+    <button
+      type="button"
+      // Inherited rather than restated, so the heading cell stays the one place that decides how a
+      // heading looks. `font: inherit` arrives through preflight; the casing has to be asked for,
+      // because the UA stylesheet sets `text-transform: none` on a button and that is not
+      // something inheritance overrides — which is how these two headings ended up in sentence
+      // case while every non-sortable one beside them stayed upper.
+      className="hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 inline-flex cursor-pointer items-center gap-1.5 rounded-sm [text-transform:inherit] transition-colors outline-none focus-visible:ring-[3px]"
       // TanStack's own handler, which reads the current state when the click happens rather than
       // when this rendered.
       onClick={column.getToggleSortingHandler()}
@@ -48,6 +54,6 @@ export default function SortHeader<T extends Record<string, unknown>>({
         )}
         aria-hidden
       />
-    </Button>
+    </button>
   );
 }

@@ -18,13 +18,12 @@ export type ExpenseRow = DBExpense & { tag?: DBTag };
 export const columns: ColumnDef<ExpenseRow>[] = [
   {
     accessorKey: 'description',
+    meta: { grow: true },
     cell: ({ row }) => <Cell.Description id={row.original.id} name={row.original.description} />,
     header: ({ column }) => <Header.Sort column={column} header="description" />,
   },
   {
     accessorKey: 'expense',
-    size: 140,
-    meta: { align: 'right' as const },
     cell: ({ row }) => {
       const { id, expense, currency } = row.original;
       return <Cell.Money id={id} price={expense} currency={currency} />;
@@ -35,7 +34,6 @@ export const columns: ColumnDef<ExpenseRow>[] = [
   },
   {
     accessorKey: 'severity',
-    size: 130,
     header: ({ column }) => <Header.Sort column={column} header="severity" />,
     cell: ({ row }) => {
       const { id, severity } = row.original;
@@ -44,7 +42,6 @@ export const columns: ColumnDef<ExpenseRow>[] = [
   },
   {
     accessorKey: 'execution',
-    size: 140,
     header: i18n.t('execution'),
     cell: ({ row }) => {
       const { id, execution, frequency } = row.original;
@@ -53,7 +50,6 @@ export const columns: ColumnDef<ExpenseRow>[] = [
   },
   {
     accessorKey: 'frequency',
-    size: 140,
     header: i18n.t('frequency'),
     cell: ({ row }) => {
       const { id, frequency } = row.original;
@@ -62,19 +58,16 @@ export const columns: ColumnDef<ExpenseRow>[] = [
   },
   {
     accessorKey: 'tag.name',
-    size: 160,
     header: i18n.t('forms.category'),
     cell: ({ row }) => <Cell.Tags tag={row.original?.tag?.name} />,
   },
   {
     accessorKey: 'strategyPart',
-    size: 190,
     header: i18n.t('forms.strategy-part'),
     cell: ({ row }) => <Cell.Tags tag={i18n.t(row.original?.strategyPart as TranslationKey)} />,
   },
   {
     id: 'actions',
-    size: 56,
     cell: ({ row }) => {
       if (row.original.id === TOTAL) {
         return null;

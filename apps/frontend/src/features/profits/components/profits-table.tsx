@@ -11,13 +11,12 @@ import type { DBProfit } from '@/database/profits.ts';
 const columns: ColumnDef<DBProfit>[] = [
   {
     accessorKey: 'description',
+    meta: { grow: true },
     cell: ({ row }) => <Cell.Description id={row.original.id} name={row.original.description} />,
     header: ({ column }) => <Header.Sort column={column} header="description" />,
   },
   {
     accessorKey: 'profit',
-    size: 140,
-    meta: { align: 'right' as const },
     cell: ({ row }) => {
       const { id, profit, currency } = row.original;
       return <Cell.Money id={id} price={profit} currency={currency} />;
@@ -28,7 +27,6 @@ const columns: ColumnDef<DBProfit>[] = [
   },
   {
     accessorKey: 'execution',
-    size: 140,
     header: i18n.t('execution'),
     cell: ({ row }) => {
       const { id, execution, frequency } = row.original;
@@ -37,7 +35,6 @@ const columns: ColumnDef<DBProfit>[] = [
   },
   {
     accessorKey: 'frequency',
-    size: 140,
     header: i18n.t('frequency'),
     cell: ({ row }) => {
       const { id, frequency } = row.original;
@@ -46,7 +43,6 @@ const columns: ColumnDef<DBProfit>[] = [
   },
   {
     id: 'actions',
-    size: 56,
     cell: ({ row }) => {
       if (row.original.id === TOTAL) {
         return null;

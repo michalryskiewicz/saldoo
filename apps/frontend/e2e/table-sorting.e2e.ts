@@ -12,8 +12,12 @@ import { PASSPHRASE } from './support/fixtures.ts';
  * and the React Compiler had no reason to render it again — the column object it reads from is
  * referentially stable. And the totals row sorted along with the records it totals, so it could
  * land in the middle of them.
+ *
+ * The total sits in `tfoot` now, so "at the bottom" is a property of the markup rather than
+ * something the sort has to be trusted to preserve. Both halves are asserted: that the body
+ * reverses, and that the summary was never in the body to be reversed.
  */
-test('sorting reverses, and the totals row stays at the bottom either way', async ({
+test('sorting reverses, and the totals row stays out of the body either way', async ({
   browser,
   baseURL,
 }) => {
@@ -37,10 +41,12 @@ test('sorting reverses, and the totals row stays at the bottom either way', asyn
   }
 
   await app.sortBy('description');
-  expect(await app.rowDescriptions()).toEqual(['Czynsz', 'Kawa', 'Całkowita']);
+  expect(await app.rowDescriptions()).toEqual(['Czynsz', 'Kawa']);
+  expect(await app.footerLabel()).toBe('Całkowita');
 
   await app.sortBy('description');
-  expect(await app.rowDescriptions()).toEqual(['Kawa', 'Czynsz', 'Całkowita']);
+  expect(await app.rowDescriptions()).toEqual(['Kawa', 'Czynsz']);
+  expect(await app.footerLabel()).toBe('Całkowita');
 
   await device.close();
 });
