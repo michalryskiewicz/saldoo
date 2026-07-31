@@ -17,6 +17,9 @@ import {
 } from '@tanstack/react-table';
 
 import { partitionTotalRow } from '@/components/ui/data-table-rows.service.ts';
+import { DataTableMobileList } from '@/components/ui/data-table-mobile-list.tsx';
+import type { MobileRole } from '@/components/ui/data-table-mobile.service.ts';
+import { useIsMobile } from '@/hooks/use-mobile.ts';
 import { cn } from '@/lib/utils.ts';
 import i18n from '@/i18n.ts';
 
@@ -64,6 +67,12 @@ declare module '@tanstack/react-table' {
      * column to be narrower, not because anything had asked it to be that wide.
      */
     grow?: boolean;
+    /**
+     * What this column becomes below `md`, where the row is rebuilt as a line of text rather
+     * than scrolled sideways. Defaults to a supporting detail, or to the title for the column
+     * that grows. See `data-table-mobile.service.ts`.
+     */
+    mobile?: MobileRole;
   }
   /* eslint-enable @typescript-eslint/no-unused-vars */
 }
@@ -98,6 +107,14 @@ interface DataTableProps<TData, TValue> {
   children?: (table: ReturnType<typeof useReactTable<TData>>) => ReactNode;
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  /**
+   * What to say when there is nothing to show.
+   *
+   * Passed in because only the caller knows *why* it is empty: "you have no expenses yet" and
+   * "nothing matches what you typed" are different facts, and a table told only that its data is
+   * empty cannot tell them apart. Defaults to the neutral wording.
+   */
+  emptyMessage?: ReactNode;
   getRowId?: (row: TData, index: number) => string;
 }
 
@@ -105,6 +122,7 @@ export function DataTable<TData, TValue>({
   children,
   columns,
   data,
+  emptyMessage,
   getRowId,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -144,6 +162,7 @@ export function DataTable<TData, TValue>({
     },
   });
 
+  const isMobile = useIsMobile();
   const { records, total } = partitionTotalRow(table.getRowModel().rows);
 
   const renderCells = (row: Row<TData>) =>
@@ -168,56 +187,68 @@ export function DataTable<TData, TValue>({
         </div>
       ) : null}
 
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                const { align, grow } = header.column.columnDef.meta ?? {};
+      {/* Below `md` the rows are not rows. Swapped rather than restyled: eight columns cannot be
+          dense and readable at 390px, so the honest choice is what to stop showing -- and a table
+          left to scroll sideways makes that choice by hiding five columns behind a gesture nothing
+          announces. */}
+      {isMobile ? (
+        <DataTableMobileList
+          records={records}
+          total={total}
+          emptyMessage={emptyMessage ?? i18n.t('table.no_results')}
+        />
+      ) : (
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  const { align, grow } = header.column.columnDef.meta ?? {};
 
-                return (
-                  <TableHead
-                    key={header.id}
-                    className={cn(alignmentClass(resolveAlign(align, grow)), widthClass(grow))}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                );
-              })}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {records.length ? (
-            records.map((row) => (
-              <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
-                {renderCells(row)}
+                  return (
+                    <TableHead
+                      key={header.id}
+                      className={cn(alignmentClass(resolveAlign(align, grow)), widthClass(grow))}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
+                  );
+                })}
               </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="text-muted-foreground h-24 text-center"
-              >
-                {i18n.t('table.no_results')}
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {records.length ? (
+              records.map((row) => (
+                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
+                  {renderCells(row)}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="text-muted-foreground h-24 text-center"
+                >
+                  {emptyMessage ?? i18n.t('table.no_results')}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
 
-        {/* A summary is not another record, so it is not in the body. Appending it there put it
+          {/* A summary is not another record, so it is not in the body. Appending it there put it
               at the mercy of anything that reorders rows, and left it wearing the body's stripe
               and hover as though it could be clicked or counted. `tfoot` makes "at the bottom" a
               property of the markup instead of a property of the current sort. */}
-        {total ? (
-          <TableFooter>
-            <TableRow className="hover:bg-transparent">{renderCells(total)}</TableRow>
-          </TableFooter>
-        ) : null}
-      </Table>
+          {total ? (
+            <TableFooter>
+              <TableRow className="hover:bg-transparent">{renderCells(total)}</TableRow>
+            </TableFooter>
+          ) : null}
+        </Table>
+      )}
 
       <div className={cn(CHROME_ROW, 'border-t')}>
         <DataTablePagination table={table} />
