@@ -16,6 +16,7 @@ import {
   filterFns,
 } from '@tanstack/react-table';
 
+import { TOTAL } from '@/constant.ts';
 import {
   Table,
   TableBody,
@@ -106,7 +107,17 @@ export function DataTable<TData, TValue>({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && 'selected'}
+                  // The totals row is a summary, not another record. Bold text alone left it
+                  // reading as one more row of data.
+                  className={
+                    (row.original as { id?: string })?.id === TOTAL
+                      ? 'bg-muted/60 border-t-2 font-medium even:bg-muted/60'
+                      : undefined
+                  }
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
