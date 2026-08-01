@@ -40,7 +40,10 @@
     "blocked": "Syncing paused",
     "unreadable_backup": "Old copy on Drive",
     "pending": "Changes waiting to be sent",
-    "upload_failed": "Could not send changes"
+    "upload_failed": "Could not send changes",
+    "alert_disconnected": "The Google Drive connection has expired — changes are staying on this device",
+    "alert_failed": "Some changes could not be saved to Google Drive",
+    "alert_reconnect": "Reconnect"
   },
   "onboarding": {
     "INTRODUCTION": "Introduction",

@@ -1,8 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { syncStatusStore } from '@/database/sync/sync-status.store.ts';
 import { outbox } from '@/database/document/outbox.container.ts';
-import { driveTokenService } from '@/auth/google/drive-token.ts';
-import { useGoogleDriveAuthStatus } from '@/components/google-drive/use-google-drive-auth-status.tsx';
+import { reconnectDrive } from '@/auth/context/google';
 import { GoogleDriveGlyph } from '@/components/google-drive/google-drive-glyph.tsx';
 import { resolveSyncPresentation } from '@/components/sync-status-presentation.service.ts';
 import { Button } from '@/components/ui/button.tsx';
@@ -32,7 +31,12 @@ const TONE_CLASS = {
   destructive: 'text-destructive',
 } as const;
 
-export function GoogleDriveButton() {
+type GoogleDriveButtonProps = {
+  /** Resolved by the layout: two components needed this, and each was asking Google itself. */
+  isDriveConnected: boolean;
+};
+
+export function GoogleDriveButton({ isDriveConnected }: GoogleDriveButtonProps) {
   const status = useSyncExternalStore(
     (listener) => syncStatusStore.subscribe(listener),
     () => syncStatusStore.get()
@@ -41,7 +45,6 @@ export function GoogleDriveButton() {
     (listener) => outbox.subscribe(listener),
     () => outbox.state()
   );
-  const isDriveConnected = useGoogleDriveAuthStatus();
 
   const { label, tone, isBusy } = resolveSyncPresentation({
     status,
@@ -62,9 +65,7 @@ export function GoogleDriveButton() {
             size="icon"
             aria-label={text}
             className="text-destructive hover:text-destructive size-8"
-            onClick={() => {
-              void driveTokenService.connect().then(() => window.location.reload());
-            }}
+            onClick={() => void reconnectDrive()}
           >
             {glyph}
           </Button>

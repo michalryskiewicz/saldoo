@@ -16,11 +16,14 @@ import { useBreadcrumbs } from '@/hooks/use-breadcrumbs';
 import { Link } from 'react-router';
 import { SurveysButton } from '@/components/survey-button.tsx';
 import { GoogleDriveButton } from '@/components/google-drive/google-drive-button.tsx';
+import { SyncAlertBanner } from '@/components/sync-alert-banner.tsx';
+import { useGoogleDriveAuthStatus } from '@/components/google-drive/use-google-drive-auth-status.tsx';
 import { ThemeToggle } from '@/components/theme-toggle.tsx';
 import { LanguageToggle } from '@/components/language-toggle.tsx';
 
 export default function MiniDrawer({ children }: React.PropsWithChildren) {
   const { breadcrumbs } = useBreadcrumbs();
+  const isDriveConnected = useGoogleDriveAuthStatus();
 
   return (
     <SidebarProvider defaultOpen={false}>
@@ -66,7 +69,7 @@ export default function MiniDrawer({ children }: React.PropsWithChildren) {
               {/* Fenced off from the trail. These act on the application rather than on where you
                   are in it, and standing in one undivided row they read as more navigation. */}
               <div className="flex items-center gap-1">
-                <GoogleDriveButton />
+                <GoogleDriveButton isDriveConnected={isDriveConnected} />
                 <Separator
                   orientation="vertical"
                   className="mx-1 data-[orientation=vertical]:h-4"
@@ -78,6 +81,7 @@ export default function MiniDrawer({ children }: React.PropsWithChildren) {
             </div>
           </div>
         </header>
+        <SyncAlertBanner isDriveConnected={isDriveConnected} />
         {/* Capped and centred. Nothing constrained the content before, so on a wide screen the
             dashboard stretched edge to edge and every table spread its columns across the whole
             span — which is why the rows read as scattered islands rather than as rows. Data does

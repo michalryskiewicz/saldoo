@@ -133,6 +133,11 @@ async function handleDrive(route: Route, url: URL, drive: FakeDrive) {
     ? url.pathname.slice('/upload/drive/v3/files/'.length)
     : url.pathname.slice('/drive/v3/files/'.length);
 
+  const refusedStatus = drive.refusedUploadStatus();
+  if (upload && refusedStatus !== null) {
+    return json(route, { error: { code: refusedStatus, message: 'Refused by the test' } }, refusedStatus);
+  }
+
   if (upload && method === 'PATCH') {
     if (!drive.read(fileId)) return json(route, { error: { code: 404 } }, 404);
 

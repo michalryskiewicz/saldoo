@@ -10,6 +10,17 @@ export const signInWithGoogle = async (): Promise<void> => {
 };
 
 /**
+ * Comes back after Drive access lapsed.
+ *
+ * Reloads rather than carrying on: every gateway holds its own view of what is on Drive,
+ * and a fresh document is the honest way to pick the story back up.
+ */
+export const reconnectDrive = async (): Promise<void> => {
+  await driveTokenService.connect();
+  window.location.reload();
+};
+
+/**
  * Signs in as somebody else: the remembered account is dropped first, so Google shows the
  * chooser instead of aiming at the person who was here before.
  */

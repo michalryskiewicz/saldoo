@@ -94,11 +94,21 @@ export interface FakeDrive {
   seed(name: string, content: string): void;
   /** Test-facing: every write that reached this folder, oldest first. */
   writeLog(): readonly { name: string; at: number }[];
+  /**
+   * Test-facing: make every upload fail with this status until cleared.
+   *
+   * A Drive that refuses is a state the app has real behaviour for — a permanently failed
+   * upload — and the harness had no way to produce it, so that behaviour was unobservable.
+   */
+  refuseUploads(status: number | null): void;
+  /** The status uploads should be refused with, or `null` while Drive is behaving. */
+  refusedUploadStatus(): number | null;
 }
 
 export function createFakeDrive(): FakeDrive {
   const files = new Map<string, FakeDriveFile>();
   const writes: { name: string; at: number }[] = [];
+  let refusedUploads: number | null = null;
   let counter = 0;
   let clock = 0;
 
@@ -197,6 +207,12 @@ export function createFakeDrive(): FakeDrive {
 
       create({ name, parents: [folder.id] }).content = content;
     },
+
+    refuseUploads(status) {
+      refusedUploads = status;
+    },
+
+    refusedUploadStatus: () => refusedUploads,
 
     writeLog() {
       return writes;
