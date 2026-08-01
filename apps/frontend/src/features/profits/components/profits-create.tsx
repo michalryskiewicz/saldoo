@@ -1,6 +1,7 @@
 import i18n from '@/i18n.ts';
 import { NEW_ENTITY_ID } from '@/constant.ts';
 import { Field, Form } from '@/components/hook-form';
+import { FormSection } from '@/components/hook-form/form-section.tsx';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button.tsx';
 import { useDispatch } from 'react-redux';
@@ -31,8 +32,11 @@ const formSchema = z.object({
 
 export type ProfitCreateSchema = z.infer<typeof formSchema>;
 
+// Monthly, because income mostly is. Left unset the field was required and empty, so every
+// profit had to answer it by hand before the form would submit at all.
 const defaultValues = {
   currency: 'PLN',
+  frequency: 'MONTHLY',
 };
 
 export default function ProfitsCreatePage() {
@@ -79,29 +83,45 @@ export default function ProfitsCreatePage() {
             initialValues={initialValues}
             schema={formSchema}
             onSubmit={handleSubmit}
+            // Cleared for the next one, keeping the answers that are likely to repeat: the
+            // drawer stays mounted, so without this it reopens holding the last profit's name
+            // and amount.
+            resetFields={profit ? undefined : { description: '', profit: undefined }}
           >
-            <div className="flex flex-col gap-5">
-              <Field.Text name="description" label={i18n.t('description')} />
+            {/* Grouped by the question each field answers, the way the expenses form is. There
+                are only two questions here — a profit has no priority and nothing to classify it
+                by — but "what and how much" and "when" are still not one decision. */}
+            <div className="flex flex-col gap-7">
+              <FormSection title={i18n.t('form_sections.what')}>
+                <Field.Text name="description" label={i18n.t('description')} />
 
-              <Field.Money name="profit" currencyField="currency" label={i18n.t('profit')} />
+                <Field.Money name="profit" currencyField="currency" label={i18n.t('profit')} />
+              </FormSection>
 
-              <Field.Select
-                fullWidth
-                name="frequency"
-                label={i18n.t('frequency')}
-                options={[
-                  { label: i18n.t('DAILY'), value: 'DAILY' },
-                  { label: i18n.t('WEEKLY'), value: 'WEEKLY' },
-                  { label: i18n.t('MONTHLY'), value: 'MONTHLY' },
-                  { label: i18n.t('YEARLY'), value: 'YEARLY' },
-                ]}
-              />
-              <Field.Date
-                name="execution"
-                label={i18n.t('execution')}
-                fullWidth
-                placeholder={i18n.t('execution_placeholder')}
-              />
+              <FormSection title={i18n.t('form_sections.when')}>
+                {/* Side by side, because they are one answer: the table reads them as one phrase
+                    ("co środę", "15. dnia miesiąca") and the form should not present them as two
+                    unrelated decisions. */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field.Select
+                    fullWidth
+                    name="frequency"
+                    label={i18n.t('frequency')}
+                    options={[
+                      { label: i18n.t('DAILY'), value: 'DAILY' },
+                      { label: i18n.t('WEEKLY'), value: 'WEEKLY' },
+                      { label: i18n.t('MONTHLY'), value: 'MONTHLY' },
+                      { label: i18n.t('YEARLY'), value: 'YEARLY' },
+                    ]}
+                  />
+                  <Field.Date
+                    name="execution"
+                    label={i18n.t('execution')}
+                    fullWidth
+                    placeholder={i18n.t('execution_placeholder')}
+                  />
+                </div>
+              </FormSection>
 
               <Button type="submit">{i18n.t(id === NEW_ENTITY_ID ? 'submit' : 'edit')}</Button>
             </div>

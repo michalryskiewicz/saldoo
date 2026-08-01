@@ -26,7 +26,7 @@ import { peakSpendingDay } from '@/lib/monthly-spending.ts';
 const chartConfig = {
   spent: {
     label: i18n.t('metrics.totalExpense'),
-    color: 'var(--chart-1)',
+    color: 'var(--series-expense)',
   },
 } satisfies ChartConfig;
 

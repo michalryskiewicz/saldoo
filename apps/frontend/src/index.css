@@ -97,6 +97,21 @@
   --chart-7: oklch(0.769 0.188 190.16);
 
   /*
+   * The two things this app draws, and the colour each of them is.
+   *
+   * Named rather than numbered, and stated once, because the numbers had drifted: money going
+   * out was `--chart-1` on the overview and `--chart-3` on its own page, so the same fact was
+   * orange on one screen and deep blue on the next — and the yearly chart and the table beneath
+   * it looked like two subjects rather than one. Every chart that draws money asks for these,
+   * and a chart series that means something else asks for a `--chart-*` directly.
+   *
+   * They resolve per theme without being restated: the theme class sits on the same element as
+   * these declarations, so `var(--chart-1)` here is whichever `--chart-1` is in force.
+   */
+  --series-expense: var(--chart-1);
+  --series-profit: var(--chart-2);
+
+  /*
    * Money going the right way, something to look at, and something to act on.
    *
    * Darker than the shade these hues are usually reached for: on white, emerald-600 lands at
@@ -221,23 +236,6 @@
   body {
     @apply bg-background text-foreground;
   }
-    :root {
-      --chart-1: oklch(0.646 0.222 41.116);
-      --chart-2: oklch(0.6 0.118 184.704);
-      --chart-3: oklch(0.398 0.07 227.392);
-      --chart-4: oklch(0.828 0.189 84.429);
-      --chart-5: oklch(0.769 0.188 70.08);
-    }
-
-    .dark {
-      --chart-1: oklch(0.488 0.243 264.376);
-      --chart-2: oklch(0.696 0.17 162.48);
-      --chart-3: oklch(0.769 0.188 70.08);
-      --chart-4: oklch(0.627 0.265 303.9);
-      --chart-5: oklch(0.645 0.246 16.439);
-
-  }
-
 }
 
 .hide-scrollbar {

@@ -18,11 +18,11 @@ import { ChartEmptyOverlay } from '@/components/stats/empty-state.tsx';
 const chartConfig = {
   totalProfits: {
     label: i18n.t('metrics.totalProfits'),
-    color: 'var(--chart-2)',
+    color: 'var(--series-profit)',
   },
   totalExpense: {
     label: i18n.t('metrics.totalExpense'),
-    color: 'var(--chart-1)',
+    color: 'var(--series-expense)',
   },
 } satisfies ChartConfig;
 

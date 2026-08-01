@@ -31,7 +31,7 @@ import { groupProfitsByMonth } from '@/lib/profits.ts';
 const chartConfig = {
   total: {
     label: i18n.t('profits'),
-    color: 'var(--chart-2)',
+    color: 'var(--series-profit)',
   },
 } satisfies ChartConfig;
 

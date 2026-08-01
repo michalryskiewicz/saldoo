@@ -291,6 +291,14 @@ test('shots: the remaining dashboards in both themes and both widths', async ({
       // less room to be found on a phone.
       await device.page.setViewportSize(VIEWPORTS.desktop);
     }
+
+    // And the profit drawer, which is a screen of its own and cannot be judged from the page
+    // behind it. Desktop width: the drawer is where the two-column pairing shows at all.
+    await app.openProfitForm();
+    // The viewport, not the full page: the drawer is `position: fixed`, and a full-page capture
+    // walks the document flow and leaves it out of the image entirely.
+    await device.page.screenshot({ path: `shots/profit-form-${theme}.png` });
+    await app.closeProfitForm();
   }
 
   await device.close();

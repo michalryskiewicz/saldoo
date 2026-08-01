@@ -35,7 +35,7 @@ import {
 const chartConfig = {
   total: {
     label: i18n.t('total'),
-    color: 'var(--chart-1)',
+    color: 'var(--series-expense)',
   },
 } satisfies ChartConfig;
 
@@ -49,12 +49,14 @@ export function ExpensesByCategoryChart() {
   const isEmpty = !data?.hasExpenses || !categories.length || !maxItem?.tag;
 
   return (
-    <Card>
+    // Full height, so the card matches the two stacked beside it rather than stopping short and
+    // leaving its own footer floating in the middle of a box.
+    <Card className="h-full">
       <CardHeader className="items-center">
         <CardTitle>{i18n.t('distribution_of_expenses')}</CardTitle>
         <CardDescription>{i18n.t('distribution_of_expenses_description')}</CardDescription>
       </CardHeader>
-      <CardContent className="pb-0">
+      <CardContent className="flex flex-1 flex-col justify-center pb-0">
         {isEmpty ? (
           <div className="mx-auto flex max-h-[250px] w-full items-center justify-center py-10">
             <EmptyState

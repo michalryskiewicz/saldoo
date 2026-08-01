@@ -574,6 +574,39 @@ export class SaldooApp {
     await expect(sheet).toBeHidden();
   }
 
+  /**
+   * Opens the profit drawer and leaves it open, for looking at rather than filling in.
+   *
+   * Waits for it to stop moving, not merely to exist — the sheet animates over 500ms and
+   * `visible` is true from the first frame.
+   */
+  async openProfitForm(): Promise<void> {
+    await this.openProfits();
+    await this.page.getByRole('button', { name: label('create_profit') }).click();
+
+    const drawer = this.profitDrawer;
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByRole('button', { name: label('submit') })).toBeVisible();
+
+    let previous = -1;
+    await expect
+      .poll(
+        async () => {
+          const x = (await drawer.boundingBox())?.x ?? -1;
+          const settled = x >= 0 && x === previous;
+          previous = x;
+          return settled;
+        },
+        { timeout: 5_000, intervals: [100] }
+      )
+      .toBe(true);
+  }
+
+  async closeProfitForm(): Promise<void> {
+    await this.page.keyboard.press('Escape');
+    await expect(this.profitDrawer).toBeHidden();
+  }
+
   // === Transactions ===
 
   async openTransactions(): Promise<void> {
