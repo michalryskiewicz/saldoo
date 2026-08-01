@@ -614,6 +614,32 @@ export class SaldooApp {
     await expect(sheet).toBeHidden();
   }
 
+  /**
+   * Files one payment against a planned expense, a category and a part of the budget.
+   *
+   * Through the bulk editor, which is the only way the app offers: tick the row, open the
+   * dialog, and the three selects apply to everything ticked.
+   */
+  async assignTransaction(description: string): Promise<void> {
+    await this.openTransactions();
+
+    const row = this.page.getByRole('row').filter({ hasText: description });
+    await row.getByRole('checkbox', { name: label('table.select_row') }).check();
+
+    await this.page.getByRole('button', { name: label('edit') }).click();
+
+    const dialog = this.page.getByRole('dialog', { name: label('edit_title') });
+    await expect(dialog).toBeVisible();
+
+    for (const field of ['forms.expense', 'forms.category', 'forms.strategy-part'] as const) {
+      await dialog.getByLabel(label(field), { exact: true }).click();
+      await this.page.getByRole('option').first().click();
+    }
+
+    await dialog.getByRole('button', { name: label('save_changes') }).click();
+    await expect(dialog).toBeHidden();
+  }
+
   // === Overview ===
 
   async openOverview(): Promise<void> {

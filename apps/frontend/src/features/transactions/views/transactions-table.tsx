@@ -4,11 +4,19 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox.tsx';
 import { Cell, Header } from '@/components/tanstack-table';
 import { formatDate } from '@/lib/formats.ts';
-import i18n, { type TranslationKey } from '@/i18n.ts';
+import i18n from '@/i18n.ts';
 import type { DBTransaction } from '@/database/transactions.ts';
 import { useTransactionsData } from '@/features/transactions/hooks/use-transactions-data.tsx';
 import type { DBExpense } from '@/database/expenses.ts';
 import type { DBTag } from '@/database/tags.ts';
+import { TOTAL } from '@/constant.ts';
+import TransactionAssignmentCell from '@/features/transactions/components/transaction-assignment-cell.tsx';
+import TransactionsSummaryCell from '@/features/transactions/components/transactions-summary-cell.tsx';
+import { transactionAssignments } from '@/features/transactions/services/transactions-assignment.service.ts';
+import {
+  summariseTransactions,
+  type TransactionsSummary,
+} from '@/features/transactions/services/transactions-summary.service.ts';
 import { useState } from 'react';
 import { searchTransactions } from '@/features/transactions/services/transactions-search.service.ts';
 import {
@@ -16,8 +24,18 @@ import {
   type TransactionRange,
 } from '@/features/transactions/services/transactions-range.service.ts';
 
-/** A row as this table sees it: a payment with the expense and the category it was filed under. */
-export type TransactionRow = DBTransaction & { expense?: DBExpense; tag?: DBTag };
+/**
+ * A row as this table sees it: a payment with the expense and the category it was filed under.
+ *
+ * `summary` rides on the summary row rather than being read from the visible rows by the column
+ * definitions, which are module-level and know nothing about state. Carrying it as data keeps
+ * the columns a constant — rebuilt per render they would reset the table's own sorting.
+ */
+export type TransactionRow = DBTransaction & {
+  expense?: DBExpense;
+  tag?: DBTag;
+  summary?: TransactionsSummary;
+};
 
 const columns: ColumnDef<TransactionRow>[] = [
   {
@@ -33,13 +51,17 @@ const columns: ColumnDef<TransactionRow>[] = [
         aria-label={i18n.t('table.select_all')}
       />
     ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label={i18n.t('table.select_row')}
-      />
-    ),
+    cell: ({ row }) => {
+      if (row.original.id === TOTAL) return null;
+
+      return (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label={i18n.t('table.select_row')}
+        />
+      );
+    },
     enableSorting: false,
     enableHiding: false,
   },
@@ -51,19 +73,26 @@ const columns: ColumnDef<TransactionRow>[] = [
     // — with the whole of it in the element's own title rather than beside a glyph to hover. That
     // glyph sat at the right-hand edge of the growing column, which put a lone "?" in the middle
     // of every row, saying nothing about the row it was in.
-    cell: ({ row }) => (
-      <p className="truncate" title={row.original.description}>
-        {row.original.description}
-      </p>
-    ),
+    cell: ({ row }) => {
+      if (row.original.id === TOTAL) return null;
+
+      return (
+        <p className="truncate" title={row.original.description}>
+          {row.original.description}
+        </p>
+      );
+    },
   },
   {
     accessorKey: 'amount',
     meta: { mobile: 'figure' as const },
     header: ({ column }) => <Header.Sort column={column} header="amount" />,
     cell: ({ row }) => {
-      const { id, amount, currency } = row.original;
-      return <Cell.Money id={id} price={amount} currency={currency} />;
+      const { id, amount, currency, summary } = row.original;
+
+      if (summary) return <TransactionsSummaryCell summary={summary} />;
+
+      return <Cell.Money id={id} price={amount} currency={currency} directional />;
     },
   },
   {
@@ -77,21 +106,15 @@ const columns: ColumnDef<TransactionRow>[] = [
     },
   },
   {
-    accessorKey: 'tag.name',
-    header: i18n.t('forms.category'),
-    cell: ({ row }) => <Cell.Tags tag={row.original?.tag?.name} />,
-  },
-  {
-    accessorKey: 'strategyPart',
-    meta: { mobile: 'hidden' as const },
-    header: i18n.t('forms.strategy-part'),
-    cell: ({ row }) => <Cell.Tags tag={i18n.t(row.original?.strategyPart as TranslationKey)} />,
-  },
-  {
-    accessorKey: 'expense.description',
-    meta: { mobile: 'hidden' as const },
-    header: i18n.t('settled_expense'),
-    cell: ({ row }) => <Cell.Tags tag={row.original?.expense?.description} />,
+    id: 'assignment',
+    // The filings joined into one value, so a phone can tell a payment that has been filed from
+    // one that has not: a detail with nothing in it contributes a separator and no word.
+    accessorFn: (row) =>
+      transactionAssignments(row)
+        .map((assignment) => assignment.value)
+        .join(' ') || undefined,
+    header: i18n.t('assignment'),
+    cell: ({ row }) => <TransactionAssignmentCell assignments={transactionAssignments(row.original)} />,
   },
 ];
 
@@ -108,10 +131,27 @@ export const TransactionsTable = () => {
     query
   );
 
+  // A summary row rather than a stored payment, so it is shaped like one on purpose.
+  const totalRow: TransactionRow[] = dataToTable.length
+    ? [
+        {
+          id: TOTAL,
+          createdAt: new Date(),
+          sourceBank: '',
+          description: '',
+          hash: TOTAL,
+          transactionDate: '',
+          amount: 0,
+          currency: dataToTable[0].currency,
+          summary: summariseTransactions(dataToTable),
+        },
+      ]
+    : [];
+
   return (
     <DataTable
       columns={columns}
-      data={dataToTable}
+      data={[...dataToTable, ...totalRow]}
       // A ledger reads newest first, or it reads in whatever order the parser happened to produce
       // — which is what it was doing.
       initialSorting={[{ id: 'transactionDate', desc: true }]}

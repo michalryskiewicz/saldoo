@@ -3,6 +3,7 @@ import { createFakeDrive } from './support/fake-drive.ts';
 import { openDevice } from './support/device.ts';
 import { SaldooApp } from './support/app.ts';
 import { PASSPHRASE } from './support/fixtures.ts';
+import { ingStatement } from './support/bank-statement.ts';
 
 /**
  * The guard on the phone layout.
@@ -62,6 +63,64 @@ test('the expenses page fits a phone, and the table stops being a table', async 
   const summary = device.page.locator('[data-slot="table-summary"]');
   await expect(summary).toBeVisible();
   await expect(summary).toContainText('1980,00 zł');
+
+  const overflow = await device.page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+
+  expect(
+    overflow.scrollWidth,
+    `page scrolls sideways by ${overflow.scrollWidth - overflow.clientWidth}px at ${PHONE.width}px`
+  ).toBeLessThanOrEqual(overflow.clientWidth);
+
+  expect(device.problems()).toEqual([]);
+
+  await device.close();
+});
+
+test('the transactions page fits a phone with a payment filed under everything', async ({
+  browser,
+  baseURL,
+}) => {
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  await app.addExpense({ description: 'Ubezpieczenie samochodu na cały rok', amount: 1980 });
+  await app.importTransactions(
+    ingStatement([{ date: '2026-07-03', title: 'BIEDRONKA 1234 WARSZAWA', amount: -213.47 }])
+  );
+  // Filed under all three, and against an expense with a name long enough to matter: the
+  // assignment column holds one badge per filing, and three of them side by side are wider than
+  // a phone. What that costs is a badge laid past the edge of its card, which the card clips —
+  // so the page does not scroll and nothing looks wrong from the outside.
+  await app.assignTransaction('BIEDRONKA');
+
+  await device.page.setViewportSize(PHONE);
+  await device.page.reload();
+  await app.openTransactions();
+
+  await expect(device.page.locator('table')).toHaveCount(0);
+
+  const row = device.page.getByRole('listitem').filter({ hasText: 'BIEDRONKA' });
+  await expect(row).toBeVisible();
+  await expect(row.getByText('-213,47 zł')).toBeVisible();
+
+  // Measured, not looked for. A badge laid past the edge of its card is clipped by the card and
+  // not by the page, so nothing scrolls sideways and `toBeVisible` goes on answering yes about
+  // a word that has been cut in half. The only honest question is where its right edge is.
+  const card = (await row.boundingBox())!;
+  const lastBadge = (await row.getByText('Ubezpieczenie samochodu na cały rok').boundingBox())!;
+
+  expect(
+    Math.round(lastBadge.x + lastBadge.width),
+    'the last filing badge is laid past the right edge of its card'
+  ).toBeLessThanOrEqual(Math.round(card.x + card.width));
 
   const overflow = await device.page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,

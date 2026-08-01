@@ -228,6 +228,10 @@ test('shots: the remaining dashboards in both themes and both widths', async ({
 
   await app.importTransactions(ingStatement(STATEMENT));
 
+  // One payment filed, because an unfiled one shows an empty column: what the merged assignment
+  // column looks like *with* something in it is the whole reason it was merged.
+  await app.assignTransaction('BIEDRONKA');
+
   const SCREENS = [
     { name: 'profits', open: () => app.openProfits(), settled: 'Wynagrodzenie' },
     { name: 'transactions', open: () => app.openTransactions(), settled: 'BIEDRONKA' },
