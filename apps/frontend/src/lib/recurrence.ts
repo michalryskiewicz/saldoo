@@ -116,16 +116,19 @@ export const occurrencesInRange = (
  * How many times a recurrence falls inside one month.
  *
  * The one rule for turning a plan into what it actually costs in a period, and the only copy.
- * There were six: five `switch`es in `lib/expenses.ts` and one in `lib/profits.ts`, each with
- * slightly different guards, none of them used by the totals under the tables — which is why the
- * expenses table added a weekly cost to a yearly one and called the result "Całkowita".
+ * There were eight: five `switch`es in `lib/expenses.ts`, one in `lib/profits.ts`, one in the
+ * duty generator and this — each with slightly different guards, none of them used by the
+ * totals under the tables, which is why the expenses table added a weekly cost to a yearly one
+ * and called the result "Całkowita".
+ *
+ * Counted by walking the month rather than by a formula per frequency. An interval has no
+ * closed form — every fourth week is an anchor and a step — and a count that disagreed with the
+ * occurrences the duty generator produced is the drift that made a month's list and the same
+ * month's total describe different worlds.
  *
  * The year comes from the month being asked about rather than from the execution date. Every
  * copy but one took it from the execution, so a cost entered in a leap year went on being
- * counted against that February forever; the odd one out used the current year, which was right
- * by accident and only while the chart showed this year.
- *
- * A yearly recurrence lands in its own *month*, in any year: that is what yearly means.
+ * counted against that February forever.
  */
 export const occurrencesInMonth = (
   recurrence: Recurrence,
