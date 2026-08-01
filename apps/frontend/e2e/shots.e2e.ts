@@ -4,6 +4,7 @@ import { createFakeDrive } from './support/fake-drive.ts';
 import { openDevice } from './support/device.ts';
 import { SaldooApp } from './support/app.ts';
 import { PASSPHRASE } from './support/fixtures.ts';
+import { ingStatement, type StatementEntry } from './support/bank-statement.ts';
 
 /**
  * Not a test — a camera. It asserts nothing and is skipped unless asked for:
@@ -155,6 +156,113 @@ test('shots: the duties page in both themes and both widths', async ({ browser, 
         path: `shots/duties-${name}-${theme}.png`,
         fullPage: true,
       });
+    }
+  }
+
+  await device.close();
+});
+
+/** Enough rows for a total, a spread across categories, and a heatmap with something in it. */
+const PROFITS = [
+  { description: 'Wynagrodzenie', amount: 12500, frequency: 'MONTHLY' },
+  { description: 'Zlecenie — strona internetowa', amount: 3200, frequency: 'YEARLY' },
+  { description: 'Odsetki z lokaty', amount: 84.2, frequency: 'MONTHLY' },
+] as const;
+
+/**
+ * A day of this month, as the bank writes it.
+ *
+ * Relative to today rather than fixed: the month filter and the heatmap both read the calendar,
+ * and a statement from a year ago photographs an empty screen rather than a full one.
+ */
+const dayOfThisMonth = (day: number) => {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+
+  return `${today.getFullYear()}-${month}-${String(day).padStart(2, '0')}`;
+};
+
+const STATEMENT: StatementEntry[] = [
+  { date: dayOfThisMonth(2), title: 'Czynsz - wspólnota mieszkaniowa', amount: -2500 },
+  { date: dayOfThisMonth(3), title: 'BIEDRONKA 1234 WARSZAWA', amount: -213.47 },
+  { date: dayOfThisMonth(5), title: 'Orange Polska - abonament', amount: -65 },
+  { date: dayOfThisMonth(8), title: 'GREEN CAFFE NERO', amount: -14.99 },
+  { date: dayOfThisMonth(9), title: 'Przelew przychodzacy - wynagrodzenie', amount: 12500 },
+  { date: dayOfThisMonth(12), title: 'PZU - składka OC', amount: -1980 },
+  { date: dayOfThisMonth(14), title: 'ZABKA Z0123 KRAKÓW', amount: -37.8 },
+];
+
+/**
+ * The three screens that have not been through the rework the expenses table set the shape of.
+ *
+ * One test rather than three: the vault, the wizard and the seed data cost far more than the
+ * shots do, and all three screens read the same records.
+ */
+test('shots: the remaining dashboards in both themes and both widths', async ({
+  browser,
+  baseURL,
+}) => {
+  test.setTimeout(360_000);
+
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  // A reload between each: a popover left over from the previous form makes the next one's
+  // option list unclickable.
+  for (const expense of EXPENSES) {
+    await app.addExpense(expense);
+    await device.page.reload();
+    await app.openExpenses();
+  }
+
+  for (const profit of PROFITS) {
+    await app.addProfit(profit);
+    await device.page.reload();
+    await app.openProfits();
+  }
+
+  await app.importTransactions(ingStatement(STATEMENT));
+
+  const SCREENS = [
+    { name: 'profits', open: () => app.openProfits(), settled: 'Wynagrodzenie' },
+    { name: 'transactions', open: () => app.openTransactions(), settled: 'BIEDRONKA' },
+    { name: 'overview', open: () => app.openOverview(), settled: undefined },
+  ] as const;
+
+  for (const theme of ['light', 'dark'] as const) {
+    await device.page.setViewportSize(VIEWPORTS.desktop);
+    await app.chooseTheme(theme);
+
+    // Reloaded for the same reason every other shot is: it is the only reliable way to be rid of
+    // the focus ring the theme menu hands back to its trigger.
+    await device.page.reload();
+
+    for (const screen of SCREENS) {
+      await screen.open();
+
+      for (const [name, viewport] of Object.entries(VIEWPORTS)) {
+        await device.page.setViewportSize(viewport);
+
+        // Records arrive from IndexedDB after the page is otherwise ready, and below `md` a table
+        // is not a table — so wait for the record itself rather than for a `tr`. The overview has
+        // no records to wait for, only charts, so it waits out the animation alone.
+        if (screen.settled) await device.page.getByText(screen.settled).first().waitFor();
+        await device.page.waitForTimeout(CHART_ANIMATION_MS);
+
+        await device.page.screenshot({
+          path: `shots/${screen.name}-${name}-${theme}.png`,
+          fullPage: true,
+        });
+      }
+
+      // Back to desktop before the next screen: the theme control the loop reaches for next has
+      // less room to be found on a phone.
+      await device.page.setViewportSize(VIEWPORTS.desktop);
     }
   }
 

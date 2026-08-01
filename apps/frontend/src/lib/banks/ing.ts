@@ -1,5 +1,3 @@
-import { createStepCollector } from './step-collector.ts';
-
 export const ING_HEADER_ROW = [
   'Data transakcji',
   'Data księgowania',
@@ -28,5 +26,3 @@ export const ING_STOP_ROWS = [
   [''],
   ['Dokument ma charakter informacyjny, nie stanowi dowodu księgowego', ''],
 ];
-
-export const ingStepCollector = createStepCollector(ING_HEADER_ROW, ING_STOP_ROWS);
