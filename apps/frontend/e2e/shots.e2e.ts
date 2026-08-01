@@ -106,3 +106,53 @@ test('shots: the expenses page in both themes and both widths', async ({ browser
 
   await device.close();
 });
+
+test('shots: the duties page in both themes and both widths', async ({ browser, baseURL }) => {
+  test.setTimeout(240_000);
+
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  for (const expense of EXPENSES) {
+    await app.addExpense(expense);
+    await device.page.reload();
+    await app.openExpenses();
+  }
+
+  // One of each state, because the tones are the point: a due row at full strength, a paid one
+  // quietened, a skipped one struck out. A table of nothing but unpaid rows shows a third of
+  // what there is to judge.
+  await app.openDuties();
+  await app.markDutyPaid('Czynsz');
+  await app.skipDuty('Ubezpieczenie samochodu');
+
+  for (const theme of ['light', 'dark'] as const) {
+    await device.page.setViewportSize(VIEWPORTS.desktop);
+    await app.chooseTheme(theme);
+
+    // Reloaded for the same reason the expenses shots are: it is the only reliable way to be rid
+    // of the focus ring the theme menu hands back to its trigger.
+    await device.page.reload();
+    await app.openDuties();
+
+    for (const [name, viewport] of Object.entries(VIEWPORTS)) {
+      await device.page.setViewportSize(viewport);
+
+      // Rows arrive from IndexedDB after the page is otherwise ready, and below `md` the table
+      // is not a table at all — so wait for the record itself rather than for a `tr`.
+      await device.page.getByText('Czynsz').first().waitFor();
+
+      await device.page.screenshot({
+        path: `shots/duties-${name}-${theme}.png`,
+        fullPage: true,
+      });
+    }
+  }
+
+  await device.close();
+});

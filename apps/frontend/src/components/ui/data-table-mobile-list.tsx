@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { flexRender, type Cell, type Row } from '@tanstack/react-table';
 import { groupCellsForPhone } from '@/components/ui/data-table-mobile.service.ts';
+import { cn } from '@/lib/utils.ts';
 
 /**
  * A table's rows below `md`, where they are not rows.
@@ -20,6 +21,8 @@ type DataTableMobileListProps<TData> = {
   records: Row<TData>[];
   total?: Row<TData>;
   emptyMessage: ReactNode;
+  /** The same per-record classes the table gives its rows: a phone is not a different truth. */
+  rowClassName?: (row: TData) => string | undefined;
 };
 
 const renderCell = <TData,>(cell: Cell<TData, unknown>) =>
@@ -29,6 +32,7 @@ export function DataTableMobileList<TData>({
   records,
   total,
   emptyMessage,
+  rowClassName,
 }: DataTableMobileListProps<TData>) {
   if (!records.length) {
     return <p className="text-muted-foreground px-3 py-8 text-center text-sm">{emptyMessage}</p>;
@@ -43,7 +47,10 @@ export function DataTableMobileList<TData>({
           const { title, figure, details, actions } = groupCellsForPhone(row.getVisibleCells());
 
           return (
-            <li key={row.id} className="flex items-start gap-3 px-3 py-3">
+            <li
+              key={row.id}
+              className={cn('flex items-start gap-3 px-3 py-3', rowClassName?.(row.original))}
+            >
               <div className="min-w-0 flex-1">
                 <div className="truncate font-medium">{title ? renderCell(title) : null}</div>
 

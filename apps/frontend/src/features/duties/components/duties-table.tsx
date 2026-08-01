@@ -57,8 +57,11 @@ export type DutyRow = DBDuty & { expense: DBExpense; totalLabel?: string };
  */
 const ROW_TONE: Record<DutyRowTone, string | undefined> = {
   due: undefined,
-  settled: 'text-muted-foreground',
-  skipped: 'text-muted-foreground line-through',
+  // The priority badge carries its own fill, so dimming the row's text leaves it shouting on the
+  // one line that wants nothing. It keeps its colour -- the same fill the priority chart uses --
+  // and loses only its insistence.
+  settled: 'text-muted-foreground [&_[data-slot=badge]]:opacity-60',
+  skipped: 'text-muted-foreground line-through [&_[data-slot=badge]]:opacity-60',
 };
 
 const columns: ColumnDef<DutyRow>[] = [
