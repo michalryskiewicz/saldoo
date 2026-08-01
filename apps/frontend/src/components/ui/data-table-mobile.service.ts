@@ -16,7 +16,10 @@
 
 export type MobileRole = 'title' | 'figure' | 'detail' | 'actions' | 'hidden';
 
-type CellLike = { column: { columnDef: { meta?: { mobile?: MobileRole; grow?: boolean } } } };
+type CellLike = {
+  column: { columnDef: { meta?: { mobile?: MobileRole; grow?: boolean } } };
+  getValue?: () => unknown;
+};
 
 export const mobileRoleOf = (cell: CellLike): MobileRole => {
   const meta = cell.column.columnDef.meta;
@@ -24,9 +27,28 @@ export const mobileRoleOf = (cell: CellLike): MobileRole => {
   return meta?.mobile ?? (meta?.grow ? 'title' : 'detail');
 };
 
+/**
+ * Whether this record has anything to say in this column.
+ *
+ * Asked of details only, and the reason is punctuation. Details are strung together with a
+ * separator between them, so a column this record has no value for does not merely take up no
+ * room — it contributes a middot, and three unset columns leave the supporting line reading
+ * " · · · " with no words in it at all.
+ *
+ * A zero stays: it is an answer rather than the absence of one. A column with no accessor cannot
+ * be asked, and is kept — the table may well be rendering it from the record itself.
+ */
+const hasSomethingToSay = (cell: CellLike): boolean => {
+  if (!cell.getValue) return true;
+
+  const value = cell.getValue();
+
+  return value !== undefined && value !== null && value !== '';
+};
+
 export const groupCellsForPhone = <TCell extends CellLike>(cells: TCell[]) => ({
   title: cells.find((cell) => mobileRoleOf(cell) === 'title'),
   figure: cells.find((cell) => mobileRoleOf(cell) === 'figure'),
-  details: cells.filter((cell) => mobileRoleOf(cell) === 'detail'),
+  details: cells.filter((cell) => mobileRoleOf(cell) === 'detail' && hasSomethingToSay(cell)),
   actions: cells.filter((cell) => mobileRoleOf(cell) === 'actions'),
 });

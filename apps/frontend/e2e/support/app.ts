@@ -28,6 +28,9 @@ const SYNC_TIMEOUT_MS = 15_000;
 const EXPENSES_PATH = '/dashboard/expenses';
 const ACCOUNT_PATH = '/dashboard/account';
 const DUTIES_PATH = '/dashboard/duties';
+const PROFITS_PATH = '/dashboard/profits';
+const TRANSACTIONS_PATH = '/dashboard/transactions';
+const OVERVIEW_PATH = '/dashboard';
 
 export class SaldooApp {
   constructor(readonly page: Page) {}
@@ -529,6 +532,151 @@ export class SaldooApp {
 
   async expectNoExpense(description: string): Promise<void> {
     await expect(this.expenseRow(description)).toHaveCount(0, { timeout: SYNC_TIMEOUT_MS });
+  }
+
+  // === Profits ===
+
+  async openProfits(): Promise<void> {
+    if (new URL(this.page.url()).pathname !== PROFITS_PATH) await this.open(PROFITS_PATH);
+
+    await expect(this.page.getByRole('button', { name: label('create_profit') })).toBeVisible();
+  }
+
+  /** The profit drawer, addressed by its title: the date picker's popover is a `dialog` too. */
+  private get profitDrawer(): Locator {
+    return this.page.getByRole('dialog', { name: label('create_profits_title') });
+  }
+
+  async addProfit({
+    description,
+    amount,
+    frequency,
+  }: {
+    description: string;
+    amount: number;
+    frequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+  }): Promise<void> {
+    await this.openProfits();
+    await this.page.getByRole('button', { name: label('create_profit') }).click();
+
+    const sheet = this.profitDrawer;
+    await expect(sheet).toBeVisible();
+
+    await sheet.getByLabel(label('description'), { exact: true }).fill(description);
+    await sheet.getByLabel(label('profit'), { exact: true }).fill(String(amount));
+
+    if (frequency) await this.chooseOption(sheet, label('frequency'), label(frequency));
+
+    await sheet.getByLabel(label('execution'), { exact: true }).click();
+    await this.page.getByRole('gridcell').filter({ hasText: /^15$/ }).first().click();
+
+    await sheet.getByRole('button', { name: label('submit'), exact: true }).click();
+    await expect(sheet).toBeHidden();
+  }
+
+  /**
+   * Opens the profit drawer and leaves it open, for looking at rather than filling in.
+   *
+   * Waits for it to stop moving, not merely to exist — the sheet animates over 500ms and
+   * `visible` is true from the first frame.
+   */
+  async openProfitForm(): Promise<void> {
+    await this.openProfits();
+    await this.page.getByRole('button', { name: label('create_profit') }).click();
+
+    const drawer = this.profitDrawer;
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByRole('button', { name: label('submit') })).toBeVisible();
+
+    let previous = -1;
+    await expect
+      .poll(
+        async () => {
+          const x = (await drawer.boundingBox())?.x ?? -1;
+          const settled = x >= 0 && x === previous;
+          previous = x;
+          return settled;
+        },
+        { timeout: 5_000, intervals: [100] }
+      )
+      .toBe(true);
+  }
+
+  async closeProfitForm(): Promise<void> {
+    await this.page.keyboard.press('Escape');
+    await expect(this.profitDrawer).toBeHidden();
+  }
+
+  // === Transactions ===
+
+  async openTransactions(): Promise<void> {
+    if (new URL(this.page.url()).pathname !== TRANSACTIONS_PATH) await this.open(TRANSACTIONS_PATH);
+
+    await expect(
+      this.page.getByRole('button', { name: label('create_transactions') })
+    ).toBeVisible();
+  }
+
+  /**
+   * Uploads a bank statement the way a person does: through the file field, not by writing
+   * rows into the database.
+   *
+   * The file input is `display: none` behind a styled label, which `setInputFiles` does not
+   * mind — it sets the field rather than clicking it.
+   */
+  async importTransactions(statement: Buffer, bank: 'ING' | 'PKOBP' = 'ING'): Promise<void> {
+    await this.openTransactions();
+    await this.page.getByRole('button', { name: label('create_transactions') }).click();
+
+    const sheet = this.page.getByRole('dialog', { name: label('add_transactions') });
+    await expect(sheet).toBeVisible();
+
+    await sheet.getByRole('radio', { name: bank === 'ING' ? 'ING Bank Śląski' : 'PKO BP' }).click();
+    await sheet
+      .locator('#file-input')
+      .setInputFiles({ name: 'statement.csv', mimeType: 'text/csv', buffer: statement });
+
+    await sheet.getByRole('button', { name: label('submit'), exact: true }).click();
+
+    // The drawer does not close itself, and the parse runs off the main thread — so the
+    // notice is the only signal that the rows have landed.
+    await expect(this.page.getByText(label('success.upload-transaction'))).toBeVisible({
+      timeout: SYNC_TIMEOUT_MS,
+    });
+    await this.page.keyboard.press('Escape');
+    await expect(sheet).toBeHidden();
+  }
+
+  /**
+   * Files one payment against a planned expense, a category and a part of the budget.
+   *
+   * Through the bulk editor, which is the only way the app offers: tick the row, open the
+   * dialog, and the three selects apply to everything ticked.
+   */
+  async assignTransaction(description: string): Promise<void> {
+    await this.openTransactions();
+
+    const row = this.page.getByRole('row').filter({ hasText: description });
+    await row.getByRole('checkbox', { name: label('table.select_row') }).check();
+
+    await this.page.getByRole('button', { name: label('edit') }).click();
+
+    const dialog = this.page.getByRole('dialog', { name: label('edit_title') });
+    await expect(dialog).toBeVisible();
+
+    for (const field of ['forms.expense', 'forms.category', 'forms.strategy-part'] as const) {
+      await dialog.getByLabel(label(field), { exact: true }).click();
+      await this.page.getByRole('option').first().click();
+    }
+
+    await dialog.getByRole('button', { name: label('save_changes') }).click();
+    await expect(dialog).toBeHidden();
+  }
+
+  // === Overview ===
+
+  async openOverview(): Promise<void> {
+    if (new URL(this.page.url()).pathname !== OVERVIEW_PATH) await this.open(OVERVIEW_PATH);
   }
 
   /**

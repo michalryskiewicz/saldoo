@@ -1,9 +1,10 @@
-import { test, type Route } from '@playwright/test';
+import { expect, test, type Page, type Route } from '@playwright/test';
 import pl from '../src/locales/pl.json' with { type: 'json' };
 import { createFakeDrive } from './support/fake-drive.ts';
 import { openDevice } from './support/device.ts';
 import { SaldooApp } from './support/app.ts';
 import { PASSPHRASE } from './support/fixtures.ts';
+import { ingStatement, type StatementEntry } from './support/bank-statement.ts';
 
 /**
  * Not a test — a camera. It asserts nothing and is skipped unless asked for:
@@ -34,6 +35,33 @@ const VIEWPORTS = {
  * shows an empty plot area, which reads as a broken chart and is not one.
  */
 const CHART_ANIMATION_MS = 1_800;
+
+/**
+ * Waits until the bars stop growing, rather than waiting out a number.
+ *
+ * The animation is not the only thing that decides when a chart is finished: the exchange rates
+ * arrive from the network after the records arrive from IndexedDB, and the figures change when
+ * they land — so the bars start again from zero partway through any fixed wait. Which is how
+ * the profits chart was photographed as an empty plot area at one width and a full one at the
+ * other, from the same data.
+ */
+const waitForBarsToSettle = async (page: Page) => {
+  const bars = page.locator('.recharts-bar-rectangle');
+  await bars.first().waitFor();
+
+  let previous = -1;
+  await expect
+    .poll(
+      async () => {
+        const height = (await bars.first().boundingBox())?.height ?? -1;
+        const settled = height > 0 && height === previous;
+        previous = height;
+        return settled;
+      },
+      { timeout: 15_000, intervals: [200] }
+    )
+    .toBe(true);
+};
 
 const EXPENSES_ROUTE = '/dashboard/expenses';
 const dutiesLabel = pl.duties;
@@ -85,12 +113,7 @@ test('shots: the expenses page in both themes and both widths', async ({ browser
     for (const [name, viewport] of Object.entries(VIEWPORTS)) {
       await device.page.setViewportSize(viewport);
 
-      // Waited for a bar to exist *before* waiting out the animation. The chart's data arrives
-      // from IndexedDB after the page is otherwise ready, so counting the animation from
-      // page-ready is counting from the wrong moment — and a shot taken then shows an empty plot
-      // area, which reads as a chart with no data.
-      await device.page.locator('.recharts-bar-rectangle').first().waitFor();
-      await device.page.waitForTimeout(CHART_ANIMATION_MS);
+      await waitForBarsToSettle(device.page);
 
       await device.page.screenshot({
         path: `shots/expenses-${name}-${theme}.png`,
@@ -156,6 +179,126 @@ test('shots: the duties page in both themes and both widths', async ({ browser, 
         fullPage: true,
       });
     }
+  }
+
+  await device.close();
+});
+
+/** Enough rows for a total, a spread across categories, and a heatmap with something in it. */
+const PROFITS = [
+  { description: 'Wynagrodzenie', amount: 12500, frequency: 'MONTHLY' },
+  { description: 'Zlecenie — strona internetowa', amount: 3200, frequency: 'YEARLY' },
+  { description: 'Odsetki z lokaty', amount: 84.2, frequency: 'MONTHLY' },
+] as const;
+
+/**
+ * A day of this month, as the bank writes it.
+ *
+ * Relative to today rather than fixed: the month filter and the heatmap both read the calendar,
+ * and a statement from a year ago photographs an empty screen rather than a full one.
+ */
+const dayOfThisMonth = (day: number) => {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+
+  return `${today.getFullYear()}-${month}-${String(day).padStart(2, '0')}`;
+};
+
+const STATEMENT: StatementEntry[] = [
+  { date: dayOfThisMonth(2), title: 'Czynsz - wspólnota mieszkaniowa', amount: -2500 },
+  { date: dayOfThisMonth(3), title: 'BIEDRONKA 1234 WARSZAWA', amount: -213.47 },
+  { date: dayOfThisMonth(5), title: 'Orange Polska - abonament', amount: -65 },
+  { date: dayOfThisMonth(8), title: 'GREEN CAFFE NERO', amount: -14.99 },
+  { date: dayOfThisMonth(9), title: 'Przelew przychodzacy - wynagrodzenie', amount: 12500 },
+  { date: dayOfThisMonth(12), title: 'PZU - składka OC', amount: -1980 },
+  { date: dayOfThisMonth(14), title: 'ZABKA Z0123 KRAKÓW', amount: -37.8 },
+];
+
+/**
+ * The three screens that have not been through the rework the expenses table set the shape of.
+ *
+ * One test rather than three: the vault, the wizard and the seed data cost far more than the
+ * shots do, and all three screens read the same records.
+ */
+test('shots: the remaining dashboards in both themes and both widths', async ({
+  browser,
+  baseURL,
+}) => {
+  test.setTimeout(360_000);
+
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  // A reload between each: a popover left over from the previous form makes the next one's
+  // option list unclickable.
+  for (const expense of EXPENSES) {
+    await app.addExpense(expense);
+    await device.page.reload();
+    await app.openExpenses();
+  }
+
+  for (const profit of PROFITS) {
+    await app.addProfit(profit);
+    await device.page.reload();
+    await app.openProfits();
+  }
+
+  await app.importTransactions(ingStatement(STATEMENT));
+
+  // One payment filed, because an unfiled one shows an empty column: what the merged assignment
+  // column looks like *with* something in it is the whole reason it was merged.
+  await app.assignTransaction('BIEDRONKA');
+
+  const SCREENS = [
+    { name: 'profits', open: () => app.openProfits(), settled: 'Wynagrodzenie', chart: true },
+    { name: 'transactions', open: () => app.openTransactions(), settled: 'BIEDRONKA' },
+    { name: 'overview', open: () => app.openOverview(), settled: undefined },
+  ] as const;
+
+  for (const theme of ['light', 'dark'] as const) {
+    await device.page.setViewportSize(VIEWPORTS.desktop);
+    await app.chooseTheme(theme);
+
+    // Reloaded for the same reason every other shot is: it is the only reliable way to be rid of
+    // the focus ring the theme menu hands back to its trigger.
+    await device.page.reload();
+
+    for (const screen of SCREENS) {
+      await screen.open();
+
+      for (const [name, viewport] of Object.entries(VIEWPORTS)) {
+        await device.page.setViewportSize(viewport);
+
+        // Records arrive from IndexedDB after the page is otherwise ready, and below `md` a table
+        // is not a table — so wait for the record itself rather than for a `tr`. The overview has
+        // no records to wait for, only charts, so it waits out the animation alone.
+        if (screen.settled) await device.page.getByText(screen.settled).first().waitFor();
+        if ('chart' in screen) await waitForBarsToSettle(device.page);
+        await device.page.waitForTimeout(CHART_ANIMATION_MS);
+
+        await device.page.screenshot({
+          path: `shots/${screen.name}-${name}-${theme}.png`,
+          fullPage: true,
+        });
+      }
+
+      // Back to desktop before the next screen: the theme control the loop reaches for next has
+      // less room to be found on a phone.
+      await device.page.setViewportSize(VIEWPORTS.desktop);
+    }
+
+    // And the profit drawer, which is a screen of its own and cannot be judged from the page
+    // behind it. Desktop width: the drawer is where the two-column pairing shows at all.
+    await app.openProfitForm();
+    // The viewport, not the full page: the drawer is `position: fixed`, and a full-page capture
+    // walks the document flow and leaves it out of the image entirely.
+    await device.page.screenshot({ path: `shots/profit-form-${theme}.png` });
+    await app.closeProfitForm();
   }
 
   await device.close();

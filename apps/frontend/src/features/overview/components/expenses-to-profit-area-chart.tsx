@@ -18,11 +18,11 @@ import { ChartEmptyOverlay } from '@/components/stats/empty-state.tsx';
 const chartConfig = {
   totalProfits: {
     label: i18n.t('metrics.totalProfits'),
-    color: 'var(--chart-2)',
+    color: 'var(--series-profit)',
   },
   totalExpense: {
     label: i18n.t('metrics.totalExpense'),
-    color: 'var(--chart-1)',
+    color: 'var(--series-expense)',
   },
 } satisfies ChartConfig;
 
@@ -112,14 +112,12 @@ export function ChartAreaInteractive() {
                 />
               }
               cursor={false}
-              defaultIndex={1}
             />
             <Line
               dataKey="totalExpense"
               type="monotone"
               stroke="var(--color-totalExpense)"
               strokeWidth={2}
-              fill="ulr(#fillMobile)"
               dot={{
                 fill: 'var(--color-totalExpense)',
               }}
@@ -131,7 +129,6 @@ export function ChartAreaInteractive() {
               dataKey="totalProfits"
               type="monotone"
               stroke="var(--color-totalProfits)"
-              fill="ulr(#fillDesktop)"
               strokeWidth={2}
               dot={{
                 fill: 'var(--color-totalProfits)',

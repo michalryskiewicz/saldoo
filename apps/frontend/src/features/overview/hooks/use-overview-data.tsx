@@ -7,13 +7,13 @@ import { getEarliestAndLatestDate, getFromDate } from '@/lib/dates.ts';
 import { useListExchangeRatesQuery } from '@/store/exchange-rates.api.ts';
 import { startOfMonth, format } from 'date-fns';
 import {
-  generateContributionData,
   calculateFinancialSafetyNet,
   groupExpensesAndProfitsByMonth,
   groupExpensesByCategory,
   groupExpensesByStrategyPart,
 } from '@/lib/expenses.ts';
 import { useListTags } from '@/database/hooks/use-list-tags.tsx';
+import { spendingByDayOfMonth } from '@/lib/monthly-spending.ts';
 
 export const useOverviewData = () => {
   // ===========================================================================
@@ -137,7 +137,7 @@ export const useOverviewData = () => {
     currency: preferredCurrency,
   };
 
-  const contributionData = generateContributionData(transactionsInSelectedCurrency);
+  const monthlySpending = spendingByDayOfMonth(transactionsInSelectedCurrency, new Date());
 
   return {
     currency: preferredCurrency,
@@ -149,7 +149,7 @@ export const useOverviewData = () => {
     maxRadialChartItem,
     expensesByStrategyPart,
     financialSafetyNet: financialSafetyNetToReturn,
-    contributionData,
+    monthlySpending,
     tags,
     settings,
     hasExpenses: expenses.length > 0,

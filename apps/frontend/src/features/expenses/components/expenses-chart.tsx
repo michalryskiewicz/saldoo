@@ -37,7 +37,7 @@ import { useListExpenses } from '@/features/expenses/hooks/use-list-expenses.tsx
 const chartConfig = {
   total: {
     label: i18n.t('metrics.totalExpense'),
-    color: 'var(--chart-3)',
+    color: 'var(--series-expense)',
   },
   high: {
     label: i18n.t('metrics.HIGH'),

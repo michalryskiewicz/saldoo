@@ -1,5 +1,3 @@
-import { createStepCollector } from '@/lib/banks/step-collector.ts';
-
 export const PKOBP_HEADER_ROW = [
   'Data operacji',
   'Data waluty',
@@ -15,5 +13,3 @@ export const PKOBP_HEADER_ROW = [
 ];
 
 export const PKOBP_STOP_ROWS = [['']];
-
-export const pkobpStepCollector = createStepCollector(PKOBP_HEADER_ROW, PKOBP_STOP_ROWS);

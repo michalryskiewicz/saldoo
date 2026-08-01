@@ -150,13 +150,28 @@ describe('expenses service', () => {
       expect(result.every((m) => m.totalExpense > 0)).toBe(true);
     });
 
-    it('correctly sums profits for each month', () => {
-      const profits = [{ profit: 100 }, { profit: 50 }] as never[];
+    it('correctly sums monthly profits into every month', () => {
+      const profits = [
+        { profit: 100, frequency: 'MONTHLY', execution: new Date(2026, 6, 15) },
+        { profit: 50, frequency: 'MONTHLY', execution: new Date(2026, 6, 15) },
+      ] as never[];
       const result = groupExpensesAndProfitsByMonth([], profits);
       expect(result).toHaveLength(12);
       result.forEach((m) => {
         expect(m.totalProfits).toBe(150);
       });
+    });
+
+    it('leaves a yearly profit in the month it arrives in', () => {
+      // It used to land in all twelve, whatever its frequency, so a one-off commission of 3200
+      // was reported as 38 400 a year -- and the profit line across the overview was flat.
+      const profits = [
+        { profit: 3200, frequency: 'YEARLY', execution: new Date(2026, 6, 15) },
+      ] as never[];
+      const result = groupExpensesAndProfitsByMonth([], profits);
+
+      expect(result[6].totalProfits).toBe(3200);
+      expect(result.filter((m) => m.totalProfits > 0)).toHaveLength(1);
     });
 
     it('handles expenses with missing execution date by skipping them', () => {
