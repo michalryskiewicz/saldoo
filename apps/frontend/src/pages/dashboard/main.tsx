@@ -5,14 +5,14 @@ import { BudgetingStrategyCards } from '@/features/overview/components/budgeting
 import { FinancialSafetyNetCard } from '@/features/overview/components/financial-safety-net-card.tsx';
 import ContributionHeatmap from '@/features/overview/components/contribution-heatmap-chart.tsx';
 import { SetUpPersonalPreferencesIndicator } from '@/components/set-up-personal-preferences-indicator.tsx';
-import ContentLoading from '@/components/loaders/content-loading.tsx';
+import { ContentSkeleton } from '@/components/loaders/content-skeleton.tsx';
 import { useOverviewData } from '@/features/overview/hooks/use-overview-data.tsx';
 
 export default function Page() {
   const { settings, isLoading } = useOverviewData();
 
   if (isLoading) {
-    return <ContentLoading />;
+    return <ContentSkeleton />;
   }
 
   if (!settings?.currency || !settings?.strategy) {

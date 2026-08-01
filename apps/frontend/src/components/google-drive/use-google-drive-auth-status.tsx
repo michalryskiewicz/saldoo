@@ -12,6 +12,11 @@ export function useGoogleDriveAuthStatus(intervalMs = 60 * 1000) {
   const [isConnected, setIsConnected] = useState(() => driveTokenService.hasFreshToken());
 
   const renew = useCallback(async () => {
+    // Asked only when the held token has actually gone stale. This ran every interval
+    // regardless, so a signed-in person sitting on a page generated a token request a
+    // minute — the busiest source of requests nobody clicked for.
+    if (driveTokenService.hasFreshToken()) return true;
+
     try {
       await driveTokenService.getAccessToken();
       return true;

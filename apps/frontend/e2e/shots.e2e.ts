@@ -1,4 +1,5 @@
-import { test } from '@playwright/test';
+import { test, type Route } from '@playwright/test';
+import pl from '../src/locales/pl.json' with { type: 'json' };
 import { createFakeDrive } from './support/fake-drive.ts';
 import { openDevice } from './support/device.ts';
 import { SaldooApp } from './support/app.ts';
@@ -33,6 +34,9 @@ const VIEWPORTS = {
  * shows an empty plot area, which reads as a broken chart and is not one.
  */
 const CHART_ANIMATION_MS = 1_800;
+
+const EXPENSES_ROUTE = '/dashboard/expenses';
+const dutiesLabel = pl.duties;
 
 /** Enough variety for colour, alignment and column width to be judgeable at a glance. */
 const EXPENSES = [
@@ -152,6 +156,82 @@ test('shots: the duties page in both themes and both widths', async ({ browser, 
         fullPage: true,
       });
     }
+  }
+
+  await device.close();
+});
+
+/**
+ * The two waits, held open on purpose.
+ *
+ * Both are built to be missed: nothing is drawn for the first 300ms, and most waits are over by
+ * then. So the only way to look at either is to make the thing it waits on slow, which is what
+ * the held routes below do — `fallback` hands each request back to the Google stub afterwards.
+ */
+test('shots: the two loading screens in both themes', async ({ browser, baseURL }) => {
+  test.setTimeout(240_000);
+
+  const USERINFO = '**/oauth2/v3/userinfo*';
+  const LAZY_CHUNK = '**/assets/*.js';
+  /** Long enough to outlast the reveal delay and the shot itself. */
+  const HELD_MS = 3_000;
+  /** The reveal delay, plus room for the wait to paint. */
+  const SETTLE_MS = 1_200;
+
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  /**
+   * Registered `times: 1` rather than unrouted afterwards: removing a handler while it still holds
+   * a request kills that request, and a failed userinfo call reads to the app as a lost identity —
+   * which sent the first attempt at this shot to the sign-in screen instead.
+   *
+   * Each handler finishes the request itself rather than calling `fallback`: handing a
+   * slept-on route back to the Google stub raced it into `Route is already handled`.
+   */
+  const holdIdentity = async (route: Route) => {
+    await sleep(HELD_MS);
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ sub: 'shots-user', email: 'shots@example.com', name: 'Shots' }),
+    });
+  };
+
+  const holdChunk = async (route: Route) => {
+    await sleep(HELD_MS);
+    await route.continue();
+  };
+
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  for (const theme of ['light', 'dark'] as const) {
+    await device.page.setViewportSize(VIEWPORTS.desktop);
+    await app.chooseTheme(theme);
+    await device.page.reload();
+    await app.openExpenses();
+
+    // Identity is what the auth guard waits on, so holding the userinfo answer holds the guard —
+    // and the guard is the first of the three gates that used to show a screen each.
+    await device.page.route(USERINFO, holdIdentity, { times: 1 });
+    await device.page.goto(EXPENSES_ROUTE);
+    await device.page.waitForTimeout(SETTLE_MS);
+    await device.page.screenshot({ path: `shots/loading-entry-${theme}.png` });
+
+    await app.openExpenses();
+
+    // The other wait lives inside the shell, so it has to be a client-side navigation: a full
+    // load would hold the document itself and put us back on the entry screen.
+    await device.page.route(LAZY_CHUNK, holdChunk, { times: 1 });
+    await device.page.getByRole('link', { name: dutiesLabel }).click();
+    await device.page.waitForTimeout(SETTLE_MS);
+    await device.page.screenshot({ path: `shots/loading-content-${theme}.png` });
+    await app.openDuties();
   }
 
   await device.close();

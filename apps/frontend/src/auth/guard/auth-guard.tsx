@@ -4,7 +4,7 @@ import { decideAuthAccess } from './auth-access.service.ts';
 import { usePathname, useRouter } from '@/routes/hooks';
 import { useIsOnline } from '@/hooks/use-is-online.ts';
 import { paths } from '@/routes/paths.ts';
-import { PageLoader } from '@/components/loaders/page-loader.tsx';
+import { AppLoading } from '@/components/loaders/app-loading.tsx';
 
 export function AuthGuard({ children }: PropsWithChildren) {
   const router = useRouter();
@@ -21,7 +21,7 @@ export function AuthGuard({ children }: PropsWithChildren) {
     router.replace(`${paths.auth.google.signIn}?${returnTo}`);
   }, [access, pathname, router]);
 
-  if (access !== 'allow') return <PageLoader title="metrics.loading" />;
+  if (access !== 'allow') return <AppLoading />;
 
   return children;
 }

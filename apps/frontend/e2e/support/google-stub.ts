@@ -32,10 +32,18 @@ export const STUB_ACCOUNT = {
 const FAKE_GIS_SCRIPT = `
 window.google = window.google || {};
 window.google.accounts = window.google.accounts || {};
+// Every ask, recorded. What the app requests of Google is a contract with no other
+// witness: the prompt value alone decides whether a window can appear unbidden, and it is
+// invisible to every other kind of test. Reset per document load, like GIS itself.
+window.__gisRequests = [];
 window.google.accounts.oauth2 = {
   initTokenClient: function (config) {
     return {
       requestAccessToken: function () {
+        window.__gisRequests.push({
+          prompt: config.prompt,
+          login_hint: config.login_hint || null,
+        });
         setTimeout(function () {
           config.callback({
             access_token: ${JSON.stringify(STUB_ACCOUNT.accessToken)},

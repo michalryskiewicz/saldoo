@@ -1,4 +1,9 @@
-import type { GoogleTokenResponse, RequestToken } from './drive-token.service.ts';
+import { resolveTokenPrompt } from './token-prompt.service.ts';
+import {
+  TokenRequestError,
+  type GoogleTokenResponse,
+  type RequestToken,
+} from './drive-token.service.ts';
 
 const GIS_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
 
@@ -10,6 +15,7 @@ type GisTokenClientConfig = {
   client_id: string;
   scope: string;
   prompt?: string;
+  login_hint?: string;
   callback: (response: GoogleTokenResponse) => void;
   error_callback?: (error: { type?: string; message?: string }) => void;
 };
@@ -51,31 +57,47 @@ function loadGisScript(): Promise<void> {
   return scriptLoad;
 }
 
+export type GisRequestTokenOptions = {
+  clientId: string;
+  scope: string;
+  /**
+   * Read per request rather than once at construction: the hint is unknown on a device's
+   * first sign-in and known immediately after it.
+   */
+  getLoginHint: () => string | null;
+};
+
 /**
  * Bridges {@link RequestToken} onto Google Identity Services.
  *
- * `prompt: ''` asks GIS to reuse the consent already granted during login, which
- * is what makes the Drive connection survive in the background without a second
- * click. If Google cannot honour it, the rejection surfaces to the caller so the
- * UI can fall back to an interactive request.
+ * Failures keep the code Google gave them, as a {@link TokenRequestError}, so downstream
+ * can tell a withdrawn grant from a dropped connection — flattening them into one error is
+ * how a revoked grant used to retry forever without telling anybody.
  */
-export function createGisRequestToken(clientId: string, scope: string): RequestToken {
+export function createGisRequestToken({
+  clientId,
+  scope,
+  getLoginHint,
+}: GisRequestTokenOptions): RequestToken {
   return async ({ silent }) => {
     await loadGisScript();
 
     const oauth2 = window.google?.accounts?.oauth2;
     if (!oauth2) throw new Error('Google Identity Services unavailable');
 
+    const hint = getLoginHint();
+
     return new Promise<GoogleTokenResponse>((resolve, reject) => {
       const client = oauth2.initTokenClient({
         client_id: clientId,
         scope,
-        prompt: silent ? '' : 'select_account consent',
+        prompt: resolveTokenPrompt(silent, hint),
+        ...(hint ? { login_hint: hint } : {}),
         callback: (response) => {
           if (response.access_token) resolve(response);
-          else reject(new Error(response.error ?? 'No access token returned'));
+          else reject(new TokenRequestError(response.error));
         },
-        error_callback: (error) => reject(new Error(error.type ?? 'Token request failed')),
+        error_callback: (error) => reject(new TokenRequestError(error.type)),
       });
 
       client.requestAccessToken();

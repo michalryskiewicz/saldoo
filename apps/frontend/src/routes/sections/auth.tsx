@@ -4,7 +4,7 @@ import { Outlet } from 'react-router';
 import { lazy, Suspense } from 'react';
 
 import { GuestGuard } from '@/auth/guard';
-import ContentLoading from '@/components/loaders/content-loading.tsx';
+import { AppLoading } from '@/components/loaders/app-loading.tsx';
 import { MetaDataWrapper } from '@/routes/components';
 import { paths } from '@/routes/paths.ts';
 
@@ -32,7 +32,7 @@ export const authRoutes: RouteObject[] = [
   {
     path: paths.auth.root,
     element: (
-      <Suspense fallback={<ContentLoading />}>
+      <Suspense fallback={<AppLoading />}>
         <Outlet />
       </Suspense>
     ),

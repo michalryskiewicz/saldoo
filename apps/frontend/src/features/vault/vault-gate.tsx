@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from 'react';
-import { PageLoader } from '@/components/loaders/page-loader.tsx';
+import { AppLoading } from '@/components/loaders/app-loading.tsx';
 import { useVaultGate } from '@/features/vault/use-vault-gate.ts';
 import { RecoveryCodeView } from '@/features/vault/views/recovery-code-view.tsx';
 import { VaultSetupView } from '@/features/vault/views/vault-setup-view.tsx';
@@ -18,7 +18,7 @@ export function VaultGate({ children }: PropsWithChildren) {
     useVaultGate();
 
   if (status === 'checking') {
-    return <PageLoader title="vault.checking" />;
+    return <AppLoading />;
   }
 
   if (status === 'needs-setup') {

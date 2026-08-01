@@ -2,7 +2,7 @@ import { useState, useEffect, type PropsWithChildren } from 'react';
 import { useAuth } from '../hooks';
 import { useSearchParams } from '@/routes/hooks';
 import { CONFIG } from '@/global-config.ts';
-import { PageLoader } from '@/components/loaders/page-loader.tsx';
+import { AppLoading } from '@/components/loaders/app-loading.tsx';
 
 export function GuestGuard({ children }: PropsWithChildren) {
   const searchParams = useSearchParams();
@@ -32,7 +32,7 @@ export function GuestGuard({ children }: PropsWithChildren) {
   }, [isAuthenticated, loading]);
 
   if (isChecking) {
-    return <PageLoader title="metrics.loading" />;
+    return <AppLoading />;
   }
 
   return <>{children}</>;

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   DriveAuthRequiredError,
   DriveTokenService,
+  TokenRequestError,
   EXPIRY_MARGIN_MS,
   type GoogleTokenResponse,
   type TokenCache,
@@ -140,5 +141,42 @@ describe('DriveTokenService', () => {
 
     expect(service.hasFreshToken()).toBe(false);
     expect(cache.read()).toBeNull();
+  });
+
+  // === Why the renewal failed ===
+  //
+  // Every failure used to arrive as one undifferentiated error, so a withdrawn grant
+  // retried forever in silence while a dropped connection was treated as gravely.
+
+  it('carries a refusal as a refusal', async () => {
+    const requestToken = vi.fn(async () => ({ error: 'access_denied' }));
+    const service = new DriveTokenService(requestToken, createCache(), now);
+
+    await expect(service.getAccessToken()).rejects.toMatchObject({ reason: 'refused' });
+  });
+
+  it('carries a silent renewal that needs the person as needing interaction', async () => {
+    const requestToken = vi.fn(async () => ({ error: 'interaction_required' }));
+    const service = new DriveTokenService(requestToken, createCache(), now);
+
+    await expect(service.getAccessToken()).rejects.toMatchObject({ reason: 'needs-interaction' });
+  });
+
+  it('reads the code off a thrown TokenRequestError rather than losing it', async () => {
+    const requestToken = vi.fn(async () => {
+      throw new TokenRequestError('popup_failed_to_open');
+    });
+    const service = new DriveTokenService(requestToken, createCache(), now);
+
+    await expect(service.getAccessToken()).rejects.toMatchObject({ reason: 'unavailable' });
+  });
+
+  it('treats a throw it cannot read as unavailable, never as a refusal', async () => {
+    const requestToken = vi.fn(async () => {
+      throw new Error('the network, probably');
+    });
+    const service = new DriveTokenService(requestToken, createCache(), now);
+
+    await expect(service.getAccessToken()).rejects.toMatchObject({ reason: 'unavailable' });
   });
 });

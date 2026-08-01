@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from 'react';
 import { OnboardingPage } from '@/features/onboarding/onboarding-page.tsx';
-import { PageLoader } from '@/components/loaders/page-loader.tsx';
+import { AppLoading } from '@/components/loaders/app-loading.tsx';
 import { useSettings } from '@/features/settings/use-settings.ts';
 import { needsOnboarding } from '@/database/settings.service.ts';
 
@@ -11,7 +11,7 @@ export const OnboardingWrapper = ({ children }: PropsWithChildren) => {
   // Return
   // ===========================================================================
   if (isLoading || !settings) {
-    return <PageLoader title="metrics.checking-actions" />;
+    return <AppLoading />;
   }
 
   if (needsOnboarding(settings)) {
