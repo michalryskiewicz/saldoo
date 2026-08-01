@@ -10,10 +10,8 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   type SortingState,
-  type ColumnFiltersState,
   useReactTable,
   getFilteredRowModel,
-  filterFns,
 } from '@tanstack/react-table';
 
 import { partitionTotalRow } from '@/components/ui/data-table-rows.service.ts';
@@ -87,7 +85,6 @@ import {
 } from '@/components/ui/table';
 import type { Row } from '@tanstack/react-table';
 import * as React from 'react';
-import { dateBetweenFilterFn } from '../tanstack-table';
 
 /** Room for fifty rows before anybody has to reach for a pager. */
 const DEFAULT_PAGE_SIZE = 50;
@@ -143,7 +140,6 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>(initialSorting ?? []);
   const [rowSelection, setRowSelection] = React.useState({});
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
   const resolvedGetRowId = React.useMemo<(row: TData, index: number) => string>(
     () =>
@@ -159,22 +155,16 @@ export function DataTable<TData, TValue>({
     data,
     columns,
     getRowId: resolvedGetRowId,
-    filterFns: {
-      ...filterFns,
-      dateBetweenFilterFn,
-    },
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onRowSelectionChange: setRowSelection,
-    onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
     initialState: { pagination: { pageSize: DEFAULT_PAGE_SIZE } },
     state: {
       sorting,
       rowSelection,
-      columnFilters,
     },
   });
 

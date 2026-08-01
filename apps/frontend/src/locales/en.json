@@ -86,6 +86,8 @@
   "submit": "Confirm",
   "description": "Description",
   "expense": "Expense",
+  "amount": "Amount",
+  "settled_expense": "Assigned expense",
   "severity": "Priority",
   "execution": "Due",
   "due_date": "Due",

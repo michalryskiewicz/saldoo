@@ -86,6 +86,8 @@
   "submit": "Potwierdź",
   "description": "Opis",
   "expense": "Wydatek",
+  "amount": "Kwota",
+  "settled_expense": "Przypisany wydatek",
   "severity": "Priorytet",
   "execution": "Wykonanie",
   "due_date": "Termin",
