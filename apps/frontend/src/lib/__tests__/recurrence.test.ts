@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FREQUENCY } from '@/constant.ts';
-import { costInYear, occurrencesInMonth } from '../recurrence.ts';
+import { costInYear, occurrencesInMonth, occurrencesInRange } from '../recurrence.ts';
+import { format } from 'date-fns';
 
 // A Wednesday. July 2026 holds five of them, August four.
 const WEDNESDAY_IN_JULY = new Date(2026, 6, 15);
@@ -108,5 +109,64 @@ describe('costInYear', () => {
 
   it('is nothing for no amount', () => {
     expect(costInYear({ frequency: FREQUENCY.MONTHLY }, undefined, 2026)).toBe(0);
+  });
+});
+
+const asISODates = (dates: Date[]) => dates.map((date) => format(date, 'yyyy-MM-dd'));
+
+describe('occurrencesInRange', () => {
+  it('gives a daily recurrence one date per day of the range', () => {
+    const dates = occurrencesInRange(
+      { frequency: FREQUENCY.DAILY, execution: WEDNESDAY_IN_JULY },
+      { from: new Date(2026, 6, 14), to: new Date(2026, 6, 17) }
+    );
+
+    expect(asISODates(dates)).toEqual(['2026-07-14', '2026-07-15', '2026-07-16', '2026-07-17']);
+  });
+
+  it('gives a weekly recurrence the days its weekday comes round on', () => {
+    const dates = occurrencesInRange(
+      { frequency: FREQUENCY.WEEKLY, execution: WEDNESDAY_IN_JULY },
+      { from: new Date(2026, 6, 1), to: new Date(2026, 6, 31) }
+    );
+
+    expect(asISODates(dates)).toEqual([
+      '2026-07-01',
+      '2026-07-08',
+      '2026-07-15',
+      '2026-07-22',
+      '2026-07-29',
+    ]);
+  });
+
+  it('lands a monthly recurrence on the last day a month has, when it has no such day', () => {
+    // Rent due on the 31st. Built straight from the day, February's would be the 3rd of March
+    // — outside the month, so the month simply had no rent in it and nothing said so.
+    const dates = occurrencesInRange(
+      { frequency: FREQUENCY.MONTHLY, execution: new Date(2026, 0, 31) },
+      { from: new Date(2027, 0, 1), to: new Date(2027, 3, 30) }
+    );
+
+    expect(asISODates(dates)).toEqual(['2027-01-31', '2027-02-28', '2027-03-31', '2027-04-30']);
+  });
+
+  it('gives a yearly recurrence its own day, once a year', () => {
+    const dates = occurrencesInRange(
+      { frequency: FREQUENCY.YEARLY, execution: new Date(2024, 1, 29) },
+      { from: new Date(2026, 0, 1), to: new Date(2028, 11, 31) }
+    );
+
+    // Entered on a leap day, which most years do not have. It falls on the last day February
+    // holds rather than slipping into March.
+    expect(asISODates(dates)).toEqual(['2026-02-28', '2027-02-28', '2028-02-29']);
+  });
+
+  it('gives nothing back for a range that ends before it starts', () => {
+    const dates = occurrencesInRange(
+      { frequency: FREQUENCY.DAILY, execution: WEDNESDAY_IN_JULY },
+      { from: new Date(2026, 6, 17), to: new Date(2026, 6, 14) }
+    );
+
+    expect(dates).toEqual([]);
   });
 });

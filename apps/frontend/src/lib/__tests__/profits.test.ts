@@ -71,6 +71,18 @@ describe('groupProfitsByMonth', () => {
     expect(months[5].total).toBe(12500);
   });
 
+  it('counts against the year being asked about, not the year the profit was entered in', () => {
+    // Entered on a leap year's February. Asked about a year whose February is a day shorter —
+    // the answer follows the question, or a profit entered in 2024 is counted against 2024's
+    // calendar for the rest of its life.
+    const months = groupProfitsByMonth(
+      [profit({ profit: 10, frequency: FREQUENCY.DAILY, execution: new Date(2024, 1, 15) })],
+      2027
+    );
+
+    expect(months[1].total).toBe(280);
+  });
+
   it('leaves out a profit with no date rather than guessing one', () => {
     // A recurrence needs a day to recur on; without one there is no month to count it in.
     expect(groupProfitsByMonth([profit({ profit: 999, frequency: FREQUENCY.YEARLY })])).toEqual(

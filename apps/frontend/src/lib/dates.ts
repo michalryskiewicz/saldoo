@@ -35,15 +35,6 @@ export function daysInMonth(year: number, monthIdx: number) {
   return new Date(year, monthIdx + 1, 0).getDate();
 }
 
-export function getDatesInRange(start: Date, end: Date): string[] {
-  const dates: string[] = [];
-  const current = new Date(start);
-  while (current <= end) {
-    dates.push(current.toISOString().slice(0, 10));
-    current.setDate(current.getDate() + 1);
-  }
-  return dates;
-}
 
 export function isDateInRange(
   day: Date | string,

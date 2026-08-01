@@ -1,5 +1,5 @@
 import { FREQUENCY } from '@/constant.ts';
-import { countWeekdaysInMonth, daysInMonth } from '@/lib/dates.ts';
+import { daysInMonth } from '@/lib/dates.ts';
 
 /** A thing that repeats: how often, and the day it repeats on. */
 export type Recurrence = {
@@ -11,6 +11,72 @@ export type Recurrence = {
 export type CalendarMonth = {
   year: number;
   monthIndex: number;
+};
+
+/** A stretch of time a recurrence is asked to lay its occurrences over. */
+export type DateRange = { from: Date; to: Date };
+
+/**
+ * Every date a recurrence falls on inside a range.
+ *
+ * The dates themselves rather than a count of them: an occurrence is a thing a person marks
+ * paid or skips, so the duty generator needs the dates, and a count is what is left when you
+ * ask how many there were.
+ */
+/**
+ * The day of a month, or the last day it has.
+ *
+ * A cost due on the 31st has no February. Built straight from the day, `new Date(2027, 1, 31)`
+ * is the 3rd of March — outside the month asked about, so the month simply had no such cost in
+ * it and nothing said so.
+ */
+const dayInMonth = (year: number, monthIndex: number, dayOfMonth: number): Date =>
+  new Date(year, monthIndex, Math.min(dayOfMonth, daysInMonth(year, monthIndex)));
+
+export const occurrencesInRange = (
+  { frequency, execution }: Recurrence,
+  { from, to }: DateRange
+): Date[] => {
+  if (!frequency || !execution) return [];
+
+  const executedOn = new Date(execution);
+  const dates: Date[] = [];
+
+  if (frequency === FREQUENCY.YEARLY) {
+    for (let year = from.getFullYear(); year <= to.getFullYear(); year++) {
+      const date = dayInMonth(year, executedOn.getMonth(), executedOn.getDate());
+
+      if (date >= from && date <= to) dates.push(date);
+    }
+
+    return dates;
+  }
+
+  if (frequency === FREQUENCY.MONTHLY) {
+    for (
+      let cursor = new Date(from.getFullYear(), from.getMonth(), 1);
+      cursor <= to;
+      cursor.setMonth(cursor.getMonth() + 1)
+    ) {
+      const date = dayInMonth(cursor.getFullYear(), cursor.getMonth(), executedOn.getDate());
+
+      if (date >= from && date <= to) dates.push(date);
+    }
+
+    return dates;
+  }
+
+  for (
+    let cursor = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+    cursor <= to;
+    cursor.setDate(cursor.getDate() + 1)
+  ) {
+    if (frequency === FREQUENCY.WEEKLY && cursor.getDay() !== executedOn.getDay()) continue;
+
+    dates.push(new Date(cursor));
+  }
+
+  return dates;
 };
 
 /**
@@ -29,26 +95,16 @@ export type CalendarMonth = {
  * A yearly recurrence lands in its own *month*, in any year: that is what yearly means.
  */
 export const occurrencesInMonth = (
-  { frequency, execution }: Recurrence,
+  recurrence: Recurrence,
   { year, monthIndex }: CalendarMonth
 ): number => {
   // A monthly recurrence is the one that needs no day: it happens once whichever day it is.
-  if (frequency === FREQUENCY.MONTHLY) return 1;
+  if (recurrence.frequency === FREQUENCY.MONTHLY && !recurrence.execution) return 1;
 
-  if (!frequency || !execution) return 0;
-
-  const executedOn = new Date(execution);
-
-  switch (frequency) {
-    case FREQUENCY.YEARLY:
-      return executedOn.getMonth() === monthIndex ? 1 : 0;
-    case FREQUENCY.WEEKLY:
-      return countWeekdaysInMonth(year, monthIndex, executedOn.getDay());
-    case FREQUENCY.DAILY:
-      return daysInMonth(year, monthIndex);
-    default:
-      return 0;
-  }
+  return occurrencesInRange(recurrence, {
+    from: new Date(year, monthIndex, 1),
+    to: new Date(year, monthIndex, daysInMonth(year, monthIndex), 23, 59, 59),
+  }).length;
 };
 
 /** What a recurring amount comes to over one month — the figure a total may add up. */
