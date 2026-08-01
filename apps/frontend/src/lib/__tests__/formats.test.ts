@@ -85,6 +85,22 @@ describe('formatRecurrence', () => {
     expect(formatRecurrence(saturday, FREQUENCY.WEEKLY)).toBe('co sobotę');
   });
 
+  it('says an interval the way a person would say it, declined', () => {
+    // Polish counts in categories: two, three and four weeks are "tygodnie" and five are
+    // "tygodni". A phrase that gets this wrong is the kind nobody reports and everybody notices.
+    expect(formatRecurrence(wednesday, FREQUENCY.WEEKLY, 4)).toBe('co 4 tygodnie, w środę');
+    expect(formatRecurrence(wednesday, FREQUENCY.WEEKLY, 5)).toBe('co 5 tygodni, w środę');
+    expect(formatRecurrence(wednesday, FREQUENCY.MONTHLY, 3)).toBe('co 3 miesiące, 15. dnia');
+    expect(formatRecurrence(wednesday, FREQUENCY.MONTHLY, 6)).toBe('co 6 miesięcy, 15. dnia');
+    expect(formatRecurrence(wednesday, FREQUENCY.DAILY, 2)).toBe('co 2 dni');
+    expect(formatRecurrence(wednesday, FREQUENCY.YEARLY, 2)).toBe('co 2 lata, 15 lipca');
+  });
+
+  it('says nothing extra when the interval is the one every recurrence already had', () => {
+    expect(formatRecurrence(wednesday, FREQUENCY.WEEKLY, 1)).toBe('co środę');
+    expect(formatRecurrence(wednesday, FREQUENCY.MONTHLY, 1)).toBe('15. dnia miesiąca');
+  });
+
   it('drops the leading zero, because the phrase is read aloud', () => {
     expect(formatRecurrence(new Date('2026-07-05T00:00:00'), FREQUENCY.MONTHLY)).toBe(
       '5. dnia miesiąca'

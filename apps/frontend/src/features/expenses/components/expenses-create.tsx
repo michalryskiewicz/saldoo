@@ -29,6 +29,7 @@ const formSchema = z.object({
   currency: z.string({ error: i18n.t('errors.field-required') }),
   severity: z.string({ error: i18n.t('errors.field-required') }),
   frequency: z.string({ error: i18n.t('errors.field-required') }),
+  interval: z.number().int().min(1).optional(),
   execution: z.date({ error: i18n.t('errors.field-required') }),
   tagId: z.string({ error: i18n.t('errors.field-required') }),
   strategyPart: z.string({ error: i18n.t('errors.field-required') }),
@@ -40,6 +41,7 @@ const defaultValues = {
   currency: 'PLN',
   severity: 'MEDIUM',
   frequency: 'WEEKLY',
+  interval: 1,
   tags: [],
 };
 
@@ -137,17 +139,26 @@ export default function ExpensesCreate() {
                     phrase ("co środę", "15. dnia miesiąca"), and the form should not present them
                     as two unrelated decisions. */}
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field.Select
-                    fullWidth
-                    name="frequency"
-                    label={i18n.t('frequency')}
-                    options={[
-                      { label: i18n.t('DAILY'), value: 'DAILY' },
-                      { label: i18n.t('WEEKLY'), value: 'WEEKLY' },
-                      { label: i18n.t('MONTHLY'), value: 'MONTHLY' },
-                      { label: i18n.t('YEARLY'), value: 'YEARLY' },
-                    ]}
-                  />
+                  {/* The interval sits against the unit it counts, and defaults to 1 — so the
+                      common case is still the one decision it always was. */}
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1">
+                      <Field.Select
+                        fullWidth
+                        name="frequency"
+                        label={i18n.t('frequency')}
+                        options={[
+                          { label: i18n.t('DAILY'), value: 'DAILY' },
+                          { label: i18n.t('WEEKLY'), value: 'WEEKLY' },
+                          { label: i18n.t('MONTHLY'), value: 'MONTHLY' },
+                          { label: i18n.t('YEARLY'), value: 'YEARLY' },
+                        ]}
+                      />
+                    </div>
+                    <div className="w-20 shrink-0">
+                      <Field.Text name="interval" type="number" label={i18n.t('forms.interval')} />
+                    </div>
+                  </div>
                   <Field.Date
                     name="execution"
                     label={i18n.t('execution')}

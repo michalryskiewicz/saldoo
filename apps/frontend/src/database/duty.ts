@@ -3,6 +3,7 @@ import { db } from '@/database/index';
 import type { DBExpense } from '@/database/expenses';
 import { getExpensesInSelectedDateRange } from '@/lib/expenses.ts';
 import {
+  carryMarksToMovedOccurrences,
   createDutiesForSelectedDateRange,
   selectStaleDuties,
 } from '@/database/services/duties.service.ts';
@@ -72,6 +73,28 @@ export async function addDBDutiesForDateRange(
     startDate,
     endDate,
   });
+
+  // Hand the marks of re-dated occurrences over before anything else touches them: the
+  // correction of the daily day-shift changes an occurrence's date, and the date is its
+  // identity, so a paid day would otherwise be stranded under a date nothing generates.
+  const carried = carryMarksToMovedOccurrences({
+    stored: await db.duties.toArray(),
+    expected: duties,
+  });
+
+  for (const { staleId, hash, marks } of carried) {
+    const occurrence = duties.find((duty) => duty.hash === hash);
+    if (!occurrence) continue;
+
+    await documentSession.put('duties', {
+      ...occurrence,
+      ...marks,
+      id: hash,
+      createdAt: new Date(),
+      executionDate: new Date(occurrence.executionDate),
+    });
+    await documentSession.remove('duties', staleId);
+  }
 
   // Sweep whatever the definitions no longer call for. After generation, not before: the
   // generated set *is* the answer to what still belongs in this range.

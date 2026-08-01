@@ -117,7 +117,22 @@
     "weekly_5": "co piątek",
     "weekly_6": "co sobotę",
     "monthly": "{{day}}. dnia miesiąca",
-    "yearly": "co roku, {{date}}"
+    "yearly": "co roku, {{date}}",
+    "every_days_few": "co {{count}} dni",
+    "every_days_many": "co {{count}} dni",
+    "every_weeks_few": "co {{count}} tygodnie, w {{weekday}}",
+    "every_weeks_many": "co {{count}} tygodni, w {{weekday}}",
+    "every_months_few": "co {{count}} miesiące, {{day}}. dnia",
+    "every_months_many": "co {{count}} miesięcy, {{day}}. dnia",
+    "every_years_few": "co {{count}} lata, {{date}}",
+    "every_years_many": "co {{count}} lat, {{date}}",
+    "weekday_0": "niedzielę",
+    "weekday_1": "poniedziałek",
+    "weekday_2": "wtorek",
+    "weekday_3": "środę",
+    "weekday_4": "czwartek",
+    "weekday_5": "piątek",
+    "weekday_6": "sobotę"
   },
   "frequency": "Częstotliwość",
   "tags": "Tagi",
@@ -256,7 +271,8 @@
       "email-must-be-valid": "Email musi być prawidłowy!",
       "password-is-required": "Hasło jest wymagane",
       "password-must-be-at-least-6-chars": "Hasło musi składać się z co najmniej 6 znaków"
-    }
+    },
+    "interval": "Co ile"
   },
   "metrics": {
     "fill-survey": "Wypełnij ankietę dot. naszej aplikacji",

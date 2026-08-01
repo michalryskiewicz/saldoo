@@ -17,6 +17,8 @@ export type DBExpense = {
   currency: Currency;
   severity: SEVERITY | null;
   frequency?: FREQUENCY;
+  /** How many units of the frequency between occurrences. Absent means every one. */
+  interval?: number;
   execution?: Date;
   strategyPart?: STRATEGY_PART;
   tagId?: string;

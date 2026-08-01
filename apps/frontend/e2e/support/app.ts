@@ -445,6 +445,19 @@ export class SaldooApp {
     return this.page.getByRole('row').filter({ hasText: description });
   }
 
+  /** Reopens an expense and changes how many periods pass between its occurrences. */
+  async changeExpenseInterval(description: string, interval: number): Promise<void> {
+    await this.openExpenses();
+    await this.expenseRow(description).getByRole('button', { name: label('edit') }).click();
+
+    const sheet = this.createDrawer;
+    await expect(sheet).toBeVisible();
+
+    await sheet.getByLabel(label('forms.interval'), { exact: true }).fill(String(interval));
+    await sheet.getByRole('button', { name: label('edit'), exact: true }).click();
+    await expect(sheet).toBeHidden();
+  }
+
   /** Reopens an expense in the drawer it was created in and changes how often it recurs. */
   async changeExpenseFrequency(
     description: string,
