@@ -93,7 +93,7 @@
   "description": "Opis",
   "expense": "Wydatek",
   "yearly_cost": "Rocznie",
-  "expenses_total_yearly": "W skali roku",
+  "total_yearly": "W skali roku",
   "amount": "Kwota",
   "settled_expense": "Przypisany wydatek",
   "money_in": "Wpływy",

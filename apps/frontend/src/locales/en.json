@@ -93,7 +93,7 @@
   "description": "Description",
   "expense": "Expense",
   "yearly_cost": "Per year",
-  "expenses_total_yearly": "Over a year",
+  "total_yearly": "Over a year",
   "amount": "Amount",
   "settled_expense": "Assigned expense",
   "money_in": "In",

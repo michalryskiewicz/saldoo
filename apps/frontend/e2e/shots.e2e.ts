@@ -49,18 +49,46 @@ const waitForBarsToSettle = async (page: Page) => {
   const bars = page.locator('.recharts-bar-rectangle');
   await bars.first().waitFor();
 
+  // Held for several readings in a row rather than two. Two only proves the animation is not
+  // mid-frame; it says nothing about a *second* animation starting straight after, which is what
+  // the exchange rates cause when they land. One chart came back empty at one width and full at
+  // the other from the same data, twice, because the pair of equal readings happened to fall in
+  // the gap between the two runs.
+  const STABLE_READINGS = 5;
   let previous = -1;
+  let stable = 0;
+
   await expect
     .poll(
       async () => {
         const height = (await bars.first().boundingBox())?.height ?? -1;
-        const settled = height > 0 && height === previous;
+        stable = height > 0 && height === previous ? stable + 1 : 0;
         previous = height;
-        return settled;
+        return stable;
       },
-      { timeout: 15_000, intervals: [200] }
+      { timeout: 20_000, intervals: [200] }
     )
-    .toBe(true);
+    .toBeGreaterThanOrEqual(STABLE_READINGS);
+};
+
+/**
+ * The whole page, captured by growing the window to fit it rather than by `fullPage`.
+ *
+ * `fullPage` stitches the page together by moving the viewport under it, and Recharts re-measures
+ * its container while that happens — so a chart repaints mid-capture and the image comes back
+ * with an empty plot area. Measured at the moment of the shot, the bars were 149px tall in the
+ * DOM and absent from the picture: the photograph was wrong, not the page.
+ *
+ * Growing the window instead means one paint, at one size, of everything.
+ */
+const captureWholePage = async (page: Page, path: string, width: number) => {
+  const height = await page.evaluate(() => document.documentElement.scrollHeight);
+
+  await page.setViewportSize({ width, height });
+  // The resize is itself a re-measure, so whatever animates gets to finish again first.
+  await page.waitForTimeout(CHART_ANIMATION_MS);
+
+  await page.screenshot({ path });
 };
 
 const EXPENSES_ROUTE = '/dashboard/expenses';
@@ -115,10 +143,7 @@ test('shots: the expenses page in both themes and both widths', async ({ browser
 
       await waitForBarsToSettle(device.page);
 
-      await device.page.screenshot({
-        path: `shots/expenses-${name}-${theme}.png`,
-        fullPage: true,
-      });
+      await captureWholePage(device.page, `shots/expenses-${name}-${theme}.png`, viewport.width);
     }
 
     // And the create form, which is a screen of its own and cannot be judged from the page behind
@@ -174,10 +199,7 @@ test('shots: the duties page in both themes and both widths', async ({ browser, 
       // is not a table at all — so wait for the record itself rather than for a `tr`.
       await device.page.getByText('Czynsz').first().waitFor();
 
-      await device.page.screenshot({
-        path: `shots/duties-${name}-${theme}.png`,
-        fullPage: true,
-      });
+      await captureWholePage(device.page, `shots/duties-${name}-${theme}.png`, viewport.width);
     }
   }
 
@@ -281,10 +303,7 @@ test('shots: the remaining dashboards in both themes and both widths', async ({
         if ('chart' in screen) await waitForBarsToSettle(device.page);
         await device.page.waitForTimeout(CHART_ANIMATION_MS);
 
-        await device.page.screenshot({
-          path: `shots/${screen.name}-${name}-${theme}.png`,
-          fullPage: true,
-        });
+        await captureWholePage(device.page, `shots/${screen.name}-${name}-${theme}.png`, viewport.width);
       }
 
       // Back to desktop before the next screen: the theme control the loop reaches for next has

@@ -43,11 +43,11 @@ test('sorting reverses, and the totals row stays out of the body either way', as
 
   await app.sortBy('description');
   expect(await app.rowDescriptions()).toEqual(['Czynsz', 'Kawa']);
-  expect(await app.footerLabel()).toBe(pl.expenses_total_yearly);
+  expect(await app.footerLabel()).toBe(pl.total_yearly);
 
   await app.sortBy('description');
   expect(await app.rowDescriptions()).toEqual(['Kawa', 'Czynsz']);
-  expect(await app.footerLabel()).toBe(pl.expenses_total_yearly);
+  expect(await app.footerLabel()).toBe(pl.total_yearly);
 
   await device.close();
 });

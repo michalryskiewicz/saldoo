@@ -9,25 +9,61 @@ import ProfitsTableActions from '@/features/profits/components/profits-table-act
 import type { ColumnDef } from '@tanstack/react-table';
 import { useListProfits } from '@/features/profits/hooks/use-list-profits.tsx';
 import type { DBProfit } from '@/database/profits.ts';
+import { costInYear } from '@/lib/recurrence.ts';
 import { useState } from 'react';
 
-const columns: ColumnDef<DBProfit>[] = [
+/**
+ * A row as the table sees it.
+ *
+ * `totalLabel` rides on the summary row rather than being read from state by the column
+ * definitions, which are module-level and know nothing about it.
+ */
+export type ProfitRow = DBProfit & { totalLabel?: string };
+
+const columns: ColumnDef<ProfitRow>[] = [
   {
     accessorKey: 'description',
     meta: { grow: true },
-    cell: ({ row }) => <Cell.Description id={row.original.id} name={row.original.description} />,
+    cell: ({ row }) => (
+      <Cell.Description
+        id={row.original.id}
+        name={row.original.description}
+        totalLabel={row.original.totalLabel}
+      />
+    ),
     header: ({ column }) => <Header.Sort column={column} header="description" />,
   },
   {
     accessorKey: 'profit',
-    meta: { mobile: 'figure' as const },
+    // Blank on the summary, as on the expenses table: the amount as entered belongs to one plan,
+    // and plans of different frequencies have no shared amount to add up.
     cell: ({ row }) => {
       const { id, profit, currency } = row.original;
+
+      if (id === TOTAL) return null;
+
       return <Cell.Money id={id} price={profit} currency={currency} />;
     },
     header: ({ column }) => (
       <Header.Info column={column} header="profit" tooltip="price_exchanged_automatically" />
     ),
+  },
+  {
+    id: 'yearlyIncome',
+    // The figure on a phone, and the one the summary adds: the only column here whose rows are
+    // comparable with each other. A monthly salary and a yearly commission cannot be ranked in
+    // any shorter window.
+    meta: { mobile: 'figure' as const },
+    accessorFn: (row) =>
+      row.id === TOTAL ? row.profit : costInYear(row, row.profit, new Date().getFullYear()),
+    cell: ({ row, getValue }) => (
+      <Cell.Money
+        id={row.original.id}
+        price={getValue<number>()}
+        currency={row.original.currency}
+      />
+    ),
+    header: ({ column }) => <Header.Sort column={column} header="yearly_cost" />,
   },
   {
     accessorKey: 'frequency',
@@ -63,15 +99,19 @@ export default function ProfitsTable() {
   // sum of everything -- a figure that answers a question nobody asked.
   const dataToTable = searchProfits(allProfits ?? [], query);
 
-  // A summary row rather than a stored profit, so it is shaped like one on purpose.
+  // A summary row rather than a stored profit, so it is shaped like one on purpose. Totalled
+  // over a year for the same reason the expenses table is: a monthly figure added to a yearly
+  // one is not a sum of anything.
+  const year = new Date().getFullYear();
   const totalRow = dataToTable.length
     ? [
         {
           id: TOTAL,
           description: 'TOTAL',
-          profit: dataToTable.reduce((acc, curr) => acc + (curr.profit || 0), 0),
+          totalLabel: i18n.t('total_yearly'),
+          profit: dataToTable.reduce((total, row) => total + costInYear(row, row.profit, year), 0),
           currency: dataToTable[0].currency,
-        } as DBProfit,
+        } as ProfitRow,
       ]
     : [];
 

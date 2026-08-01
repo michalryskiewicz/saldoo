@@ -132,7 +132,7 @@ export const ExpensesTable = () => {
           id: TOTAL,
           createdAt: new Date(),
           description: 'TOTAL',
-          totalLabel: i18n.t('expenses_total_yearly'),
+          totalLabel: i18n.t('total_yearly'),
           expense: dataToTable.reduce((total, row) => total + costInYear(row, row.expense, year), 0),
           currency: dataToTable[0].currency,
           severity: null,
