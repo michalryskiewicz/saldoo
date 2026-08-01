@@ -27,6 +27,7 @@ const SYNC_TIMEOUT_MS = 15_000;
 
 const EXPENSES_PATH = '/dashboard/expenses';
 const ACCOUNT_PATH = '/dashboard/account';
+const DUTIES_PATH = '/dashboard/duties';
 
 export class SaldooApp {
   constructor(readonly page: Page) {}
@@ -429,6 +430,57 @@ export class SaldooApp {
 
   private expenseRow(description: string): Locator {
     return this.page.getByRole('row').filter({ hasText: description });
+  }
+
+  /** Reopens an expense in the drawer it was created in and changes how often it recurs. */
+  async changeExpenseFrequency(
+    description: string,
+    frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'
+  ): Promise<void> {
+    await this.openExpenses();
+    await this.expenseRow(description).getByRole('button', { name: label('edit') }).click();
+
+    const sheet = this.createDrawer;
+    await expect(sheet).toBeVisible();
+
+    await this.chooseOption(sheet, label('frequency'), label(frequency));
+
+    // The same drawer, but its button is 'Edytuj' rather than 'Potwierdź' when it was opened
+    // on an existing expense. Scoped to the sheet: the row's pencil carries that label too.
+    await sheet.getByRole('button', { name: label('edit'), exact: true }).click();
+    await expect(sheet).toBeHidden();
+  }
+
+  // === Duties ===
+
+  async openDuties(): Promise<void> {
+    if (new URL(this.page.url()).pathname !== DUTIES_PATH) await this.open(DUTIES_PATH);
+
+    await expect(this.page.getByRole('tab', { name: label('all') })).toBeVisible();
+  }
+
+  async markDutyPaid(description: string): Promise<void> {
+    await this.page
+      .getByRole('row')
+      .filter({ hasText: description })
+      .getByRole('checkbox', { name: label('resolved') })
+      .check();
+  }
+
+  /**
+   * How many occurrences are ticked, rather than whether a named row is.
+   *
+   * Counted because a row cannot be named once the expense recurs weekly: every occurrence
+   * carries the same description, so addressing one by its text matches four.
+   */
+  async paidDutyCount(): Promise<number> {
+    return this.page.locator('tbody [role="checkbox"][aria-checked="true"]').count();
+  }
+
+  async expectPaidDuties(count: number): Promise<void> {
+    await expect
+      .poll(() => this.paidDutyCount(), { timeout: SYNC_TIMEOUT_MS })
+      .toBe(count);
   }
 
   async removeExpense(description: string): Promise<void> {
