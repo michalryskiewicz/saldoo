@@ -28,7 +28,7 @@ export type DBProfit = {
  * nothing made a save that never happened look exactly like one that did, and the only
  * difference was a toast that is easy to miss.
  */
-export const addDBProfit = async (profit: ProfitCreateSchema) => {
+export const addDBProfit = async (profit: Omit<ProfitCreateSchema, 'cadence'>) => {
   try {
     await documentSession.put('profits', {
       id: uuidv4(),
@@ -55,7 +55,7 @@ export const addDBProfit = async (profit: ProfitCreateSchema) => {
  * nothing made a save that never happened look exactly like one that did, and the only
  * difference was a toast that is easy to miss.
  */
-export const updateDBProfit = async (id: string, profit: ProfitCreateSchema) => {
+export const updateDBProfit = async (id: string, profit: Omit<ProfitCreateSchema, 'cadence'>) => {
   try {
     await documentSession.update('profits', id, {
       ...profit,

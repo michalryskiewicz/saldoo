@@ -161,9 +161,9 @@ export class SaldooApp {
     // Priority is a segmented control rather than a select, so it is clicked directly: three
     // buttons, all of them already on screen, and no list to open first.
     if (severity) await sheet.getByRole('radio', { name: label(severity), exact: true }).click();
-    if (frequency) await this.chooseOption(sheet, label('frequency'), label(frequency));
+    if (frequency) await this.chooseOption(sheet, label('forms.cadence'), label(`cadence.${frequency}`));
 
-    await sheet.getByLabel(label('execution'), { exact: true }).click();
+    await sheet.getByLabel(label('forms.first-execution'), { exact: true }).click();
     await this.page.getByRole('gridcell').filter({ hasText: /^15$/ }).first().click();
 
     await sheet.getByLabel(label('forms.category'), { exact: true }).click();
@@ -487,7 +487,9 @@ export class SaldooApp {
     const sheet = this.createDrawer;
     await expect(sheet).toBeVisible();
 
-    await sheet.getByLabel(label('forms.interval'), { exact: true }).fill(String(interval));
+    await this.chooseOption(sheet, label('forms.cadence'), label('cadence.CUSTOM'));
+    await sheet.getByLabel(label('cadence.every'), { exact: true }).fill(String(interval));
+
     await sheet.getByRole('button', { name: label('edit'), exact: true }).click();
     await expect(sheet).toBeHidden();
   }
@@ -503,7 +505,7 @@ export class SaldooApp {
     const sheet = this.createDrawer;
     await expect(sheet).toBeVisible();
 
-    await this.chooseOption(sheet, label('frequency'), label(frequency));
+    await this.chooseOption(sheet, label('forms.cadence'), label(`cadence.${frequency}`));
 
     // The same drawer, but its button is 'Edytuj' rather than 'Potwierdź' when it was opened
     // on an existing expense. Scoped to the sheet: the row's pencil carries that label too.
@@ -625,9 +627,9 @@ export class SaldooApp {
     await sheet.getByLabel(label('description'), { exact: true }).fill(description);
     await sheet.getByLabel(label('profit'), { exact: true }).fill(String(amount));
 
-    if (frequency) await this.chooseOption(sheet, label('frequency'), label(frequency));
+    if (frequency) await this.chooseOption(sheet, label('forms.cadence'), label(`cadence.${frequency}`));
 
-    await sheet.getByLabel(label('execution'), { exact: true }).click();
+    await sheet.getByLabel(label('forms.first-execution'), { exact: true }).click();
     await this.page.getByRole('gridcell').filter({ hasText: /^15$/ }).first().click();
 
     if (endsOnDayOfMonth) {

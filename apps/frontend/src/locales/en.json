@@ -274,9 +274,11 @@
       "password-is-required": "A password is required",
       "password-must-be-at-least-6-chars": "The password must be at least 6 characters"
     },
-    "interval": "Every",
     "ends-at": "Ends",
-    "ends-at-placeholder": "Does not end"
+    "ends-at-placeholder": "Does not end",
+    "cadence": "Repeats",
+    "first-execution": "First occurrence",
+    "cadence-unit": "Repeat unit"
   },
   "metrics": {
     "fill-survey": "Fill in our survey about the app",
@@ -409,5 +411,27 @@
     "previous_page": "Previous page",
     "next_page": "Next page",
     "last_page": "Last page"
+  },
+  "cadence": {
+    "DAILY": "every day",
+    "WEEKLY": "every week",
+    "BIWEEKLY": "every 2 weeks",
+    "FOUR_WEEKLY": "every 4 weeks",
+    "MONTHLY": "every month",
+    "QUARTERLY": "every quarter",
+    "HALF_YEARLY": "every 6 months",
+    "YEARLY": "every year",
+    "CUSTOM": "custom…",
+    "every": "every"
+  },
+  "units": {
+    "day_one": "day",
+    "day_other": "days",
+    "week_one": "week",
+    "week_other": "weeks",
+    "month_one": "month",
+    "month_other": "months",
+    "year_one": "year",
+    "year_other": "years"
   }
 }
