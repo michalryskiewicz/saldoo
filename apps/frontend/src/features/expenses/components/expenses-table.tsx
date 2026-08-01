@@ -11,28 +11,65 @@ import { Cell, Header } from '@/components/tanstack-table';
 import { useListExpenses } from '@/features/expenses/hooks/use-list-expenses.tsx';
 import type { DBExpense } from '@/database/expenses.ts';
 import type { DBTag } from '@/database/tags.ts';
+import { costInYear } from '@/lib/recurrence.ts';
 
-/** A row as the table sees it: an expense with its tag joined in. */
-export type ExpenseRow = DBExpense & { tag?: DBTag };
+/**
+ * A row as the table sees it: an expense with its tag joined in.
+ *
+ * `totalLabel` rides on the summary row rather than being read from state by the column
+ * definitions, which are module-level and know nothing about it. Carrying it as data keeps the
+ * columns a constant — rebuilt per render they would reset the table's own sorting.
+ */
+export type ExpenseRow = DBExpense & { tag?: DBTag; totalLabel?: string };
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const columns: ColumnDef<ExpenseRow>[] = [
   {
     accessorKey: 'description',
     meta: { grow: true },
-    cell: ({ row }) => <Cell.Description id={row.original.id} name={row.original.description} />,
+    cell: ({ row }) => (
+      <Cell.Description
+        id={row.original.id}
+        name={row.original.description}
+        totalLabel={row.original.totalLabel}
+      />
+    ),
     header: ({ column }) => <Header.Sort column={column} header="description" />,
   },
   {
     accessorKey: 'expense',
-    meta: { mobile: 'figure' as const },
+    // Blank on the summary: the amount as entered is a property of one plan, and twelve plans
+    // of different frequencies have no shared amount to add up. What they do have is what they
+    // cost over a year, which is the column beside this one.
     cell: ({ row }) => {
       const { id, expense, currency } = row.original;
+
+      if (id === TOTAL) return null;
+
       return <Cell.Money id={id} price={expense} currency={currency} />;
     },
     header: ({ column }) => (
       <Header.Info column={column} header="expense" tooltip="price_exchanged_automatically" />
     ),
+  },
+  {
+    id: 'yearlyCost',
+    // The figure on a phone, and the one the summary adds: it is the only column in this table
+    // whose rows are comparable with each other. `accessorFn` rather than a stored field, so
+    // sorting by it sorts by the cost and not by the number that happens to be typed in.
+    meta: { mobile: 'figure' as const },
+    // The summary carries its figure already: it is a sum of years, not a plan with a year of
+    // its own, and asking what a total recurs at answers nothing.
+    accessorFn: (row) =>
+      row.id === TOTAL ? row.expense : costInYear(row, row.expense, new Date().getFullYear()),
+    cell: ({ row, getValue }) => (
+      <Cell.Money
+        id={row.original.id}
+        price={getValue<number>()}
+        currency={row.original.currency}
+      />
+    ),
+    header: ({ column }) => <Header.Sort column={column} header="yearly_cost" />,
   },
   {
     accessorKey: 'severity',
@@ -83,13 +120,20 @@ export const ExpensesTable = () => {
   const dataToTable = searchExpenses(allExpenses ?? [], query);
 
   // A summary row rather than a stored expense, so it is shaped like one on purpose.
+  //
+  // A year is the shortest window in which these rows can be added up at all. Summing the
+  // amounts as entered put a weekly figure beside a yearly one and called the result a total; a
+  // single month would be honest but would read as zero for eleven twelfths of every yearly
+  // cost. Counted over a year, every plan contributes what it actually costs.
+  const year = new Date().getFullYear();
   const totalRow: ExpenseRow[] = dataToTable.length
     ? [
         {
           id: TOTAL,
           createdAt: new Date(),
           description: 'TOTAL',
-          expense: dataToTable.reduce((acc, curr) => acc + (curr.expense || 0), 0),
+          totalLabel: i18n.t('total_yearly'),
+          expense: dataToTable.reduce((total, row) => total + costInYear(row, row.expense, year), 0),
           currency: dataToTable[0].currency,
           severity: null,
         },

@@ -92,6 +92,8 @@
   "submit": "Confirm",
   "description": "Description",
   "expense": "Expense",
+  "yearly_cost": "Per year",
+  "total_yearly": "Over a year",
   "amount": "Amount",
   "settled_expense": "Assigned expense",
   "money_in": "In",

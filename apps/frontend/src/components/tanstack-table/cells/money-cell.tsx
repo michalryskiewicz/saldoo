@@ -29,6 +29,9 @@ export default function MoneyCell({ id, price, currency, directional }: MoneyCel
     // `tabular-nums` so a column of figures lines up on the decimal. Alignment is declared on
     // the column, so the heading above cannot disagree with it.
     <p
+      // Named on the summary row so a test can ask for the figure rather than counting columns:
+      // a table may hold more than one money column, and then "the second cell" is a guess.
+      data-slot={id === TOTAL ? 'summary-figure' : undefined}
       className={cn('tabular-nums whitespace-nowrap', {
         'font-bold': id === TOTAL,
         'text-positive': directional && price > 0,

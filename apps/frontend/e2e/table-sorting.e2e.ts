@@ -3,6 +3,7 @@ import { createFakeDrive } from './support/fake-drive.ts';
 import { openDevice } from './support/device.ts';
 import { SaldooApp } from './support/app.ts';
 import { PASSPHRASE } from './support/fixtures.ts';
+import pl from '../src/locales/pl.json' with { type: 'json' };
 
 /**
  * Sorting, and the one row that must never take part in it.
@@ -42,11 +43,11 @@ test('sorting reverses, and the totals row stays out of the body either way', as
 
   await app.sortBy('description');
   expect(await app.rowDescriptions()).toEqual(['Czynsz', 'Kawa']);
-  expect(await app.footerLabel()).toBe('Całkowita');
+  expect(await app.footerLabel()).toBe(pl.total_yearly);
 
   await app.sortBy('description');
   expect(await app.rowDescriptions()).toEqual(['Kawa', 'Czynsz']);
-  expect(await app.footerLabel()).toBe('Całkowita');
+  expect(await app.footerLabel()).toBe(pl.total_yearly);
 
   await device.close();
 });

@@ -92,6 +92,8 @@
   "submit": "Potwierdź",
   "description": "Opis",
   "expense": "Wydatek",
+  "yearly_cost": "Rocznie",
+  "total_yearly": "W skali roku",
   "amount": "Kwota",
   "settled_expense": "Przypisany wydatek",
   "money_in": "Wpływy",

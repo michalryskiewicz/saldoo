@@ -55,7 +55,11 @@ test('the expenses page fits a phone, and the table stops being a table', async 
 
   // The figure and the priority survive the swap: the number is what the row exists to show, and
   // the priority is the only thing colour says in this table.
-  await expect(row.getByText('1980,00 zł')).toBeVisible();
+  //
+  // Addressed by its slot. The figure is what a year of this costs, and the amount as entered is
+  // a detail beside it — for a yearly cost those are the same number, so asking for the text
+  // finds two elements and answers about whichever is first in the DOM.
+  await expect(row.locator('[data-slot="row-figure"]')).toHaveText('1980,00 zł');
   await expect(row.getByText('Średni')).toBeVisible();
 
   // Addressed by its slot rather than its words: with one expense the summary carries the same
@@ -198,6 +202,9 @@ test('the profits page fits a phone, and its summary keeps its figure', async ({
 
   const row = device.page.getByRole('listitem').filter({ hasText: 'Wynagrodzenie' });
   await expect(row).toBeVisible();
+
+  // The figure is what a year of this comes to; the amount as entered is a detail beside it.
+  await expect(row.locator('[data-slot="row-figure"]')).toHaveText('150 000,00 zł');
   await expect(row.getByText('12 500,00 zł')).toBeVisible();
 
   // The summary's figure, which is the half of it that carries the answer. Below `md` only the
@@ -205,7 +212,7 @@ test('the profits page fits a phone, and its summary keeps its figure', async ({
   // the band showing a label and nothing else — a total of blank.
   const summary = device.page.locator('[data-slot="table-summary"]');
   await expect(summary).toBeVisible();
-  await expect(summary).toContainText('12 500,00 zł');
+  await expect(summary).toContainText('150 000,00 zł');
 
   const overflow = await device.page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
