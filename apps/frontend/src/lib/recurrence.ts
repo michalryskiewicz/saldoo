@@ -13,6 +13,14 @@ export type Recurrence = {
    * The unit stays in `frequency`, so this is `FREQ`/`INTERVAL` and no more of RRULE than that.
    */
   interval?: number;
+  /**
+   * The last day it recurs on, if it has one — a subscription cancelled, a loan paid off.
+   *
+   * Absent means it goes on, which is what everything stored before this meant. Ending a series
+   * is not deleting it: the occurrences up to this day stay exactly as they were, and so does
+   * the record of which of them were paid.
+   */
+  endsAt?: Date | string;
 };
 
 /** One month of one year. The year matters — Februaries differ, and so do weekday counts. */
@@ -45,6 +53,21 @@ const onTheCadence = (stepsFromAnchor: number, interval: number): boolean =>
   stepsFromAnchor % interval === 0;
 
 /**
+ * The stretch a recurrence may actually lay occurrences over, once its own ending is counted.
+ *
+ * The ending day counts — a subscription cancelled on the 15th was owed on the 15th. Comparing
+ * instants is enough for that because occurrences are minted at local midnight, so one on the
+ * ending day is never later than the ending day itself.
+ */
+const untilItEnds = ({ from, to }: DateRange, endsAt?: Date | string): DateRange => {
+  if (!endsAt) return { from, to };
+
+  const lastDay = new Date(endsAt);
+
+  return { from, to: lastDay < to ? lastDay : to };
+};
+
+/**
  * Every date a recurrence falls on inside a range.
  *
  * The dates themselves rather than a count of them: an occurrence is a thing a person marks
@@ -53,11 +76,12 @@ const onTheCadence = (stepsFromAnchor: number, interval: number): boolean =>
  * fourth week has no closed form, only an anchor and a step.
  */
 export const occurrencesInRange = (
-  { frequency, execution, interval }: Recurrence,
-  { from, to }: DateRange
+  { frequency, execution, interval, endsAt }: Recurrence,
+  range: DateRange
 ): Date[] => {
   if (!frequency || !execution) return [];
 
+  const { from, to } = untilItEnds(range, endsAt);
   const executedOn = new Date(execution);
   const every = Math.max(1, Math.trunc(interval ?? 1));
   const dates: Date[] = [];

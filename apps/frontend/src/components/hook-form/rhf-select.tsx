@@ -27,6 +27,8 @@ export type RHFSelectProps = {
   options: { label: string; value: string }[];
   fullWidth?: boolean;
   infoTooltip?: string;
+  /** For a select whose meaning comes from what sits beside it rather than from a label. */
+  ariaLabel?: string;
 };
 
 export function RHFSelect({
@@ -37,6 +39,7 @@ export function RHFSelect({
   placeholder,
   fullWidth,
   infoTooltip,
+  ariaLabel,
 }: RHFSelectProps) {
   const { control } = useFormContext();
 
@@ -54,7 +57,7 @@ export function RHFSelect({
           )}
           <Select onValueChange={field.onChange} defaultValue={field.value}>
             <FormControl className={cn(fullWidth && 'w-full')}>
-              <SelectTrigger>
+              <SelectTrigger aria-label={ariaLabel}>
                 <SelectValue placeholder={placeholder} />
               </SelectTrigger>
             </FormControl>

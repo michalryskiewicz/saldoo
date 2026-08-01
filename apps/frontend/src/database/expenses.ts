@@ -20,6 +20,8 @@ export type DBExpense = {
   /** How many units of the frequency between occurrences. Absent means every one. */
   interval?: number;
   execution?: Date;
+  /** The last day it recurs on. Absent means it goes on — see `Recurrence.endsAt`. */
+  endsAt?: Date;
   strategyPart?: STRATEGY_PART;
   tagId?: string;
 };
@@ -29,7 +31,7 @@ export type DBExpense = {
  * nothing made a save that never happened look exactly like one that did, and the only
  * difference was a toast that is easy to miss.
  */
-export const addDBExpense = async (expense: ExpenseCreateType) => {
+export const addDBExpense = async (expense: Omit<ExpenseCreateType, 'cadence'>) => {
   try {
     await documentSession.put('expenses', {
       id: uuidv4(),
@@ -58,7 +60,7 @@ export const addDBExpense = async (expense: ExpenseCreateType) => {
  * nothing made a save that never happened look exactly like one that did, and the only
  * difference was a toast that is easy to miss.
  */
-export const updateDBExpense = async (id: string, expense: ExpenseCreateType) => {
+export const updateDBExpense = async (id: string, expense: Omit<ExpenseCreateType, 'cadence'>) => {
   try {
     await documentSession.update('expenses', id, {
       ...expense,

@@ -1,4 +1,4 @@
-import { getISOWeek, isWithinInterval } from 'date-fns';
+import { getISOWeek } from 'date-fns';
 
 export const MONTHS = Array.from({ length: 12 }, (_, i) =>
   new Intl.DateTimeFormat('en', { month: 'long' }).format(new Date(2000, i))
@@ -35,17 +35,6 @@ export function daysInMonth(year: number, monthIdx: number) {
   return new Date(year, monthIdx + 1, 0).getDate();
 }
 
-
-export function isDateInRange(
-  day: Date | string,
-  start: Date | string,
-  end: Date | string
-): boolean {
-  const dayObj = typeof day === 'string' ? new Date(day) : day;
-  const startObj = typeof start === 'string' ? new Date(start) : start;
-  const endObj = typeof end === 'string' ? new Date(end) : end;
-  return isWithinInterval(dayObj, { start: startObj, end: endObj });
-}
 
 /**
  * Returns the earliest and latest date from an array of objects by a given key.

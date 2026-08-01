@@ -101,6 +101,14 @@ describe('formatRecurrence', () => {
     expect(formatRecurrence(wednesday, FREQUENCY.MONTHLY, 1)).toBe('15. dnia miesiąca');
   });
 
+  it('says when a series stops, because a table cannot otherwise tell', () => {
+    // Without it, an ended subscription reads exactly like a live one and costs 0 zł a year,
+    // which looks like a bug rather than an answer.
+    expect(
+      formatRecurrence(wednesday, FREQUENCY.MONTHLY, undefined, new Date(2027, 1, 20))
+    ).toBe('15. dnia miesiąca, do 20 lut 2027');
+  });
+
   it('drops the leading zero, because the phrase is read aloud', () => {
     expect(formatRecurrence(new Date('2026-07-05T00:00:00'), FREQUENCY.MONTHLY)).toBe(
       '5. dnia miesiąca'

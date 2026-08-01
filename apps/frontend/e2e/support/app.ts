@@ -161,9 +161,9 @@ export class SaldooApp {
     // Priority is a segmented control rather than a select, so it is clicked directly: three
     // buttons, all of them already on screen, and no list to open first.
     if (severity) await sheet.getByRole('radio', { name: label(severity), exact: true }).click();
-    if (frequency) await this.chooseOption(sheet, label('frequency'), label(frequency));
+    if (frequency) await this.chooseOption(sheet, label('forms.cadence'), label(`cadence.${frequency}`));
 
-    await sheet.getByLabel(label('execution'), { exact: true }).click();
+    await sheet.getByLabel(label('forms.first-execution'), { exact: true }).click();
     await this.page.getByRole('gridcell').filter({ hasText: /^15$/ }).first().click();
 
     await sheet.getByLabel(label('forms.category'), { exact: true }).click();
@@ -445,6 +445,40 @@ export class SaldooApp {
     return this.page.getByRole('row').filter({ hasText: description });
   }
 
+  /**
+   * Reopens an expense and gives it a last day, on the day of the month the calendar opens on.
+   *
+   * That month is this one — the same assumption `addExpense` makes when it picks the 15th.
+   */
+  async endExpense(description: string, dayOfMonth: number): Promise<void> {
+    await this.openExpenses();
+    await this.expenseRow(description).getByRole('button', { name: label('edit') }).click();
+
+    const sheet = this.createDrawer;
+    await expect(sheet).toBeVisible();
+
+    await sheet.getByLabel(label('forms.ends-at'), { exact: true }).click();
+    await this.page
+      .getByRole('gridcell')
+      .filter({ hasText: new RegExp(`^${dayOfMonth}$`) })
+      .first()
+      .click();
+
+    await sheet.getByRole('button', { name: label('edit'), exact: true }).click();
+    await expect(sheet).toBeHidden();
+  }
+
+  /**
+   * How many occurrences the duties table is showing.
+   *
+   * Counted by the tick each one carries rather than by rows: an empty table still renders a
+   * row — the one that says why it is empty — so counting `tbody tr` reports one occurrence for
+   * a month that has none.
+   */
+  async dutyRowCount(): Promise<number> {
+    return this.page.getByRole('checkbox', { name: label('resolved') }).count();
+  }
+
   /** Reopens an expense and changes how many periods pass between its occurrences. */
   async changeExpenseInterval(description: string, interval: number): Promise<void> {
     await this.openExpenses();
@@ -453,7 +487,9 @@ export class SaldooApp {
     const sheet = this.createDrawer;
     await expect(sheet).toBeVisible();
 
-    await sheet.getByLabel(label('forms.interval'), { exact: true }).fill(String(interval));
+    await this.chooseOption(sheet, label('forms.cadence'), label('cadence.CUSTOM'));
+    await sheet.getByLabel(label('cadence.every'), { exact: true }).fill(String(interval));
+
     await sheet.getByRole('button', { name: label('edit'), exact: true }).click();
     await expect(sheet).toBeHidden();
   }
@@ -469,7 +505,7 @@ export class SaldooApp {
     const sheet = this.createDrawer;
     await expect(sheet).toBeVisible();
 
-    await this.chooseOption(sheet, label('frequency'), label(frequency));
+    await this.chooseOption(sheet, label('forms.cadence'), label(`cadence.${frequency}`));
 
     // The same drawer, but its button is 'Edytuj' rather than 'Potwierdź' when it was opened
     // on an existing expense. Scoped to the sheet: the row's pencil carries that label too.
@@ -574,10 +610,13 @@ export class SaldooApp {
     description,
     amount,
     frequency,
+    endsOnDayOfMonth,
   }: {
     description: string;
     amount: number;
     frequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+    /** A day of the month the calendar opens on, which is this one. */
+    endsOnDayOfMonth?: number;
   }): Promise<void> {
     await this.openProfits();
     await this.page.getByRole('button', { name: label('create_profit') }).click();
@@ -588,10 +627,19 @@ export class SaldooApp {
     await sheet.getByLabel(label('description'), { exact: true }).fill(description);
     await sheet.getByLabel(label('profit'), { exact: true }).fill(String(amount));
 
-    if (frequency) await this.chooseOption(sheet, label('frequency'), label(frequency));
+    if (frequency) await this.chooseOption(sheet, label('forms.cadence'), label(`cadence.${frequency}`));
 
-    await sheet.getByLabel(label('execution'), { exact: true }).click();
+    await sheet.getByLabel(label('forms.first-execution'), { exact: true }).click();
     await this.page.getByRole('gridcell').filter({ hasText: /^15$/ }).first().click();
+
+    if (endsOnDayOfMonth) {
+      await sheet.getByLabel(label('forms.ends-at'), { exact: true }).click();
+      await this.page
+        .getByRole('gridcell')
+        .filter({ hasText: new RegExp(`^${endsOnDayOfMonth}$`) })
+        .first()
+        .click();
+    }
 
     await sheet.getByRole('button', { name: label('submit'), exact: true }).click();
     await expect(sheet).toBeHidden();

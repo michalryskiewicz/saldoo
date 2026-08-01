@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/sheet.tsx';
 import { serProfitsDrawerId } from '@/store/preferences.slice.ts';
 import { checkIfOpen } from '@/lib/helpers';
+import { presetFor, withResolvedCadence } from '@/lib/recurrence-presets.ts';
 
 const formSchema = z.object({
   description: z
@@ -26,9 +27,14 @@ const formSchema = z.object({
     .min(2, i18n.t('errors.min-2-length-required')),
   profit: z.number({ error: i18n.t('errors.field-required') }),
   currency: z.string({ error: i18n.t('errors.field-required') }),
+  cadence: z.string({ error: i18n.t('errors.field-required') }),
   frequency: z.string({ error: i18n.t('errors.field-required') }),
   interval: z.number().int().min(1).optional(),
   execution: z.date({ error: i18n.t('errors.field-required') }),
+  endsAt: z.date().optional(),
+}).refine((values) => !values.endsAt || values.endsAt >= values.execution, {
+  error: i18n.t('errors.ends-before-it-starts'),
+  path: ['endsAt'],
 });
 
 export type ProfitCreateSchema = z.infer<typeof formSchema>;
@@ -37,6 +43,7 @@ export type ProfitCreateSchema = z.infer<typeof formSchema>;
 // profit had to answer it by hand before the form would submit at all.
 const defaultValues = {
   currency: 'PLN',
+  cadence: 'MONTHLY',
   frequency: 'MONTHLY',
   interval: 1,
 };
@@ -51,15 +58,21 @@ export default function ProfitsCreatePage() {
   // there is evaluated once on first import, so a tab left open across midnight would go on
   // offering yesterday.
   const initialValues = useMemo(
-    () => (id === NEW_ENTITY_ID ? { ...defaultValues, execution: new Date() } : profit ?? defaultValues),
+    () => (id === NEW_ENTITY_ID
+        ? { ...defaultValues, execution: new Date() }
+        : profit
+          ? { ...profit, cadence: presetFor(profit) }
+          : defaultValues),
     [profit, id]
   );
 
   const handleSubmit = async (values: ProfitCreateSchema): Promise<void> => {
     if (!id) return;
 
+    const income = withResolvedCadence(values);
+
     const saved =
-      id === NEW_ENTITY_ID ? await addDBProfit(values) : await updateDBProfit(id, values);
+      id === NEW_ENTITY_ID ? await addDBProfit(income) : await updateDBProfit(id, income);
     if (!saved) return;
 
     dispatch(serProfitsDrawerId(''));
@@ -101,33 +114,24 @@ export default function ProfitsCreatePage() {
               </FormSection>
 
               <FormSection title={i18n.t('form_sections.when')}>
-                {/* Side by side, because they are one answer: the table reads them as one phrase
-                    ("co środę", "15. dnia miesiąca") and the form should not present them as two
-                    unrelated decisions. */}
+                {/* One question, asked the way it is said: "co kwartał" rather than a unit and a
+                    step the reader has to multiply together. */}
+                <Field.Cadence />
+
+                {/* The dates are a pair — when it starts and when it stops — so they stand
+                    beside each other rather than one under the cadence and one adrift. */}
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1">
-                      <Field.Select
-                        fullWidth
-                        name="frequency"
-                        label={i18n.t('frequency')}
-                        options={[
-                          { label: i18n.t('DAILY'), value: 'DAILY' },
-                          { label: i18n.t('WEEKLY'), value: 'WEEKLY' },
-                          { label: i18n.t('MONTHLY'), value: 'MONTHLY' },
-                          { label: i18n.t('YEARLY'), value: 'YEARLY' },
-                        ]}
-                      />
-                    </div>
-                    <div className="w-20 shrink-0">
-                      <Field.Text name="interval" type="number" label={i18n.t('forms.interval')} />
-                    </div>
-                  </div>
                   <Field.Date
                     name="execution"
-                    label={i18n.t('execution')}
+                    label={i18n.t('forms.first-execution')}
                     fullWidth
                     placeholder={i18n.t('execution_placeholder')}
+                  />
+                  <Field.Date
+                    name="endsAt"
+                    label={i18n.t('forms.ends-at')}
+                    fullWidth
+                    placeholder={i18n.t('forms.ends-at-placeholder')}
                   />
                 </div>
               </FormSection>

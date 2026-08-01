@@ -132,7 +132,8 @@
     "weekday_3": "środę",
     "weekday_4": "czwartek",
     "weekday_5": "piątek",
-    "weekday_6": "sobotę"
+    "weekday_6": "sobotę",
+    "until": "{{recurrence}}, do {{date}}"
   },
   "frequency": "Częstotliwość",
   "tags": "Tagi",
@@ -209,7 +210,8 @@
     "field-required": "Pole wymagane",
     "min-2-length-required": "Wprowadź co namniej 2 znaki",
     "update-account-settings": "Nie udało się zaktualizować ustawień konta. Spróbuj ponownie później",
-    "generic": "Coś poszło nie tak. Spróbuj ponownie później"
+    "generic": "Coś poszło nie tak. Spróbuj ponownie później",
+    "ends-before-it-starts": "Koniec nie może wypaść przed pierwszym wystąpieniem"
   },
   "resolved": "Opłacone",
   "resolved_via_transaction": "Opłacone automatycznie z transakcji",
@@ -272,7 +274,11 @@
       "password-is-required": "Hasło jest wymagane",
       "password-must-be-at-least-6-chars": "Hasło musi składać się z co najmniej 6 znaków"
     },
-    "interval": "Co ile"
+    "ends-at": "Koniec",
+    "ends-at-placeholder": "Nie kończy się",
+    "cadence": "Powtarza się",
+    "first-execution": "Pierwsze wykonanie",
+    "cadence-unit": "Jednostka powtarzania"
   },
   "metrics": {
     "fill-survey": "Wypełnij ankietę dot. naszej aplikacji",
@@ -407,5 +413,31 @@
     "previous_page": "Poprzednia strona",
     "next_page": "Następna strona",
     "last_page": "Ostatnia strona"
+  },
+  "cadence": {
+    "DAILY": "codziennie",
+    "WEEKLY": "co tydzień",
+    "BIWEEKLY": "co 2 tygodnie",
+    "FOUR_WEEKLY": "co 4 tygodnie",
+    "MONTHLY": "co miesiąc",
+    "QUARTERLY": "co kwartał",
+    "HALF_YEARLY": "co pół roku",
+    "YEARLY": "co rok",
+    "CUSTOM": "inna…",
+    "every": "co"
+  },
+  "units": {
+    "day_one": "dzień",
+    "day_few": "dni",
+    "day_many": "dni",
+    "week_one": "tydzień",
+    "week_few": "tygodnie",
+    "week_many": "tygodni",
+    "month_one": "miesiąc",
+    "month_few": "miesiące",
+    "month_many": "miesięcy",
+    "year_one": "rok",
+    "year_few": "lata",
+    "year_many": "lat"
   }
 }

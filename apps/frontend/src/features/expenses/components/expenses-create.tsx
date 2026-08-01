@@ -20,6 +20,7 @@ import { db } from '@/database';
 import { useAppSelector } from '@/store/store.ts';
 import { checkIfOpen } from '@/lib/helpers.ts';
 import { useMemo } from 'react';
+import { presetFor, withResolvedCadence } from '@/lib/recurrence-presets.ts';
 
 const formSchema = z.object({
   description: z
@@ -28,11 +29,18 @@ const formSchema = z.object({
   expense: z.number({ error: i18n.t('errors.field-required') }),
   currency: z.string({ error: i18n.t('errors.field-required') }),
   severity: z.string({ error: i18n.t('errors.field-required') }),
+  cadence: z.string({ error: i18n.t('errors.field-required') }),
   frequency: z.string({ error: i18n.t('errors.field-required') }),
   interval: z.number().int().min(1).optional(),
   execution: z.date({ error: i18n.t('errors.field-required') }),
+  endsAt: z.date().optional(),
   tagId: z.string({ error: i18n.t('errors.field-required') }),
   strategyPart: z.string({ error: i18n.t('errors.field-required') }),
+}).refine((values) => !values.endsAt || values.endsAt >= values.execution, {
+  // Silently generating nothing at all is the alternative, and a form that accepts an answer it
+  // cannot honour is worse than one that refuses it.
+  error: i18n.t('errors.ends-before-it-starts'),
+  path: ['endsAt'],
 });
 
 export type ExpenseCreateType = z.infer<typeof formSchema>;
@@ -40,6 +48,7 @@ export type ExpenseCreateType = z.infer<typeof formSchema>;
 const defaultValues = {
   currency: 'PLN',
   severity: 'MEDIUM',
+  cadence: 'WEEKLY',
   frequency: 'WEEKLY',
   interval: 1,
   tags: [],
@@ -69,15 +78,19 @@ export default function ExpensesCreate() {
             execution: new Date(),
             strategyPart: budgetingPartsOptions[0]?.value,
           }
-        : expense ?? defaultValues,
+        : expense
+          ? { ...expense, cadence: presetFor(expense) }
+          : defaultValues,
     [budgetingPartsOptions, expense, id]
   );
 
   const handleSubmit = async (values: ExpenseCreateType) => {
     if (!id) return;
 
+    const cost = withResolvedCadence(values);
+
     const saved =
-      id === NEW_ENTITY_ID ? await addDBExpense(values) : await updateDBExpense(id, values);
+      id === NEW_ENTITY_ID ? await addDBExpense(cost) : await updateDBExpense(id, cost);
 
     // Staying open is the point: a drawer that shuts either way is why a failed save was
     // indistinguishable from a successful one, and the toast alone was easy to miss.
@@ -135,35 +148,24 @@ export default function ExpensesCreate() {
               </FormSection>
 
               <FormSection title={i18n.t('form_sections.when')}>
-                {/* Side by side, because they are one answer: the table now reads them as one
-                    phrase ("co środę", "15. dnia miesiąca"), and the form should not present them
-                    as two unrelated decisions. */}
+                {/* One question, asked the way it is said: "co kwartał" rather than a unit and a
+                    step the reader has to multiply together. */}
+                <Field.Cadence />
+
+                {/* The dates are a pair — when it starts and when it stops — so they stand
+                    beside each other rather than one under the cadence and one adrift. */}
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {/* The interval sits against the unit it counts, and defaults to 1 — so the
-                      common case is still the one decision it always was. */}
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1">
-                      <Field.Select
-                        fullWidth
-                        name="frequency"
-                        label={i18n.t('frequency')}
-                        options={[
-                          { label: i18n.t('DAILY'), value: 'DAILY' },
-                          { label: i18n.t('WEEKLY'), value: 'WEEKLY' },
-                          { label: i18n.t('MONTHLY'), value: 'MONTHLY' },
-                          { label: i18n.t('YEARLY'), value: 'YEARLY' },
-                        ]}
-                      />
-                    </div>
-                    <div className="w-20 shrink-0">
-                      <Field.Text name="interval" type="number" label={i18n.t('forms.interval')} />
-                    </div>
-                  </div>
                   <Field.Date
                     name="execution"
-                    label={i18n.t('execution')}
+                    label={i18n.t('forms.first-execution')}
                     fullWidth
                     placeholder={i18n.t('execution_placeholder')}
+                  />
+                  <Field.Date
+                    name="endsAt"
+                    label={i18n.t('forms.ends-at')}
+                    fullWidth
+                    placeholder={i18n.t('forms.ends-at-placeholder')}
                   />
                 </div>
               </FormSection>

@@ -6,6 +6,7 @@ import { RHFRadioGroup } from '@/components/hook-form/rhf-radio-group.tsx';
 import { RHFAutoComplete } from '@/components/hook-form/rhf-auto-complete.tsx';
 import { RHFMoneyField } from '@/components/hook-form/rhf-money-field.tsx';
 import { RHFSegmentedField } from '@/components/hook-form/rhf-segmented-field.tsx';
+import { RHFCadenceField } from '@/components/hook-form/rhf-cadence-field.tsx';
 
 export const Field = {
   Text: RHFTextField,
@@ -16,4 +17,5 @@ export const Field = {
   AutoComplete: RHFAutoComplete,
   Money: RHFMoneyField,
   Segmented: RHFSegmentedField,
+  Cadence: RHFCadenceField,
 };
