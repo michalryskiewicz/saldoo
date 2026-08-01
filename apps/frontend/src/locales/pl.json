@@ -74,12 +74,18 @@
   "create": "Dodaj",
   "by_severity": "Priorytet",
   "total": "Całkowita",
+  "duties_total": {
+    "all": "Suma w okresie",
+    "unpaid": "Do zapłaty",
+    "paid": "Zapłacone w okresie"
+  },
   "currency": "Waluta",
   "submit": "Potwierdź",
   "description": "Opis",
   "expense": "Wydatek",
   "severity": "Priorytet",
   "execution": "Wykonanie",
+  "due_date": "Termin",
   "form_sections": {
     "what": "Co i ile",
     "when": "Kiedy",

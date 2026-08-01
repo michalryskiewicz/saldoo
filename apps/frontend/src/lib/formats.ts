@@ -126,3 +126,20 @@ export const formatMoneyValue = (value: unknown, currency: string | undefined): 
 
   return currency ? formatMoney(amount, currency) : formatNumber(amount);
 };
+
+/**
+ * When an occurrence falls due, written the way a person says it.
+ *
+ * The year is only spelled out when it is not the one being read: "4 lip" for this year and
+ * "4 sty 2027" for the next. A year on every row would be four characters of noise on the
+ * column that has to be scannable, since scanning it is the whole reason it exists.
+ *
+ * `today` is a parameter rather than a call to the clock, so the column can be tested without
+ * the answer changing on New Year's Eve.
+ */
+export const formatDueDate = (date: Date | string, today: Date) => {
+  const due = new Date(date);
+  const sameYear = due.getFullYear() === today.getFullYear();
+
+  return format(due, sameYear ? 'd MMM' : 'd MMM yyyy', { locale: dateLocale() });
+};

@@ -74,12 +74,18 @@
   "create": "Add",
   "by_severity": "Priority",
   "total": "Total",
+  "duties_total": {
+    "all": "Total in period",
+    "unpaid": "To pay",
+    "paid": "Paid in period"
+  },
   "currency": "Currency",
   "submit": "Confirm",
   "description": "Description",
   "expense": "Expense",
   "severity": "Priority",
   "execution": "Due",
+  "due_date": "Due",
   "form_sections": {
     "what": "What and how much",
     "when": "When",
