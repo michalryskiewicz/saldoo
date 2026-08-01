@@ -477,6 +477,37 @@ export class SaldooApp {
     return this.page.locator('tbody [role="checkbox"][aria-checked="true"]').count();
   }
 
+  /** Picks a status tab by its accessible name, which is what carries the word below `md`. */
+  async chooseDutyStatus(status: 'all' | 'unpaid' | 'paid'): Promise<void> {
+    await this.page.getByRole('tab', { name: label(status) }).click();
+  }
+
+  async skipDuty(description: string): Promise<void> {
+    await this.page
+      .getByRole('row')
+      .filter({ hasText: description })
+      .getByRole('button', { name: label('skip') })
+      .click();
+  }
+
+  /**
+   * Counted by the button that takes the skip back, rather than by a row's text: every
+   * occurrence of one expense carries the same description, so naming one matches four.
+   */
+  async skippedDutyCount(): Promise<number> {
+    return this.page.getByRole('button', { name: label('restore') }).count();
+  }
+
+  async expectSkippedDuties(count: number): Promise<void> {
+    await expect.poll(() => this.skippedDutyCount(), { timeout: SYNC_TIMEOUT_MS }).toBe(count);
+  }
+
+  async stepDutiesMonth(direction: 'previous' | 'next'): Promise<void> {
+    await this.page
+      .getByRole('button', { name: label(`date_range.${direction}_month_aria`) })
+      .click();
+  }
+
   async expectPaidDuties(count: number): Promise<void> {
     await expect
       .poll(() => this.paidDutyCount(), { timeout: SYNC_TIMEOUT_MS })

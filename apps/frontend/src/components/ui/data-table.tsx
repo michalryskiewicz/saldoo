@@ -212,6 +212,7 @@ export function DataTable<TData, TValue>({
           records={records}
           total={total}
           emptyMessage={emptyMessage ?? i18n.t('table.no_results')}
+          rowClassName={rowClassName}
         />
       ) : (
         <Table>
