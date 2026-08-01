@@ -115,6 +115,20 @@ interface DataTableProps<TData, TValue> {
    * empty cannot tell them apart. Defaults to the neutral wording.
    */
   emptyMessage?: ReactNode;
+  /**
+   * How the table is sorted before anybody clicks a heading.
+   *
+   * Some tables have an order that is part of what they mean rather than a preference: a list
+   * of things falling due reads by date or it reads as nothing.
+   */
+  initialSorting?: SortingState;
+  /**
+   * Extra classes for one record's row, decided from the record itself.
+   *
+   * For state that belongs to the whole line rather than to any one cell — a duty that has been
+   * paid or called off recedes as a row, not as five separately dimmed cells.
+   */
+  rowClassName?: (row: TData) => string | undefined;
   getRowId?: (row: TData, index: number) => string;
 }
 
@@ -123,9 +137,11 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   emptyMessage,
+  initialSorting,
+  rowClassName,
   getRowId,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [sorting, setSorting] = React.useState<SortingState>(initialSorting ?? []);
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
@@ -196,6 +212,7 @@ export function DataTable<TData, TValue>({
           records={records}
           total={total}
           emptyMessage={emptyMessage ?? i18n.t('table.no_results')}
+          rowClassName={rowClassName}
         />
       ) : (
         <Table>
@@ -222,7 +239,11 @@ export function DataTable<TData, TValue>({
           <TableBody>
             {records.length ? (
               records.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && 'selected'}
+                  className={cn(rowClassName?.(row.original))}
+                >
                   {renderCells(row)}
                 </TableRow>
               ))

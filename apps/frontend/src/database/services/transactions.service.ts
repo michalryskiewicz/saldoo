@@ -50,3 +50,44 @@ export async function mapBankRowToDBTransaction(
       throw new Error(`Unsupported bank: ${bank}`);
   }
 }
+
+/** How far either side of a duty's execution date a payment still counts as that duty's. */
+const MATCH_WINDOW_DAYS = 4;
+
+type DutyTransactionCandidate = { id: string; transactionDate?: string };
+
+type SelectTransactionForDuty = {
+  executionDate: Date;
+  rejectedTransactionIds?: string[];
+  transactions: DutyTransactionCandidate[];
+};
+
+/**
+ * The payment that settles a duty, if one of these is.
+ *
+ * Matching is a date window rather than an amount, so it can land on the wrong payment —
+ * which is why unlinking one has to be possible at all. A transaction the user has
+ * unlinked from this duty is passed over rather than disqualifying the duty outright: the
+ * next payment in the same window may well be the right one, and a duty that could never
+ * be matched again would punish the person for correcting the guess.
+ */
+export function selectTransactionForDuty({
+  executionDate,
+  rejectedTransactionIds,
+  transactions,
+}: SelectTransactionForDuty): DutyTransactionCandidate | undefined {
+  const rejected = new Set(rejectedTransactionIds ?? []);
+
+  const earliest = new Date(executionDate);
+  earliest.setDate(executionDate.getDate() - MATCH_WINDOW_DAYS);
+  const latest = new Date(executionDate);
+  latest.setDate(executionDate.getDate() + MATCH_WINDOW_DAYS);
+
+  return transactions.find((transaction) => {
+    if (!transaction.transactionDate || rejected.has(transaction.id)) return false;
+
+    const paidOn = new Date(transaction.transactionDate);
+
+    return paidOn >= earliest && paidOn <= latest;
+  });
+}

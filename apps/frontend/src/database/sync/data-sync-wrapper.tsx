@@ -1,6 +1,7 @@
 import { type PropsWithChildren, useEffect, useSyncExternalStore } from 'react';
 import { VaultShellView } from '@/features/vault/views/vault-shell-view.tsx';
 import { openDocument } from '@/database/document/document.container.ts';
+import { topUpCurrentMonthDuties } from '@/database/duty.ts';
 import { documentDriveSync } from '@/database/document/document-drive.container.ts';
 import { outbox } from '@/database/document/outbox.container.ts';
 import { decideSyncStatus } from '@/database/sync/sync-outcome.service.ts';
@@ -35,6 +36,10 @@ export const DataSyncWrapper = ({ children }: PropsWithChildren) => {
       // that had not been rebuilt yet. Idempotent, so StrictMode's double invoke
       // and the `online` handler both land on the same open.
       await openDocument();
+
+      // The overview reads every duty to report what this month has cost, so the month has to
+      // exist before anything reads it -- not only once somebody opens the Duties screen.
+      await topUpCurrentMonthDuties();
 
       // Anything a previous run could not send is still owed. Picked up here rather
       // than at module load so it cannot fire before the vault is open.

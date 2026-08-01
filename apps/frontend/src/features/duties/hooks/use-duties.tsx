@@ -20,7 +20,7 @@ export const useDuties = ({ from, to }: UseDutiesArgs) => {
     (async () => {
       await addDBDutiesForDateRange(
         { startDate: from, endDate: to },
-        { regenFrom: from, keepResolved: true }
+        { regenFrom: from }
       );
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps

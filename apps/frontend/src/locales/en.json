@@ -74,12 +74,18 @@
   "create": "Add",
   "by_severity": "Priority",
   "total": "Total",
+  "duties_total": {
+    "all": "Total in period",
+    "unpaid": "To pay",
+    "paid": "Paid in period"
+  },
   "currency": "Currency",
   "submit": "Confirm",
   "description": "Description",
   "expense": "Expense",
   "severity": "Priority",
   "execution": "Due",
+  "due_date": "Due",
   "form_sections": {
     "what": "What and how much",
     "when": "When",
@@ -105,6 +111,9 @@
   "open_menu": "Open menu",
   "edit": "Edit",
   "remove": "Delete",
+  "skip": "Skip",
+  "restore": "Restore",
+  "skipped": "Skipped",
   "YEARLY": "Yearly",
   "MONTHLY": "Monthly",
   "WEEKLY": "Weekly",
@@ -120,6 +129,12 @@
   "here_to_link": "here.",
   "root": "Home",
   "duties": "Duties",
+  "duties_subtitle": "Every occurrence of your planned expenses in the chosen period. Tick them off as you pay.",
+  "duties_empty": {
+    "no_expenses": "No expenses yet, so there is nothing to work duties out from.",
+    "none_in_range": "Nothing falls due in this period. Try another month.",
+    "filtered": "Nothing matches the current filter."
+  },
   "expenses_subtitle": "The expenses section is for managing planned expenses. Add some and we will show you a first analysis",
   "profits_subtitle": "The profits section is for managing planned income. Add some and we will include it in the analyses",
   "create_profit": "Add profit",
@@ -129,7 +144,6 @@
   "execution_placeholder": "Pick the date the payment is made on",
   "tags_placeholder": "Enter tags. Confirm with Enter or separate them with a comma ,",
   "success": {
-    "deleted-duty": "Duty deleted",
     "create-expense": "Expense added",
     "update-expense": "Expense updated",
     "deleted-expense": "Expense deleted",
@@ -146,7 +160,6 @@
     "update-transactions": "Transactions updated"
   },
   "errors": {
-    "deleted-duty": "Could not delete the duty",
     "create-expense": "Could not add the expense. Please try again later",
     "update-expense": "Could not update the expense. Please try again later",
     "deleted-expense": "Could not delete the expense. Please try again later",
