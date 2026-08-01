@@ -29,9 +29,12 @@ test('searching finds a row by its priority, and the total follows the rows', as
 
   // A reload between the two, because a popover left over from the first form makes the second
   // one's option list unclickable.
+  // Monthly on purpose, so the summary is a figure this test can name: it totals what a year
+  // of each costs, and a weekly one depends on how often its weekday falls in the year it is
+  // read in.
   for (const spec of [
-    { description: 'Czynsz', amount: 2500, severity: 'HIGH' as const },
-    { description: 'Kawa', amount: 100, severity: 'LOW' as const },
+    { description: 'Czynsz', amount: 2500, severity: 'HIGH' as const, frequency: 'MONTHLY' as const },
+    { description: 'Kawa', amount: 100, severity: 'LOW' as const, frequency: 'MONTHLY' as const },
   ]) {
     await app.addExpense(spec);
     await device.page.reload();
@@ -45,7 +48,8 @@ test('searching finds a row by its priority, and the total follows the rows', as
   // "Wysoki" is nowhere in either description; it is what HIGH is rendered as.
   await app.searchFor('wysoki');
   expect(await app.rowDescriptions()).toEqual(['Czynsz']);
-  expect(await app.footerTotal()).toContain('2500');
+  // A year of a monthly 2500.
+  expect(await app.footerTotal()).toContain('30000,00');
 
   // Typed without its diacritics, the way somebody in a hurry types.
   await app.searchFor('czynsz');
@@ -56,7 +60,8 @@ test('searching finds a row by its priority, and the total follows the rows', as
 
   await app.clearSearch();
   expect((await app.rowDescriptions()).sort()).toEqual(['Czynsz', 'Kawa']);
-  expect(await app.footerTotal()).toContain('2600');
+  // And a year of both, once the search stops narrowing them.
+  expect(await app.footerTotal()).toContain('31200,00');
 
   expect(device.problems()).toEqual([]);
 

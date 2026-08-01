@@ -1,17 +1,12 @@
 import type { DBExpense } from '@/database/expenses';
-import {
-  countWeekdaysInMonth,
-  daysInMonth,
-  getFromDate,
-  isDateInRange,
-  MONTHS,
-} from './dates';
+import { isDateInRange, MONTHS } from './dates';
 import type { DBProfit } from '@/database/profits.ts';
 import { isValid } from 'date-fns';
 import type { DBTransaction } from '@/database/transactions.ts';
 import type { DBDuty } from '@/database/duty.ts';
 import type { Currency } from '@/constant.ts';
 import type { DBTag } from '@/database/tags.ts';
+import { costInMonth } from '@/lib/recurrence.ts';
 import { groupProfitsByMonth } from '@/lib/profits.ts';
 
 type SeverityTotals = { total: number; HIGH: number; MEDIUM: number; LOW: number };
@@ -30,40 +25,14 @@ export function groupExpensesByMonth(data: DBExpense[]) {
     result[month].total += value;
   };
 
+  const year = new Date().getFullYear();
+
   data.forEach((item) => {
     if (!item.execution) return;
-    const { year, month, day } = getFromDate(item.execution);
 
-    switch (item.frequency) {
-      case 'YEARLY': {
-        if (month < 0) return;
-        ensureMonth(month);
-        addToMonth(month, item.severity, item.expense);
-        break;
-      }
-      case 'MONTHLY': {
-        for (let m = 0; m < 12; m++) {
-          ensureMonth(m);
-          addToMonth(m, item.severity, item.expense);
-        }
-        break;
-      }
-      case 'WEEKLY': {
-        for (let m = 0; m < 12; m++) {
-          const count = countWeekdaysInMonth(year, m, day);
-          ensureMonth(m);
-          addToMonth(m, item.severity, item.expense * count);
-        }
-        break;
-      }
-      case 'DAILY': {
-        for (let m = 0; m < 12; m++) {
-          const count = daysInMonth(year, m);
-          ensureMonth(m);
-          addToMonth(m, item.severity, item.expense * count);
-        }
-        break;
-      }
+    for (let m = 0; m < 12; m++) {
+      ensureMonth(m);
+      addToMonth(m, item.severity, costInMonth(item, item.expense, { year, monthIndex: m }));
     }
   });
 
@@ -92,37 +61,13 @@ export function getExpensesInSelectedDateRange(
 export function groupExpensesAndProfitsByMonth(expenses: DBExpense[], profits: DBProfit[]) {
   const expenseResult: number[] = Array(12).fill(0);
 
-  // Group expenses by month
+  const year = new Date().getFullYear();
+
   expenses.forEach((item) => {
-    const { year, month, day } = getFromDate(item.execution);
-    switch (item.frequency) {
-      case 'YEARLY': {
-        if (!isValid(item.execution)) return;
-        expenseResult[month] = expenseResult[month] + item.expense;
-        break;
-      }
-      case 'MONTHLY': {
-        for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
-          expenseResult[monthIndex] = expenseResult[monthIndex] + item.expense;
-        }
-        break;
-      }
-      case 'WEEKLY': {
-        if (!isValid(item.execution)) return;
-        for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
-          const count = countWeekdaysInMonth(year, monthIndex, day);
-          expenseResult[monthIndex] = expenseResult[monthIndex] + item.expense * count;
-        }
-        break;
-      }
-      case 'DAILY': {
-        if (!isValid(item.execution)) return;
-        for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
-          const count = daysInMonth(year, monthIndex);
-          expenseResult[monthIndex] = expenseResult[monthIndex] + item.expense * count;
-        }
-        break;
-      }
+    if (item.execution && !isValid(new Date(item.execution))) return;
+
+    for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
+      expenseResult[monthIndex] += costInMonth(item, item.expense, { year, monthIndex });
     }
   });
 
@@ -146,36 +91,9 @@ export function groupExpensesByCategory(month: number, data: (DBExpense & { tag?
   data.forEach((item) => {
     if (!item.tag?.name) return;
 
-    const { month: itemMonth, day: weekday } = getFromDate(item.execution);
-    let include = false;
-    let total = 0;
+    const total = costInMonth(item, item.expense, { year, monthIndex: month });
 
-    switch (item.frequency) {
-      case 'YEARLY':
-        include = !!item.execution && itemMonth === month;
-        total = item.expense;
-        break;
-      case 'MONTHLY':
-        include = true;
-        total = item.expense;
-        break;
-      case 'WEEKLY': {
-        if (!item.execution) break;
-        const count = countWeekdaysInMonth(year, month, weekday);
-        include = count > 0;
-        total = item.expense * count;
-        break;
-      }
-      case 'DAILY': {
-        if (!item.execution) break;
-        include = true;
-        const count = daysInMonth(year, month);
-        total = item.expense * count;
-        break;
-      }
-    }
-
-    if (include) {
+    if (total > 0) {
       tagTotals[item.tag.name] = (tagTotals[item.tag.name] || 0) + total;
     }
   });
@@ -206,34 +124,10 @@ export function groupExpensesByStrategyPart(
   // Planned (from expenses)
   expenses.forEach((item) => {
     if (!item.strategyPart) return;
-    const { month: itemMonth, day: weekday } = getFromDate(item.execution);
-    let include = false;
-    let total = 0;
-    switch (item.frequency) {
-      case 'YEARLY':
-        include = !!item.execution && itemMonth === month;
-        total = item.expense;
-        break;
-      case 'MONTHLY':
-        include = true;
-        total = item.expense;
-        break;
-      case 'WEEKLY': {
-        if (!item.execution) break;
-        const weekCount = countWeekdaysInMonth(year, month, weekday);
-        include = weekCount > 0;
-        total = item.expense * weekCount;
-        break;
-      }
-      case 'DAILY': {
-        if (!item.execution) break;
-        include = true;
-        const dayCount = daysInMonth(year, month);
-        total = item.expense * dayCount;
-        break;
-      }
-    }
-    if (include) {
+
+    const total = costInMonth(item, item.expense, { year, monthIndex: month });
+
+    if (total > 0) {
       strategyTotals[item.strategyPart] = (strategyTotals[item.strategyPart] || 0) + total;
     }
   });
@@ -295,50 +189,22 @@ export function calculateFinancialSafetyNet(month: number, data: DBExpense[]) {
   data.forEach((item) => {
     if (!item.execution) return;
 
-    const { month: expenseMonth, day: expenseDay } = getFromDate(item.execution);
-
     // 3, 6, 12-months periods
     let totalSmall = 0;
     let totalMedium = 0;
     let totalComfort = 0;
 
-    switch (item.frequency) {
-      case 'YEARLY': {
-        // Only add if the yearly expense falls within the period
-        const relMonth = (expenseMonth - month + 12) % 12;
-        if (relMonth < 12) totalComfort += item.expense;
-        if (relMonth < 6) totalMedium += item.expense;
-        if (relMonth < 3) totalSmall += item.expense;
-        break;
-      }
-      case 'MONTHLY': {
-        for (let i = 0; i < 12; i++) {
-          if (i < 3) totalSmall += item.expense;
-          if (i < 6) totalMedium += item.expense;
-          totalComfort += item.expense;
-        }
-        break;
-      }
-      case 'WEEKLY': {
-        for (let i = 0; i < 12; i++) {
-          const m = (month + i) % 12;
-          const weeks = countWeekdaysInMonth(year, m, expenseDay);
-          if (i < 3) totalSmall += item.expense * weeks;
-          if (i < 6) totalMedium += item.expense * weeks;
-          totalComfort += item.expense * weeks;
-        }
-        break;
-      }
-      case 'DAILY': {
-        for (let i = 0; i < 12; i++) {
-          const m = (month + i) % 12;
-          const days = daysInMonth(year, m);
-          if (i < 3) totalSmall += item.expense * days;
-          if (i < 6) totalMedium += item.expense * days;
-          totalComfort += item.expense * days;
-        }
-        break;
-      }
+    // Forward from the month asked about, so a window that runs past December carries on into
+    // the next year rather than wrapping back to this one's January.
+    for (let i = 0; i < 12; i++) {
+      const cost = costInMonth(item, item.expense, {
+        year: year + Math.floor((month + i) / 12),
+        monthIndex: (month + i) % 12,
+      });
+
+      if (i < 3) totalSmall += cost;
+      if (i < 6) totalMedium += cost;
+      totalComfort += cost;
     }
 
     results.small += totalSmall;

@@ -399,9 +399,19 @@ export class SaldooApp {
     await this.page.getByRole('button', { name: label('table.clear_search') }).click();
   }
 
-  /** The summary figure, whatever the table is currently showing. */
+  /**
+   * The summary figure, whatever the table is currently showing.
+   *
+   * Addressed by its slot rather than by column position: the expenses table carries two money
+   * columns now — the amount as entered and what a year of it costs — and only the second is
+   * summed, so "the second cell" was the first one to stop being the answer.
+   *
+   * Spaces are stripped: the figure is grouped with a non-breaking space nobody types.
+   */
   async footerTotal(): Promise<string> {
-    return (await this.page.locator('tfoot tr td').nth(1).textContent())?.trim() ?? '';
+    const text = (await this.page.locator('[data-slot="summary-figure"]').textContent()) ?? '';
+
+    return text.replace(/\s/g, '');
   }
 
   /**

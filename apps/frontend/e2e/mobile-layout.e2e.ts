@@ -55,7 +55,11 @@ test('the expenses page fits a phone, and the table stops being a table', async 
 
   // The figure and the priority survive the swap: the number is what the row exists to show, and
   // the priority is the only thing colour says in this table.
-  await expect(row.getByText('1980,00 zł')).toBeVisible();
+  //
+  // Addressed by its slot. The figure is what a year of this costs, and the amount as entered is
+  // a detail beside it — for a yearly cost those are the same number, so asking for the text
+  // finds two elements and answers about whichever is first in the DOM.
+  await expect(row.locator('[data-slot="row-figure"]')).toHaveText('1980,00 zł');
   await expect(row.getByText('Średni')).toBeVisible();
 
   // Addressed by its slot rather than its words: with one expense the summary carries the same

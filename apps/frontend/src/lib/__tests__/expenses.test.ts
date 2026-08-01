@@ -94,6 +94,9 @@ describe('expenses service', () => {
     });
 
     it('correctly multiplies weekly frequency expenses by weekday count in each month', () => {
+      // Pinned, because the count is taken against the year on display rather than the year the
+      // cost was entered in: how many Mondays January holds is a property of the year being read.
+      freezeClock('2024-06-15');
       const data = [
         {
           execution: '2024-01-01',
@@ -111,6 +114,9 @@ describe('expenses service', () => {
     });
 
     it('correctly multiplies daily frequency expenses by days in each month', () => {
+      // 2024 is a leap year and the fixture leans on it: February is 29 days here and 28 in most
+      // others, which is the whole reason the year cannot come off the execution date.
+      freezeClock('2024-06-15');
       const data = [
         {
           execution: '2024-02-01',

@@ -73,7 +73,14 @@ export function DataTableMobileList<TData>({
               </div>
 
               <div className="flex shrink-0 flex-col items-end gap-1">
-                {figure ? <div className="font-medium tabular-nums">{renderCell(figure)}</div> : null}
+                {figure ? (
+                  // Named, so a test can ask for the figure rather than for a number: two money
+                  // columns can hold the same amount, and then "the text 1980,00 zł" is two
+                  // elements and the assertion is about whichever came first.
+                  <div data-slot="row-figure" className="font-medium tabular-nums">
+                    {renderCell(figure)}
+                  </div>
+                ) : null}
                 {actions.length ? (
                   <div className="flex items-center">{actions.map(renderCell)}</div>
                 ) : null}

@@ -1,6 +1,6 @@
 import type { DBExpense } from '@/database/expenses.ts';
 import type { DBDuty } from '@/database/duty.ts';
-import { getDatesInRange } from '@/lib/dates.ts';
+import { daysInMonth, getDatesInRange } from '@/lib/dates.ts';
 import { FREQUENCY } from '@/constant.ts';
 import { hashString } from '@/lib/helpers.ts';
 
@@ -105,13 +105,24 @@ export async function createDutiesForSelectedDateRange({
       case FREQUENCY.MONTHLY: {
         const start = new Date(startDate);
         const end = new Date(endDate);
-        const executionDate = new Date(expense.execution).getDate();
+        const dayOfMonth = new Date(expense.execution).getDate();
 
+        // Walked from the first of each month and the day clamped to what that month has, rather
+        // than built directly from the day. A cost due on the 31st built as `new Date(y, 1, 31)`
+        // is the 3rd of March, which is past the end of February — so the loop never ran and the
+        // month simply had no such cost in it. Rent due on the 31st was missing from five months
+        // of the year, and nothing said so.
         for (
-          let d = new Date(start.getFullYear(), start.getMonth(), executionDate);
-          d <= end;
-          d.setMonth(d.getMonth() + 1)
+          let cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+          cursor <= end;
+          cursor.setMonth(cursor.getMonth() + 1)
         ) {
+          const d = new Date(
+            cursor.getFullYear(),
+            cursor.getMonth(),
+            Math.min(dayOfMonth, daysInMonth(cursor.getFullYear(), cursor.getMonth()))
+          );
+
           if (d >= start && d <= end) {
             dutiesForSelectedDateRange.add({
               frequency: expense.frequency,
