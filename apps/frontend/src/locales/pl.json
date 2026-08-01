@@ -129,6 +129,12 @@
   "here_to_link": "tutaj.",
   "root": "Strona Główna",
   "duties": "Zobowiązania",
+  "duties_subtitle": "Wystąpienia zaplanowanych wydatków w wybranym okresie. Odhaczaj je w miarę płacenia.",
+  "duties_empty": {
+    "no_expenses": "Nie masz jeszcze żadnych wydatków, więc nie ma z czego wyliczyć zobowiązań.",
+    "none_in_range": "W tym okresie nic nie wypada. Zajrzyj do innego miesiąca.",
+    "filtered": "Nic nie pasuje do wybranego filtra."
+  },
   "expenses_subtitle": "Sekcja wydatków służy do zarządzania zaplanowanymi wydatkami. Dodaj wydatki a my przedstawimy Ci wstępne analizy",
   "profits_subtitle": "Sekcja zysków służy do zarządzania zaplanowanymi zyskami. Dodaj zyski a my uwzględnimy je w analizach",
   "create_profit": "Dodaj zysk",
