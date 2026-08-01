@@ -134,6 +134,8 @@
   "expenses_to_profit_area_title": "Profits against expenses over the year",
   "expenses_chart_title": "Your expenses",
   "expenses_chart_description": "Expenses over the year. Amounts have been converted automatically into your chosen currency. To change it, click",
+  "profits_chart_title": "Your income",
+  "profits_chart_description": "Income across the year. Figures are converted to your chosen currency automatically. To change it, click",
   "here_to_link": "here.",
   "root": "Home",
   "duties": "Duties",

@@ -1,4 +1,4 @@
-import { test, type Route } from '@playwright/test';
+import { expect, test, type Page, type Route } from '@playwright/test';
 import pl from '../src/locales/pl.json' with { type: 'json' };
 import { createFakeDrive } from './support/fake-drive.ts';
 import { openDevice } from './support/device.ts';
@@ -35,6 +35,33 @@ const VIEWPORTS = {
  * shows an empty plot area, which reads as a broken chart and is not one.
  */
 const CHART_ANIMATION_MS = 1_800;
+
+/**
+ * Waits until the bars stop growing, rather than waiting out a number.
+ *
+ * The animation is not the only thing that decides when a chart is finished: the exchange rates
+ * arrive from the network after the records arrive from IndexedDB, and the figures change when
+ * they land — so the bars start again from zero partway through any fixed wait. Which is how
+ * the profits chart was photographed as an empty plot area at one width and a full one at the
+ * other, from the same data.
+ */
+const waitForBarsToSettle = async (page: Page) => {
+  const bars = page.locator('.recharts-bar-rectangle');
+  await bars.first().waitFor();
+
+  let previous = -1;
+  await expect
+    .poll(
+      async () => {
+        const height = (await bars.first().boundingBox())?.height ?? -1;
+        const settled = height > 0 && height === previous;
+        previous = height;
+        return settled;
+      },
+      { timeout: 15_000, intervals: [200] }
+    )
+    .toBe(true);
+};
 
 const EXPENSES_ROUTE = '/dashboard/expenses';
 const dutiesLabel = pl.duties;
@@ -86,12 +113,7 @@ test('shots: the expenses page in both themes and both widths', async ({ browser
     for (const [name, viewport] of Object.entries(VIEWPORTS)) {
       await device.page.setViewportSize(viewport);
 
-      // Waited for a bar to exist *before* waiting out the animation. The chart's data arrives
-      // from IndexedDB after the page is otherwise ready, so counting the animation from
-      // page-ready is counting from the wrong moment — and a shot taken then shows an empty plot
-      // area, which reads as a chart with no data.
-      await device.page.locator('.recharts-bar-rectangle').first().waitFor();
-      await device.page.waitForTimeout(CHART_ANIMATION_MS);
+      await waitForBarsToSettle(device.page);
 
       await device.page.screenshot({
         path: `shots/expenses-${name}-${theme}.png`,
@@ -233,7 +255,7 @@ test('shots: the remaining dashboards in both themes and both widths', async ({
   await app.assignTransaction('BIEDRONKA');
 
   const SCREENS = [
-    { name: 'profits', open: () => app.openProfits(), settled: 'Wynagrodzenie' },
+    { name: 'profits', open: () => app.openProfits(), settled: 'Wynagrodzenie', chart: true },
     { name: 'transactions', open: () => app.openTransactions(), settled: 'BIEDRONKA' },
     { name: 'overview', open: () => app.openOverview(), settled: undefined },
   ] as const;
@@ -256,6 +278,7 @@ test('shots: the remaining dashboards in both themes and both widths', async ({
         // is not a table — so wait for the record itself rather than for a `tr`. The overview has
         // no records to wait for, only charts, so it waits out the animation alone.
         if (screen.settled) await device.page.getByText(screen.settled).first().waitFor();
+        if ('chart' in screen) await waitForBarsToSettle(device.page);
         await device.page.waitForTimeout(CHART_ANIMATION_MS);
 
         await device.page.screenshot({

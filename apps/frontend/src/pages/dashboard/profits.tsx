@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button.tsx';
 import { serProfitsDrawerId } from '@/store/preferences.slice.ts';
 import { NEW_ENTITY_ID } from '@/constant.ts';
 import ProfitsCreatePage from '@/features/profits/components/profits-create.tsx';
+import { ProfitsChart } from '@/features/profits/components/profits-chart.tsx';
 
 export default function Profits() {
   const dispatch = useDispatch();
@@ -19,6 +20,8 @@ export default function Profits() {
       </PageHeader>
 
       <ProfitsCreatePage />
+
+      <ProfitsChart />
 
       <ProfitsTable />
     </>

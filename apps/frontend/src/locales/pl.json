@@ -134,6 +134,8 @@
   "expenses_to_profit_area_title": "Wykres zysków do wydatków w ujęciu rocznym",
   "expenses_chart_title": "Twoje wydatki",
   "expenses_chart_description": "Wydatki w ujęciu rocznym. Dane zostały przewalutowane automatycznie do wybranej waluty. Jeśli chcesz ją zmienić kliknij",
+  "profits_chart_title": "Twoje zyski",
+  "profits_chart_description": "Zyski w ujęciu rocznym. Dane zostały przewalutowane automatycznie do wybranej waluty. Jeśli chcesz ją zmienić kliknij",
   "here_to_link": "tutaj.",
   "root": "Strona Główna",
   "duties": "Zobowiązania",
