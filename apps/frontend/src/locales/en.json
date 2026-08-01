@@ -105,6 +105,9 @@
   "open_menu": "Open menu",
   "edit": "Edit",
   "remove": "Delete",
+  "skip": "Skip",
+  "restore": "Restore",
+  "skipped": "Skipped",
   "YEARLY": "Yearly",
   "MONTHLY": "Monthly",
   "WEEKLY": "Weekly",
@@ -129,7 +132,6 @@
   "execution_placeholder": "Pick the date the payment is made on",
   "tags_placeholder": "Enter tags. Confirm with Enter or separate them with a comma ,",
   "success": {
-    "deleted-duty": "Duty deleted",
     "create-expense": "Expense added",
     "update-expense": "Expense updated",
     "deleted-expense": "Expense deleted",
@@ -146,7 +148,6 @@
     "update-transactions": "Transactions updated"
   },
   "errors": {
-    "deleted-duty": "Could not delete the duty",
     "create-expense": "Could not add the expense. Please try again later",
     "update-expense": "Could not update the expense. Please try again later",
     "deleted-expense": "Could not delete the expense. Please try again later",

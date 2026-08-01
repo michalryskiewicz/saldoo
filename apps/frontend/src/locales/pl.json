@@ -105,6 +105,9 @@
   "open_menu": "Otwórz menu",
   "edit": "Edytuj",
   "remove": "Usuń",
+  "skip": "Pomiń",
+  "restore": "Przywróć",
+  "skipped": "Pominięte",
   "YEARLY": "Roczna",
   "MONTHLY": "Miesięczna",
   "WEEKLY": "Tygodniowa",
@@ -129,7 +132,6 @@
   "execution_placeholder": "Wybierz datę w której dokonywana jest płatność",
   "tags_placeholder": "Wprowadź tagi. Zatwierdź wybór Enterem lub oddziel je przecinkiem ,",
   "success": {
-    "deleted-duty": "Pomyślnie usunięto zobowiązanie",
     "create-expense": "Pomyślnie dodano wydatek",
     "update-expense": "Pomyślnie zaktualizowano wydatek",
     "deleted-expense": "Pomyślnie usunięto wydatek",
@@ -146,7 +148,6 @@
     "update-transactions": "Pomyślnie zaktualizowano transakcje"
   },
   "errors": {
-    "deleted-duty": "Nie udało się usunąć zobowiązania",
     "create-expense": "Nie udało się dodać wydatku. Spróbuj ponownie później",
     "update-expense": "Nie udało się zaktualizować wydatku. Spróbuj ponownie później",
     "deleted-expense": "Nie udało się usunąć wydatku. Spróbuj ponownie później",

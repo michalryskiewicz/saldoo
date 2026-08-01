@@ -53,4 +53,16 @@ describe('selectStaleDuties', () => {
 
     expect(stale).toEqual([]);
   });
+
+  it('keeps a stale duty the user skipped, for the same reason it keeps a paid one', () => {
+    const skipped = duty({ hash: 'the-4th', ignored: true });
+
+    const stale = selectStaleDuties({
+      stored: [skipped],
+      expectedHashes: ['the-20th'],
+      ...JULY,
+    });
+
+    expect(stale).toEqual([]);
+  });
 });

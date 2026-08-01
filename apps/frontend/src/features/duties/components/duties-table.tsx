@@ -16,6 +16,11 @@ import type { DBExpense } from '@/database/expenses.ts';
 import { useState } from 'react';
 import { endOfMonth, startOfMonth } from 'date-fns';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs.tsx';
+import {
+  type DutyStatus,
+  selectVisibleDuties,
+  sumPayableDuties,
+} from '@/features/duties/services/duties-filter.service.ts';
 
 const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
   {
@@ -56,8 +61,9 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
     accessorKey: 'resolved',
     header: i18n.t('resolved'),
     cell: ({ row }) => {
-      const { id, resolved, transactionId } = row.original;
-      if (id === TOTAL) return null;
+      const { id, resolved, transactionId, ignored } = row.original;
+      // Nothing was paid and nothing is owed on an occurrence that will not happen.
+      if (id === TOTAL || ignored) return null;
 
       const indicator = resolved ? (transactionId ? '💳' : '🖐') : null;
       const indicatorTitle = transactionId
@@ -96,7 +102,7 @@ const columns: ColumnDef<DBDuty & { expense: DBExpense }>[] = [
       }
       return (
         <div className="flex items-center justify-end">
-          <DutiesTableActions dutyId={row.original.id} />
+          <DutiesTableActions dutyId={row.original.id} ignored={!!row.original.ignored} />
         </div>
       );
     },
@@ -109,15 +115,9 @@ export default function DutiesTable() {
     return { from: startOfMonth(today), to: endOfMonth(today) };
   });
   const { duties } = useDuties(range);
-  const [paidFilter, setPaidFilter] = useState<'all' | 'unpaid' | 'paid'>('all');
+  const [paidFilter, setPaidFilter] = useState<DutyStatus>('all');
 
-  let dataToTable = duties ?? [];
-
-  dataToTable = dataToTable.filter((t) => {
-    if (paidFilter === 'all') return true;
-    if (paidFilter === 'paid') return t.resolved === true;
-    return !t.resolved;
-  });
+  const dataToTable = selectVisibleDuties(duties ?? [], paidFilter);
 
   const totalRow = dataToTable.length
     ? [
@@ -128,7 +128,7 @@ export default function DutiesTable() {
           expense: {
             id: TOTAL,
             description: 'TOTAL',
-            expense: dataToTable.reduce((acc, curr) => acc + (curr?.expense?.expense || 0), 0),
+            expense: sumPayableDuties(dataToTable),
             currency: dataToTable?.[0]?.expense?.currency,
             severity: null,
             execution: undefined,

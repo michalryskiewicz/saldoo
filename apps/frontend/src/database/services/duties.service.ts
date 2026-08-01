@@ -29,10 +29,10 @@ type SelectStaleDuties = {
  * 0001), so a sweep scoped to one range must leave every row outside it alone; unbounded, a
  * top-up of the current month would delete a future month generated elsewhere.
  *
- * A resolved duty is never returned. `resolved` is a user's decision rather than derived data,
- * so regeneration has no standing to destroy it — if an expense moved after a payment was
- * marked, both the payment and the new occurrence are true, and the user settles it by
- * skipping one.
+ * A duty the user has marked is never returned. `resolved` and `ignored` are decisions rather
+ * than derived data (ADR 0001), so regeneration has no standing to destroy either — if an
+ * expense moved after a payment was marked, both the payment and the new occurrence are true,
+ * and the user settles that by skipping one.
  */
 export function selectStaleDuties({ stored, expectedHashes, from, to }: SelectStaleDuties) {
   const expected = new Set(expectedHashes);
@@ -42,7 +42,7 @@ export function selectStaleDuties({ stored, expectedHashes, from, to }: SelectSt
       const executionDate = new Date(duty.executionDate).getTime();
       const inRange = executionDate >= from.getTime() && executionDate <= to.getTime();
 
-      return inRange && !expected.has(duty.hash) && !duty.resolved;
+      return inRange && !expected.has(duty.hash) && !duty.resolved && !duty.ignored;
     })
     .map((duty) => duty.id);
 }

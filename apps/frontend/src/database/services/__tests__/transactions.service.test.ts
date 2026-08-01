@@ -3,6 +3,7 @@ import {
   mapINGRowToDBTransaction,
   mapPKOBPRowToDBTransaction,
   mapBankRowToDBTransaction,
+  selectTransactionForDuty,
 } from '../transactions.service';
 
 describe('transactions.service', () => {
@@ -151,5 +152,20 @@ describe('transactions.service', () => {
 
       expect(result1.hash).toBe(result2.hash);
     });
+  });
+});
+
+describe('selectTransactionForDuty', () => {
+  it('skips a transaction the user unlinked and takes the next one in the window', () => {
+    const chosen = selectTransactionForDuty({
+      executionDate: new Date(2026, 6, 15),
+      rejectedTransactionIds: ['the-wrong-one'],
+      transactions: [
+        { id: 'the-wrong-one', transactionDate: '2026-07-13' },
+        { id: 'the-right-one', transactionDate: '2026-07-16' },
+      ],
+    });
+
+    expect(chosen?.id).toBe('the-right-one');
   });
 });

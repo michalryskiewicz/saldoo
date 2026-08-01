@@ -8,8 +8,6 @@ import {
 } from '@/database/services/duties.service.ts';
 import { documentSession } from '@/database/document/document.container.ts';
 import { outbox } from '@/database/document/outbox.container.ts';
-import { toast } from 'sonner';
-import i18n from '@/i18n.ts';
 import { setLastUpdated } from '@/database/meta.ts';
 import { endOfMonth, startOfMonth } from 'date-fns';
 
@@ -25,7 +23,16 @@ export type DBDuty = {
   frequency?: FREQUENCY;
   executionDate: Date;
   expenseId?: string;
-  transactionId?: string;
+  /** `null` where a match was made and the user rejected it — see `resolveDBDuty`. */
+  transactionId?: string | null;
+  /**
+   * Payments the user has said are not this duty's.
+   *
+   * Matching is a ±4 day window, so it can land on the wrong payment. Recording the
+   * rejection rather than blocking the duty outright leaves the next payment in the same
+   * window free to match: a flag would punish the person for correcting the guess.
+   */
+  rejectedTransactionIds?: string[];
   hash: string;
   // Relations (optional, can be expanded as needed)
   expense?: DBExpense; // Replace 'any' with Expense type if available
@@ -124,9 +131,29 @@ export async function topUpCurrentMonthDuties() {
   await addDBDutiesForDateRange({ startDate: startOfMonth(today), endDate: endOfMonth(today) });
 }
 
+/**
+ * Ticks or unticks an occurrence, and remembers a rejected match when there was one.
+ *
+ * Unticking something a transaction was matched to is a statement about the match, not
+ * only about the tick: left as it was, the next import would find the same payment in the
+ * same window and tick it straight back. One write, so a duty is never briefly unpaid but
+ * still linked.
+ *
+ * `null` rather than `undefined` for the cleared link: the document codec skips undefined
+ * values, so an undefined here would leave the old id in place and say nothing.
+ */
 export async function resolveDBDuty(id: string, resolved: boolean) {
   try {
-    await documentSession.update('duties', id, { resolved });
+    const duty = await db.duties.get(id);
+    const rejectedMatch = !resolved && duty?.transactionId ? duty.transactionId : null;
+
+    await documentSession.update('duties', id, {
+      resolved,
+      ...(rejectedMatch && {
+        transactionId: null,
+        rejectedTransactionIds: [...(duty?.rejectedTransactionIds ?? []), rejectedMatch],
+      }),
+    });
     await setLastUpdated();
     outbox.markDirty();
   } catch (e) {
@@ -134,14 +161,20 @@ export async function resolveDBDuty(id: string, resolved: boolean) {
   }
 }
 
-export async function deleteDBDuty(id: string) {
+/**
+ * Marks an occurrence as one that will not happen — or takes that back.
+ *
+ * This is what deleting a duty was reaching for and could not express. A duty's identity is
+ * computed from its expense, so a deleted row is minted again the next time the range is
+ * generated: absence says nothing, and the toast that reported success was wrong by the
+ * next change of month. A mark on a row that stays is the only durable way to say it.
+ */
+export async function ignoreDBDuty(id: string, ignored: boolean) {
   try {
-    await documentSession.remove('duties', id);
+    await documentSession.update('duties', id, { ignored });
     await setLastUpdated();
     outbox.markDirty();
-    toast(i18n.t('success.deleted-duty'));
   } catch (e) {
     console.error(e);
-    toast(i18n.t('errors.deleted-duty'));
   }
 }

@@ -1,4 +1,7 @@
-import { mapBankRowToDBTransaction } from '@/database/services/transactions.service.ts';
+import {
+  mapBankRowToDBTransaction,
+  selectTransactionForDuty,
+} from '@/database/services/transactions.service.ts';
 import { db } from '@/database/index.ts';
 import { toast } from 'sonner';
 import i18n from '@/i18n.ts';
@@ -83,8 +86,10 @@ export const updateDBTransactions = async (payload: UpdateDBTransactionReq[]) =>
 };
 
 /**
- * Resolves duties for a given expenseId by matching transactions within ±4 days of duty executionDate.
- * Updates matched duties: sets resolved=true and transactionId.
+ * Ticks every duty of this expense that a payment settles.
+ *
+ * The window and the rejections both live in `selectTransactionForDuty`; here it is only
+ * applied to each duty in turn.
  */
 export const resolveDutiesForExpense = async (expenseId: string) => {
   // Fetch all duties for the expenseId
@@ -95,20 +100,16 @@ export const resolveDutiesForExpense = async (expenseId: string) => {
     (tx) => tx.expenseId === expenseId && !!tx.transactionDate
   );
 
-  // For each duty, find a transaction within ±4 days of executionDate
   const dutiesToUpdate: { id: string; transactionId: string }[] = [];
   for (const duty of duties) {
     if (!duty.executionDate) continue;
-    const dutyDate = new Date(duty.executionDate);
-    const minDate = new Date(dutyDate);
-    minDate.setDate(dutyDate.getDate() - 4);
-    const maxDate = new Date(dutyDate);
-    maxDate.setDate(dutyDate.getDate() + 4);
-    const matchingTransaction = transactions.find((t) => {
-      if (!t.transactionDate) return false;
-      const txDate = new Date(t.transactionDate);
-      return txDate >= minDate && txDate <= maxDate;
+
+    const matchingTransaction = selectTransactionForDuty({
+      executionDate: new Date(duty.executionDate),
+      rejectedTransactionIds: duty.rejectedTransactionIds,
+      transactions,
     });
+
     if (matchingTransaction) {
       dutiesToUpdate.push({
         id: duty.id,
