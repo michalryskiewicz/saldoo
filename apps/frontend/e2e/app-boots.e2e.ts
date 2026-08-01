@@ -34,4 +34,19 @@ test.describe('the app boots', () => {
     await expect(page.locator('#root')).not.toBeEmpty();
     await expect(page).toHaveURL(/localhost/);
   });
+
+  test('the legal links under the sign-in checkbox go somewhere', async ({ page }) => {
+    await page.goto('/auth/google/sign-in');
+
+    // They used to point at `/docs/terms-and-conditions` and `/docs/privacy-policy`, which
+    // no route ever rendered — so the two links under a checkbox nobody can sign in without
+    // both landed on the 404 page. The documents live on the marketing site.
+    for (const name of [/warunki korzystania/i, /polityka prywatno/i]) {
+      const link = page.getByRole('link', { name });
+
+      await expect(link).toHaveAttribute('href', /^https:\/\/saldoo\.io\//);
+      // The app is a place someone is mid-task in; reading the terms must not lose that.
+      await expect(link).toHaveAttribute('target', '_blank');
+    }
+  });
 });

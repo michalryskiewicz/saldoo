@@ -17,6 +17,17 @@ export type ConfigType = {
   dataSourceDirectory: string;
 
   googleClientId: string;
+  /**
+   * Where the legal documents actually live.
+   *
+   * On the marketing site, not in the app: `paths.docs.*` used to point at
+   * `/docs/terms-and-conditions` and `/docs/privacy-policy`, which no route ever
+   * rendered — so both links under the sign-in checkbox resolved to the 404 page.
+   */
+  legal: {
+    privacyPolicy: string;
+    termsOfService: string;
+  };
 };
 
 export const CONFIG: ConfigType = {
@@ -50,6 +61,14 @@ export const CONFIG: ConfigType = {
    */
   dataSourceFile: import.meta.env.VITE_GA_DRIVE_FILE ?? 'saldoo-data.json',
   dataSourceDirectory: import.meta.env.VITE_GA_DRIVE_DIRECTORY ?? 'saldoo',
+
+  /**
+   * Legal
+   */
+  legal: {
+    privacyPolicy: 'https://saldoo.io/polityka-prywatnosci',
+    termsOfService: 'https://saldoo.io/regulamin',
+  },
 };
 
 /**
