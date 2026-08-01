@@ -30,8 +30,21 @@ describe('classify upload failure', () => {
   });
 
   it('treats needing authorization as transient — silent renewal may succeed later', () => {
-    expect(classifyUploadFailure(unreachable(new DriveAuthRequiredError()))).toBe('transient');
-    expect(classifyUploadFailure(new DriveAuthRequiredError())).toBe('transient');
+    const needsPerson = () => new DriveAuthRequiredError('needs-interaction');
+    expect(classifyUploadFailure(unreachable(needsPerson()))).toBe('transient');
+    expect(classifyUploadFailure(needsPerson())).toBe('transient');
+  });
+
+  it('treats being unable to ask as transient — a dead network clears by itself', () => {
+    expect(classifyUploadFailure(new DriveAuthRequiredError('unavailable'))).toBe('transient');
+  });
+
+  it('treats a withdrawn grant as permanent — retrying it forever is how it stayed silent', () => {
+    // The defect this replaces: every authorization failure was transient, so a revoked
+    // grant sat in the outbox retrying until the tab closed, telling nobody.
+    const refused = () => new DriveAuthRequiredError('refused');
+    expect(classifyUploadFailure(unreachable(refused()))).toBe('permanent');
+    expect(classifyUploadFailure(refused())).toBe('permanent');
   });
 
   it('treats a rejected request as permanent — retrying sends the same rejected bytes', () => {

@@ -136,17 +136,24 @@ grep VITE_GOOGLE_CLIENT .env
 ```
 
 Saldoo uses a **single** Google OAuth client (type: Web application) for both login
-and Google Drive, and it is a browser client — there is no client secret. Three
-things must be set up in Google Cloud:
+and Google Drive, and the browser talks to Google directly — no client secret is used
+and none is needed. Settings live under **Google Auth Platform** in the console:
 
-1. **Publish the OAuth app** (consent screen → *Publish app*). In *Testing*, Google
-   expires consent after **7 days** for any app requesting more than
-   name/email/profile, which breaks the Drive connection every week.
-2. **Authorized JavaScript origins** must include the origin you serve the frontend
-   from. Google Identity Services refuses to start otherwise.
-3. **Scopes**: `openid`, `email`, `profile`,
-   `https://www.googleapis.com/auth/drive.file`. All non-sensitive, so only basic
-   verification applies and no security assessment is required.
+1. **Authorized JavaScript origins** (*Clients*) must include the origin you serve the
+   frontend from. Google Identity Services refuses to start otherwise. Leave
+   *Authorized redirect URIs* empty: this flow uses no redirect.
+2. **Scopes** (*Data access*): `openid`, `email`, `profile`,
+   `https://www.googleapis.com/auth/drive.file`. All non-sensitive, so publishing needs
+   no verification review and no security assessment.
+3. **Publishing status** (*Audience*) → *In production*. In *Testing*, Google shows
+   every test user an "app is currently being tested" screen before consent.
+
+The client identity is load-bearing beyond configuration: `drive.file` grants access
+only to files the app itself created, so **a new client ID cannot see the keyfile the
+old one wrote**. Never swap or delete the client this app signs in with.
+
+The 7-day expiry often cited for *Testing* apps does not apply here: it is scoped to
+refresh tokens, and this browser flow never receives one.
 
 ### "Nie udało się otworzyć danych" on startup
 
