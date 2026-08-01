@@ -608,10 +608,13 @@ export class SaldooApp {
     description,
     amount,
     frequency,
+    endsOnDayOfMonth,
   }: {
     description: string;
     amount: number;
     frequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+    /** A day of the month the calendar opens on, which is this one. */
+    endsOnDayOfMonth?: number;
   }): Promise<void> {
     await this.openProfits();
     await this.page.getByRole('button', { name: label('create_profit') }).click();
@@ -626,6 +629,15 @@ export class SaldooApp {
 
     await sheet.getByLabel(label('execution'), { exact: true }).click();
     await this.page.getByRole('gridcell').filter({ hasText: /^15$/ }).first().click();
+
+    if (endsOnDayOfMonth) {
+      await sheet.getByLabel(label('forms.ends-at'), { exact: true }).click();
+      await this.page
+        .getByRole('gridcell')
+        .filter({ hasText: new RegExp(`^${endsOnDayOfMonth}$`) })
+        .first()
+        .click();
+    }
 
     await sheet.getByRole('button', { name: label('submit'), exact: true }).click();
     await expect(sheet).toBeHidden();

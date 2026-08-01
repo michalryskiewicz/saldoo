@@ -29,6 +29,10 @@ const formSchema = z.object({
   frequency: z.string({ error: i18n.t('errors.field-required') }),
   interval: z.number().int().min(1).optional(),
   execution: z.date({ error: i18n.t('errors.field-required') }),
+  endsAt: z.date().optional(),
+}).refine((values) => !values.endsAt || values.endsAt >= values.execution, {
+  error: i18n.t('errors.ends-before-it-starts'),
+  path: ['endsAt'],
 });
 
 export type ProfitCreateSchema = z.infer<typeof formSchema>;
@@ -128,6 +132,12 @@ export default function ProfitsCreatePage() {
                     label={i18n.t('execution')}
                     fullWidth
                     placeholder={i18n.t('execution_placeholder')}
+                  />
+                  <Field.Date
+                    name="endsAt"
+                    label={i18n.t('forms.ends-at')}
+                    fullWidth
+                    placeholder={i18n.t('forms.ends-at-placeholder')}
                   />
                 </div>
               </FormSection>

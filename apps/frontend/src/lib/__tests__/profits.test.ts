@@ -83,6 +83,22 @@ describe('groupProfitsByMonth', () => {
     expect(months[1].total).toBe(280);
   });
 
+  it('stops arriving in the months after the series ended', () => {
+    const months = groupProfitsByMonth(
+      [
+        profit({
+          profit: 4000,
+          frequency: FREQUENCY.MONTHLY,
+          execution: new Date(2026, 0, 10),
+          endsAt: new Date(2026, 2, 31),
+        }),
+      ],
+      2026
+    );
+
+    expect(months.map((month) => month.total)).toEqual([4000, 4000, 4000, ...Array(9).fill(0)]);
+  });
+
   it('leaves out a profit with no date rather than guessing one', () => {
     // A recurrence needs a day to recur on; without one there is no month to count it in.
     expect(groupProfitsByMonth([profit({ profit: 999, frequency: FREQUENCY.YEARLY })])).toEqual(

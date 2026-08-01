@@ -69,8 +69,8 @@ const columns: ColumnDef<ProfitRow>[] = [
     accessorKey: 'frequency',
     header: i18n.t('frequency'),
     cell: ({ row }) => {
-      const { id, execution, frequency, interval } = row.original;
-      return <Cell.Text id={id} name={formatRecurrence(execution, frequency, interval)} />;
+      const { id, execution, frequency, interval, endsAt } = row.original;
+      return <Cell.Text id={id} name={formatRecurrence(execution, frequency, interval, endsAt)} />;
     },
   },
   {

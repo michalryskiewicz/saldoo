@@ -130,3 +130,25 @@ describe('record codec', () => {
     expect(wire.createdAt).toEqual({});
   });
 });
+
+describe('a profit that ends', () => {
+  it('keeps its ending across a replication hop', () => {
+    // Every table declares its own date fields, so a new one is carried on one table and lost
+    // on the next — silently, and only on the far device.
+    const profit = {
+      id: 'p1',
+      createdAt: new Date('2026-01-02T03:04:05.000Z'),
+      execution: new Date('2026-03-04T05:06:07.000Z'),
+      endsAt: new Date('2026-09-10T11:12:13.000Z'),
+      description: 'Umowa',
+      profit: 4000,
+      currency: 'PLN' as const,
+    };
+
+    const wire = overTheWire(profit, (r) => encodeRecord('profits', r));
+    const back = decodeRecord('profits', wire as Record<string, unknown>) as typeof profit;
+
+    expect(back.endsAt).toBeInstanceOf(Date);
+    expect(back.endsAt.getTime()).toBe(profit.endsAt.getTime());
+  });
+});
