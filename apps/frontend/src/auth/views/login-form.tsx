@@ -16,7 +16,6 @@ import { Logo } from '@/components/logo.tsx';
 import { Checkbox } from '@/components/ui/checkbox.tsx';
 import { Label } from '@/components/ui/label.tsx';
 import { useState } from 'react';
-import { Link } from 'react-router';
 
 export function LoginForm() {
   const [acceptedRules, setAcceptedRules] = useState<boolean>(false);
@@ -74,9 +73,14 @@ export function LoginForm() {
                     <Label htmlFor="terms-2">{i18n.t('accept_terms_and_conditions')}</Label>
                     <p className="text-muted-foreground text-sm *:[a]:hover:text-primary  text-balance *:[a]:underline *:[a]:underline-offset-4">
                       {i18n.t('register_by_you_agree')}{' '}
-                      <Link to={paths.docs.termsAndConditions}>{i18n.t('terms_of_service')}</Link>{' '}
+                      <a href={CONFIG.legal.termsOfService} target="_blank" rel="noreferrer">
+                        {i18n.t('terms_of_service')}
+                      </a>{' '}
                       {i18n.t('and')}{' '}
-                      <Link to={paths.docs.privacyPolicy}>{i18n.t('privacy_policy')}</Link>.
+                      <a href={CONFIG.legal.privacyPolicy} target="_blank" rel="noreferrer">
+                        {i18n.t('privacy_policy')}
+                      </a>
+                      .
                     </p>
                   </div>
                 </div>

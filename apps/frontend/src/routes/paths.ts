@@ -3,7 +3,6 @@ import i18n from '@/i18n.ts';
 const ROOTS = {
   AUTH: '/auth',
   DASHBOARD: '/dashboard',
-  DOCS: '/docs',
 };
 
 export const paths = {
@@ -12,11 +11,6 @@ export const paths = {
     google: {
       signIn: `${ROOTS.AUTH}/google/sign-in`,
     },
-  },
-  docs: {
-    root: ROOTS.DOCS,
-    termsAndConditions: `${ROOTS.DOCS}/terms-and-conditions`,
-    privacyPolicy: `${ROOTS.DOCS}/privacy-policy`,
   },
   // DASHBOARD
   dashboard: {
