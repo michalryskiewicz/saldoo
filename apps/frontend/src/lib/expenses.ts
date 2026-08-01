@@ -1,5 +1,5 @@
 import type { DBExpense } from '@/database/expenses';
-import { isDateInRange, MONTHS } from './dates';
+import { MONTHS } from './dates';
 import type { DBProfit } from '@/database/profits.ts';
 import { isValid } from 'date-fns';
 import type { DBTransaction } from '@/database/transactions.ts';
@@ -43,19 +43,6 @@ export function groupExpensesByMonth(data: DBExpense[]) {
     medium: Number(result[m]?.MEDIUM?.toFixed(2)) || 0,
     low: Number(result[m]?.LOW?.toFixed(2)) || 0,
   }));
-}
-
-export function getExpensesInSelectedDateRange(
-  expenses: DBExpense[],
-  { start, end }: { start: Date; end: Date }
-) {
-  return expenses.filter((e) => {
-    if (e.frequency === 'YEARLY' && e.execution) {
-      return isDateInRange(e.execution, start, end);
-    }
-
-    return true;
-  });
 }
 
 export function groupExpensesAndProfitsByMonth(expenses: DBExpense[], profits: DBProfit[]) {

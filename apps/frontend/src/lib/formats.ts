@@ -47,38 +47,48 @@ const formatInterval = (date: Date, frequency: FREQUENCY, count: number) => {
   }
 };
 
+const formatCadence = (date: Date, frequency: FREQUENCY, every?: number) => {
+  if (every) return formatInterval(date, frequency, every);
+
+  switch (frequency) {
+    case FREQUENCY.WEEKLY:
+      return i18n.t(`recurrence.weekly_${date.getDay()}` as TranslationKey);
+    case FREQUENCY.MONTHLY:
+      // No leading zero: this reads as a sentence, and "05. dnia miesiąca" is not how one is said.
+      return i18n.t('recurrence.monthly', { day: format(date, 'd') });
+    case FREQUENCY.YEARLY:
+      return i18n.t('recurrence.yearly', {
+        date: format(date, 'd MMMM', { locale: dateLocale() }),
+      });
+    default:
+      return '';
+  }
+};
+
 export const formatRecurrence = (
   date: Date | string | undefined,
   frequency?: FREQUENCY,
-  interval?: number
+  interval?: number,
+  endsAt?: Date | string
 ) => {
   // Only an interval worth saying out loud. Every recurrence means "every one" by default, and
   // "co 1 tydzień" is not a phrase anybody says.
   const every = interval && interval > 1 ? interval : undefined;
 
-  if (frequency === FREQUENCY.DAILY && !every) {
-    return i18n.t('recurrence.daily');
-  }
+  const daily = frequency === FREQUENCY.DAILY && !every ? i18n.t('recurrence.daily') : undefined;
 
-  if (!frequency || !date) {
-    return '-';
-  }
+  if (!daily && (!frequency || !date)) return '-';
 
-  const d = new Date(date);
+  const cadence = daily ?? formatCadence(new Date(date!), frequency!, every);
 
-  if (every) return formatInterval(d, frequency, every);
+  if (!endsAt) return cadence;
 
-  switch (frequency) {
-    case FREQUENCY.WEEKLY:
-      return i18n.t(`recurrence.weekly_${d.getDay()}` as TranslationKey);
-    case FREQUENCY.MONTHLY:
-      // No leading zero: this reads as a sentence, and "05. dnia miesiąca" is not how one is said.
-      return i18n.t('recurrence.monthly', { day: format(d, 'd') });
-    case FREQUENCY.YEARLY:
-      return i18n.t('recurrence.yearly', { date: format(d, 'd MMMM', { locale: dateLocale() }) });
-    default:
-      return '';
-  }
+  // A series that has stopped otherwise reads exactly like a live one while costing nothing a
+  // year, which looks like a defect rather than an answer.
+  return i18n.t('recurrence.until', {
+    recurrence: cadence,
+    date: format(new Date(endsAt), 'd MMM yyyy', { locale: dateLocale() }),
+  });
 };
 
 type MonthIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;

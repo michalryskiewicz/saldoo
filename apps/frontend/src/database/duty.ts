@@ -1,7 +1,6 @@
 import type { FREQUENCY } from '@/constant.ts';
 import { db } from '@/database/index';
 import type { DBExpense } from '@/database/expenses';
-import { getExpensesInSelectedDateRange } from '@/lib/expenses.ts';
 import {
   carryMarksToMovedOccurrences,
   createDutiesForSelectedDateRange,
@@ -61,18 +60,12 @@ export async function addDBDutiesForDateRange(
   // 1. Get all expenses for user
   const expenses: DBExpense[] = await db.expenses.toArray();
 
-  // 2. Filter expenses in selected date range
-  const expensesThatShouldBeExecuted = getExpensesInSelectedDateRange(expenses, {
-    start: startDate,
-    end: endDate,
-  });
-
-  // 3. Generate the duties the current definitions call for
-  const duties = await createDutiesForSelectedDateRange({
-    expenses: expensesThatShouldBeExecuted,
-    startDate,
-    endDate,
-  });
+  // Every expense is offered to the generator, which answers with the occurrences that fall
+  // inside the range — an empty answer *is* "this one has nothing here". Filtering first asked
+  // whether the execution date itself was in the range, which for a yearly cost is true only in
+  // the year it was entered: an insurance entered in July 2024 had no occurrence in July 2027,
+  // while the totals went on charging for it every year.
+  const duties = await createDutiesForSelectedDateRange({ expenses, startDate, endDate });
 
   // Hand the marks of re-dated occurrences over before anything else touches them: the
   // correction of the daily day-shift changes an occurrence's date, and the date is its

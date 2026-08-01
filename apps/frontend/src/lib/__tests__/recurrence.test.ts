@@ -270,3 +270,33 @@ describe('occurrencesInRange', () => {
     expect(dates).toEqual([]);
   });
 });
+
+describe('a recurrence that ends', () => {
+  const monthly = { frequency: FREQUENCY.MONTHLY, execution: new Date(2026, 0, 15) };
+
+  it('stops laying down occurrences after the day it was ended on', () => {
+    const dates = occurrencesInRange(
+      { ...monthly, endsAt: new Date(2026, 2, 20) },
+      { from: new Date(2026, 0, 1), to: new Date(2026, 5, 30) }
+    );
+
+    expect(asISODates(dates)).toEqual(['2026-01-15', '2026-02-15', '2026-03-15']);
+  });
+
+  it('counts the occurrence that falls on the ending day itself', () => {
+    // The day a subscription is cancelled is a day it was still owed for.
+    const dates = occurrencesInRange(
+      { ...monthly, endsAt: new Date(2026, 1, 15) },
+      { from: new Date(2026, 1, 1), to: new Date(2026, 5, 30) }
+    );
+
+    expect(asISODates(dates)).toEqual(['2026-02-15']);
+  });
+
+  it('costs nothing in a year after the one it ended in', () => {
+    // The point of the field: a cancelled subscription that goes on being counted is worse
+    // than no field at all, because the yearly figure is what makes commitments comparable.
+    expect(costInYear({ ...monthly, endsAt: new Date(2026, 2, 20) }, 100, 2027)).toBe(0);
+    expect(costInYear({ ...monthly, endsAt: new Date(2026, 2, 20) }, 100, 2026)).toBe(300);
+  });
+});

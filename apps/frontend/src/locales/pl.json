@@ -132,7 +132,8 @@
     "weekday_3": "środę",
     "weekday_4": "czwartek",
     "weekday_5": "piątek",
-    "weekday_6": "sobotę"
+    "weekday_6": "sobotę",
+    "until": "{{recurrence}}, do {{date}}"
   },
   "frequency": "Częstotliwość",
   "tags": "Tagi",
@@ -209,7 +210,8 @@
     "field-required": "Pole wymagane",
     "min-2-length-required": "Wprowadź co namniej 2 znaki",
     "update-account-settings": "Nie udało się zaktualizować ustawień konta. Spróbuj ponownie później",
-    "generic": "Coś poszło nie tak. Spróbuj ponownie później"
+    "generic": "Coś poszło nie tak. Spróbuj ponownie później",
+    "ends-before-it-starts": "Koniec nie może wypaść przed pierwszym wystąpieniem"
   },
   "resolved": "Opłacone",
   "resolved_via_transaction": "Opłacone automatycznie z transakcji",
@@ -272,7 +274,9 @@
       "password-is-required": "Hasło jest wymagane",
       "password-must-be-at-least-6-chars": "Hasło musi składać się z co najmniej 6 znaków"
     },
-    "interval": "Co ile"
+    "interval": "Co ile",
+    "ends-at": "Koniec",
+    "ends-at-placeholder": "Nie kończy się"
   },
   "metrics": {
     "fill-survey": "Wypełnij ankietę dot. naszej aplikacji",

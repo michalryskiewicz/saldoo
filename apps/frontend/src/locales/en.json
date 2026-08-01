@@ -132,7 +132,8 @@
     "weekday_3": "Wednesday",
     "weekday_4": "Thursday",
     "weekday_5": "Friday",
-    "weekday_6": "Saturday"
+    "weekday_6": "Saturday",
+    "until": "{{recurrence}}, until {{date}}"
   },
   "frequency": "Frequency",
   "tags": "Tags",
@@ -209,7 +210,8 @@
     "field-required": "This field is required",
     "min-2-length-required": "Enter at least 2 characters",
     "update-account-settings": "Could not update your account settings. Please try again later",
-    "generic": "Something went wrong. Please try again later"
+    "generic": "Something went wrong. Please try again later",
+    "ends-before-it-starts": "The end cannot fall before the first occurrence"
   },
   "resolved": "Paid",
   "resolved_via_transaction": "Paid automatically from a transaction",
@@ -272,7 +274,9 @@
       "password-is-required": "A password is required",
       "password-must-be-at-least-6-chars": "The password must be at least 6 characters"
     },
-    "interval": "Every"
+    "interval": "Every",
+    "ends-at": "Ends",
+    "ends-at-placeholder": "Does not end"
   },
   "metrics": {
     "fill-survey": "Fill in our survey about the app",

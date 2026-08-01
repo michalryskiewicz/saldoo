@@ -20,6 +20,8 @@ export type DBExpense = {
   /** How many units of the frequency between occurrences. Absent means every one. */
   interval?: number;
   execution?: Date;
+  /** The last day it recurs on. Absent means it goes on — see `Recurrence.endsAt`. */
+  endsAt?: Date;
   strategyPart?: STRATEGY_PART;
   tagId?: string;
 };

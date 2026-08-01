@@ -34,7 +34,7 @@ export type DocumentTable =
 
 /** Fields held as `Date` in Dexie and as epoch milliseconds in the document. */
 const DATE_FIELDS: Record<DocumentTable, readonly string[]> = {
-  expenses: ['createdAt', 'updatedAt', 'execution'],
+  expenses: ['createdAt', 'updatedAt', 'execution', 'endsAt'],
   profits: ['createdAt', 'updatedAt', 'execution'],
   tags: ['createdAt', 'updatedAt'],
   transactions: ['createdAt', 'updatedAt'],

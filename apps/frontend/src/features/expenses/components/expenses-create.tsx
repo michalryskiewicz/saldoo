@@ -31,8 +31,14 @@ const formSchema = z.object({
   frequency: z.string({ error: i18n.t('errors.field-required') }),
   interval: z.number().int().min(1).optional(),
   execution: z.date({ error: i18n.t('errors.field-required') }),
+  endsAt: z.date().optional(),
   tagId: z.string({ error: i18n.t('errors.field-required') }),
   strategyPart: z.string({ error: i18n.t('errors.field-required') }),
+}).refine((values) => !values.endsAt || values.endsAt >= values.execution, {
+  // Silently generating nothing at all is the alternative, and a form that accepts an answer it
+  // cannot honour is worse than one that refuses it.
+  error: i18n.t('errors.ends-before-it-starts'),
+  path: ['endsAt'],
 });
 
 export type ExpenseCreateType = z.infer<typeof formSchema>;
@@ -164,6 +170,12 @@ export default function ExpensesCreate() {
                     label={i18n.t('execution')}
                     fullWidth
                     placeholder={i18n.t('execution_placeholder')}
+                  />
+                  <Field.Date
+                    name="endsAt"
+                    label={i18n.t('forms.ends-at')}
+                    fullWidth
+                    placeholder={i18n.t('forms.ends-at-placeholder')}
                   />
                 </div>
               </FormSection>

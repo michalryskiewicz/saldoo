@@ -29,6 +29,7 @@ const expense: DBExpense = {
   createdAt: new Date('2026-01-02T03:04:05.000Z'),
   updatedAt: new Date('2026-02-03T04:05:06.000Z'),
   execution: new Date('2026-03-04T05:06:07.000Z'),
+  endsAt: new Date('2026-04-05T06:07:08.000Z'),
   description: 'Rent',
   expense: 2500,
   currency: 'PLN',
@@ -45,6 +46,7 @@ describe('record codec', () => {
     expect(back.createdAt.getTime()).toBe(expense.createdAt.getTime());
     expect(back.updatedAt?.getTime()).toBe(expense.updatedAt?.getTime());
     expect(back.execution?.getTime()).toBe(expense.execution?.getTime());
+    expect(back.endsAt?.getTime()).toBe(expense.endsAt?.getTime());
   });
 
   it('keeps the non-date fields byte for byte', () => {
