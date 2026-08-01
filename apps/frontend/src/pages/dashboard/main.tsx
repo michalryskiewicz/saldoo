@@ -3,7 +3,7 @@ import { ExpensesByCategoryChart } from '@/features/overview/components/categori
 
 import { BudgetingStrategyCards } from '@/features/overview/components/budgeting-strategy-cards.tsx';
 import { FinancialSafetyNetCard } from '@/features/overview/components/financial-safety-net-card.tsx';
-import ContributionHeatmap from '@/features/overview/components/contribution-heatmap-chart.tsx';
+import MonthlySpendingChart from '@/features/overview/components/monthly-spending-chart.tsx';
 import { SetUpPersonalPreferencesIndicator } from '@/components/set-up-personal-preferences-indicator.tsx';
 import { ContentSkeleton } from '@/components/loaders/content-skeleton.tsx';
 import { useOverviewData } from '@/features/overview/hooks/use-overview-data.tsx';
@@ -34,7 +34,7 @@ export default function Page() {
         <ExpensesByCategoryChart />
         <div className="h-full gap-4 flex flex-col w-full">
           <FinancialSafetyNetCard />
-          <ContributionHeatmap />
+          <MonthlySpendingChart />
         </div>
       </div>
     </>

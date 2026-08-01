@@ -96,18 +96,6 @@ export function getEarliestAndLatestDate<T>(
   return { earliest: earliestDate, latest: latestDate };
 }
 
-export function getDaysArrayOfYear(year: number): Date[] {
-  const startOfYear = new Date(year, 0, 1);
-  const endOfYear = new Date(year, 11, 31);
-  const daysInYear =
-    Math.floor((endOfYear.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  return Array.from({ length: daysInYear }, (_, i) => {
-    const date = new Date(year, 0, 1);
-    date.setDate(date.getDate() + i);
-    return date;
-  });
-}
-
 export function toISODate(date: Date | string | number): string {
   const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
   if (!(d instanceof Date) || isNaN(d.getTime())) {

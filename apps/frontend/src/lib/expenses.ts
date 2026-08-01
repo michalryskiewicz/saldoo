@@ -2,13 +2,12 @@ import type { DBExpense } from '@/database/expenses';
 import {
   countWeekdaysInMonth,
   daysInMonth,
-  getDaysArrayOfYear,
   getFromDate,
   isDateInRange,
   MONTHS,
 } from './dates';
 import type { DBProfit } from '@/database/profits.ts';
-import { getISOWeek, isValid } from 'date-fns';
+import { isValid } from 'date-fns';
 import type { DBTransaction } from '@/database/transactions.ts';
 import type { DBDuty } from '@/database/duty.ts';
 import type { Currency } from '@/constant.ts';
@@ -358,52 +357,3 @@ export function calculateFinancialSafetyNet(month: number, data: DBExpense[]) {
   };
 }
 
-type ContributionDay = {
-  week: number;
-  day: number;
-  date: number;
-  month: number;
-  year: number;
-  value: number;
-  amount: number;
-  currency: Currency | '';
-};
-
-export function generateContributionData(transactions: DBTransaction[]) {
-  const data: ContributionDay[] = [];
-  const today = new Date();
-  const currentYear = today.getFullYear();
-
-  // Filter transactions for the current year, skip null dates
-  const filteredTransactions = transactions.filter((t) => {
-    if (!t.transactionDate) return false;
-    const date = new Date(t.transactionDate);
-    return date.getFullYear() === currentYear;
-  });
-
-  const daysOfYearArray = getDaysArrayOfYear(currentYear);
-
-  daysOfYearArray.forEach((day) => {
-    const transactionsInSelectedDay = filteredTransactions.filter((t) => {
-      const tDate = new Date(t.transactionDate);
-      return (
-        tDate.getFullYear() === day.getFullYear() &&
-        tDate.getMonth() === day.getMonth() &&
-        tDate.getDate() === day.getDate()
-      );
-    });
-
-    data.push({
-      week: getISOWeek(day),
-      day: day.getDay(),
-      date: day.getDate(),
-      month: day.getMonth(),
-      year: day.getFullYear(),
-      value: transactionsInSelectedDay.length,
-      amount: transactionsInSelectedDay.reduce((acc, curr) => (acc += curr.amount), 0),
-      currency: transactionsInSelectedDay?.[0]?.currency || '',
-    });
-  });
-
-  return data;
-}

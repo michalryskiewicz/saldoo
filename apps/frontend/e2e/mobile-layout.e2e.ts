@@ -4,6 +4,7 @@ import { openDevice } from './support/device.ts';
 import { SaldooApp } from './support/app.ts';
 import { PASSPHRASE } from './support/fixtures.ts';
 import { ingStatement } from './support/bank-statement.ts';
+import pl from '../src/locales/pl.json' with { type: 'json' };
 
 /**
  * The guard on the phone layout.
@@ -63,6 +64,44 @@ test('the expenses page fits a phone, and the table stops being a table', async 
   const summary = device.page.locator('[data-slot="table-summary"]');
   await expect(summary).toBeVisible();
   await expect(summary).toContainText('1980,00 zł');
+
+  const overflow = await device.page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+
+  expect(
+    overflow.scrollWidth,
+    `page scrolls sideways by ${overflow.scrollWidth - overflow.clientWidth}px at ${PHONE.width}px`
+  ).toBeLessThanOrEqual(overflow.clientWidth);
+
+  expect(device.problems()).toEqual([]);
+
+  await device.close();
+});
+
+test('the overview fits a phone', async ({ browser, baseURL }) => {
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  await app.addExpense({ description: 'Czynsz', amount: 2500, frequency: 'MONTHLY' });
+  await app.importTransactions(
+    ingStatement([{ date: '2026-07-03', title: 'BIEDRONKA 1234 WARSZAWA', amount: -213.47 }])
+  );
+
+  await device.page.setViewportSize(PHONE);
+  await device.page.reload();
+  await app.openOverview();
+
+  // The charts are the whole page here, and a chart is the easiest thing to lay out at a width
+  // it was measured at rather than the one it is in: the tile this replaced was drawn at a fixed
+  // 1000px inside a scroller, so a phone showed a quarter of it and nothing said so.
+  await expect(device.page.getByText(pl.monthly_spending_title)).toBeVisible();
 
   const overflow = await device.page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
