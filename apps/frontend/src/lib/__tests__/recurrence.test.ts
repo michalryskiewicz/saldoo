@@ -103,6 +103,27 @@ describe('costInYear', () => {
     expect(perYear(FREQUENCY.WEEKLY, 100, 2025)).toBe(5300);
   });
 
+  it('charges a quarterly cost four times a year, not twelve', () => {
+    // The whole point of the field: picking the nearest wrong answer propagated into every
+    // total built on it — a quarterly premium entered as monthly costs three times what it is.
+    const quarterly = { frequency: FREQUENCY.MONTHLY, execution: WEDNESDAY_IN_JULY, interval: 3 };
+
+    expect(costInYear(quarterly, 600, 2026)).toBe(2400);
+  });
+
+  it('charges a cost billed every four weeks by the weeks, not by the months', () => {
+    // Fourteen payments, because 2026 opens on one and closes on one: the 1st of January plus
+    // thirteen 28-day steps is the 31st of December. No monthly reading of this cadence can
+    // produce that figure, which is the whole reason the interval had to exist.
+    const everyFourWeeks = {
+      frequency: FREQUENCY.WEEKLY,
+      execution: new Date(2026, 0, 1),
+      interval: 4,
+    };
+
+    expect(costInYear(everyFourWeeks, 100, 2026)).toBe(1400);
+  });
+
   it('is nothing for a cost that never recurs', () => {
     expect(costInYear({ execution: WEDNESDAY_IN_JULY }, 500, 2026)).toBe(0);
   });
@@ -159,6 +180,85 @@ describe('occurrencesInRange', () => {
     // Entered on a leap day, which most years do not have. It falls on the last day February
     // holds rather than slipping into March.
     expect(asISODates(dates)).toEqual(['2026-02-28', '2027-02-28', '2028-02-29']);
+  });
+
+  it('counts every N days from the day it was entered on, not every day', () => {
+    const dates = occurrencesInRange(
+      { frequency: FREQUENCY.DAILY, execution: new Date(2026, 6, 1), interval: 4 },
+      { from: new Date(2026, 6, 1), to: new Date(2026, 6, 14) }
+    );
+
+    expect(asISODates(dates)).toEqual([
+      '2026-07-01',
+      '2026-07-05',
+      '2026-07-09',
+      '2026-07-13',
+    ]);
+  });
+
+  it('keeps its footing in a range that starts before the day it was entered on', () => {
+    // The cadence is anchored to the execution date and runs in both directions from it —
+    // asked about an earlier month, it must land on the same days it would have landed on.
+    const dates = occurrencesInRange(
+      { frequency: FREQUENCY.DAILY, execution: new Date(2026, 6, 13), interval: 4 },
+      { from: new Date(2026, 6, 1), to: new Date(2026, 6, 9) }
+    );
+
+    expect(asISODates(dates)).toEqual(['2026-07-01', '2026-07-05', '2026-07-09']);
+  });
+
+  it('walks a 28-day cycle straight through the end of a month', () => {
+    // The cadence a calendar month cannot hold: every four weeks drifts out of the month
+    // within a year, which is exactly why picking "monthly" for it was the wrong answer.
+    const dates = occurrencesInRange(
+      { frequency: FREQUENCY.WEEKLY, execution: new Date(2026, 6, 1), interval: 4 },
+      { from: new Date(2026, 6, 1), to: new Date(2026, 9, 1) }
+    );
+
+    expect(asISODates(dates)).toEqual([
+      '2026-07-01',
+      '2026-07-29',
+      '2026-08-26',
+      '2026-09-23',
+    ]);
+  });
+
+  it('counts a weekly interval in weeks, not in the days they come to', () => {
+    // Seven weeks apart, where counting the interval in days would let every week through:
+    // 7 days is a whole multiple of a 7-week interval and nothing would be skipped.
+    const dates = occurrencesInRange(
+      { frequency: FREQUENCY.WEEKLY, execution: new Date(2026, 6, 1), interval: 7 },
+      { from: new Date(2026, 6, 1), to: new Date(2026, 8, 30) }
+    );
+
+    expect(asISODates(dates)).toEqual(['2026-07-01', '2026-08-19']);
+  });
+
+  it('gives a quarterly cost four dates a year, on the day it was entered on', () => {
+    const dates = occurrencesInRange(
+      { frequency: FREQUENCY.MONTHLY, execution: new Date(2026, 10, 30), interval: 3 },
+      { from: new Date(2027, 0, 1), to: new Date(2027, 11, 31) }
+    );
+
+    // Entered on the 30th, so February — which has no 30th — takes the last day it does have.
+    expect(asISODates(dates)).toEqual(['2027-02-28', '2027-05-30', '2027-08-30', '2027-11-30']);
+  });
+
+  it('gives a cost billed every second year nothing in the year between', () => {
+    const everyTwoYears = {
+      frequency: FREQUENCY.YEARLY,
+      execution: new Date(2026, 6, 15),
+      interval: 2,
+    };
+
+    expect(occurrencesInRange(everyTwoYears, {
+      from: new Date(2028, 0, 1),
+      to: new Date(2028, 11, 31),
+    })).toHaveLength(1);
+    expect(occurrencesInRange(everyTwoYears, {
+      from: new Date(2027, 0, 1),
+      to: new Date(2027, 11, 31),
+    })).toEqual([]);
   });
 
   it('gives nothing back for a range that ends before it starts', () => {

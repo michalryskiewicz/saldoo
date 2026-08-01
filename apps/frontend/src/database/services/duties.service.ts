@@ -48,13 +48,23 @@ export function selectStaleDuties({ stored, expectedHashes, from, to }: SelectSt
     .map((duty) => duty.id);
 }
 
+/**
+ * The identity of one occurrence.
+ *
+ * The interval joins it only when there is one to speak of. Every recurrence stored before
+ * intervals existed means "every one", so an explicit 1 has to hash to what it hashed to
+ * before — otherwise saying out loud what was already true would re-mint every occurrence in
+ * the vault and strand the marks on them.
+ */
 async function generateDutyHash(
   executionDate: Date,
   expenseId: string,
-  frequency: FREQUENCY
+  frequency: FREQUENCY,
+  interval?: number
 ): Promise<string> {
-  const valueToHash = `${expenseId}_${frequency}_${executionDate.toISOString()}`;
-  return hashString(valueToHash);
+  const cadence = interval && interval > 1 ? `${frequency}x${interval}` : frequency;
+
+  return hashString(`${expenseId}_${cadence}_${executionDate.toISOString()}`);
 }
 
 type CreateDutiesForSelectedDateRangeResp = Pick<
@@ -156,7 +166,12 @@ export async function createDutiesForSelectedDateRange({
         executionDate,
         expenseId: expense.id,
         frequency: expense.frequency,
-        hash: await generateDutyHash(executionDate, expense.id, expense.frequency),
+        hash: await generateDutyHash(
+          executionDate,
+          expense.id,
+          expense.frequency,
+          expense.interval
+        ),
       });
     }
   }

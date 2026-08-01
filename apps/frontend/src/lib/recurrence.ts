@@ -1,10 +1,18 @@
 import { FREQUENCY } from '@/constant.ts';
 import { daysInMonth } from '@/lib/dates.ts';
+import { differenceInCalendarDays } from 'date-fns';
 
-/** A thing that repeats: how often, and the day it repeats on. */
+/** A thing that repeats: how often, the day it repeats on, and how many of those it skips. */
 export type Recurrence = {
   frequency?: FREQUENCY;
   execution?: Date | string;
+  /**
+   * How many units of the frequency lie between occurrences — every 4 weeks, every 3 months.
+   *
+   * Absent means every one, which is what every recurrence entered before this existed meant.
+   * The unit stays in `frequency`, so this is `FREQ`/`INTERVAL` and no more of RRULE than that.
+   */
+  interval?: number;
 };
 
 /** One month of one year. The year matters — Februaries differ, and so do weekday counts. */
@@ -17,13 +25,6 @@ export type CalendarMonth = {
 export type DateRange = { from: Date; to: Date };
 
 /**
- * Every date a recurrence falls on inside a range.
- *
- * The dates themselves rather than a count of them: an occurrence is a thing a person marks
- * paid or skips, so the duty generator needs the dates, and a count is what is left when you
- * ask how many there were.
- */
-/**
  * The day of a month, or the last day it has.
  *
  * A cost due on the 31st has no February. Built straight from the day, `new Date(2027, 1, 31)`
@@ -33,17 +34,38 @@ export type DateRange = { from: Date; to: Date };
 const dayInMonth = (year: number, monthIndex: number, dayOfMonth: number): Date =>
   new Date(year, monthIndex, Math.min(dayOfMonth, daysInMonth(year, monthIndex)));
 
+/**
+ * Whether a step away from the anchor lands on the cadence.
+ *
+ * Counted in both directions — a range earlier than the day the cost was entered on lands on
+ * the days the cadence would have landed on — which the remainder handles on its own: a
+ * negative multiple divides exactly as a positive one does.
+ */
+const onTheCadence = (stepsFromAnchor: number, interval: number): boolean =>
+  stepsFromAnchor % interval === 0;
+
+/**
+ * Every date a recurrence falls on inside a range.
+ *
+ * The dates themselves rather than a count of them: an occurrence is a thing a person marks
+ * paid or skips, so the duty generator needs the dates, and a count is what is left when you
+ * ask how many there were. An interval is also why a count cannot be had any other way — every
+ * fourth week has no closed form, only an anchor and a step.
+ */
 export const occurrencesInRange = (
-  { frequency, execution }: Recurrence,
+  { frequency, execution, interval }: Recurrence,
   { from, to }: DateRange
 ): Date[] => {
   if (!frequency || !execution) return [];
 
   const executedOn = new Date(execution);
+  const every = Math.max(1, Math.trunc(interval ?? 1));
   const dates: Date[] = [];
 
   if (frequency === FREQUENCY.YEARLY) {
     for (let year = from.getFullYear(); year <= to.getFullYear(); year++) {
+      if (!onTheCadence(year - executedOn.getFullYear(), every)) continue;
+
       const date = dayInMonth(year, executedOn.getMonth(), executedOn.getDate());
 
       if (date >= from && date <= to) dates.push(date);
@@ -58,6 +80,12 @@ export const occurrencesInRange = (
       cursor <= to;
       cursor.setMonth(cursor.getMonth() + 1)
     ) {
+      const monthsFromAnchor =
+        (cursor.getFullYear() - executedOn.getFullYear()) * 12 +
+        (cursor.getMonth() - executedOn.getMonth());
+
+      if (!onTheCadence(monthsFromAnchor, every)) continue;
+
       const date = dayInMonth(cursor.getFullYear(), cursor.getMonth(), executedOn.getDate());
 
       if (date >= from && date <= to) dates.push(date);
@@ -71,7 +99,12 @@ export const occurrencesInRange = (
     cursor <= to;
     cursor.setDate(cursor.getDate() + 1)
   ) {
-    if (frequency === FREQUENCY.WEEKLY && cursor.getDay() !== executedOn.getDay()) continue;
+    const daysFromAnchor = differenceInCalendarDays(cursor, executedOn);
+
+    if (frequency === FREQUENCY.WEEKLY) {
+      if (cursor.getDay() !== executedOn.getDay()) continue;
+      if (!onTheCadence(daysFromAnchor / 7, every)) continue;
+    } else if (!onTheCadence(daysFromAnchor, every)) continue;
 
     dates.push(new Date(cursor));
   }

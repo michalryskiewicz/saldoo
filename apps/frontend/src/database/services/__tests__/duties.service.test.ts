@@ -203,3 +203,26 @@ describe('carryMarksToMovedOccurrences', () => {
     expect(carried).toEqual([]);
   });
 });
+
+describe('an interval and the identity of an occurrence', () => {
+  const hashesFor = async (fields: Partial<DBExpense>) =>
+    (
+      await createDutiesForSelectedDateRange({
+        expenses: [expense({ frequency: FREQUENCY.MONTHLY, execution: new Date(2026, 6, 15), ...fields })],
+        startDate: new Date(2026, 6, 1),
+        endDate: new Date(2026, 6, 31, 23, 59, 59),
+      })
+    ).map((duty) => duty.hash);
+
+  it('gives an occurrence a new identity when the cadence it belongs to changes', async () => {
+    // Identity is what regeneration reacts to. An interval that did not join it would leave
+    // the occurrences of the old cadence in place beside the new ones.
+    expect(await hashesFor({ interval: 3 })).not.toEqual(await hashesFor({}));
+  });
+
+  it('leaves the identity of everything entered before intervals existed exactly as it was', async () => {
+    // Every stored recurrence means "every one", so saying so out loud may not re-mint it —
+    // a changed hash would strand every marked occurrence in the vault.
+    expect(await hashesFor({ interval: 1 })).toEqual(await hashesFor({}));
+  });
+});

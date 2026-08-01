@@ -117,7 +117,22 @@
     "weekly_5": "every Friday",
     "weekly_6": "every Saturday",
     "monthly": "on day {{day}}",
-    "yearly": "every year, {{date}}"
+    "yearly": "every year, {{date}}",
+    "every_days_one": "every {{count}} day",
+    "every_days_other": "every {{count}} days",
+    "every_weeks_one": "every {{count}} week on {{weekday}}",
+    "every_weeks_other": "every {{count}} weeks on {{weekday}}",
+    "every_months_one": "every {{count}} month on day {{day}}",
+    "every_months_other": "every {{count}} months on day {{day}}",
+    "every_years_one": "every {{count}} year, {{date}}",
+    "every_years_other": "every {{count}} years, {{date}}",
+    "weekday_0": "Sunday",
+    "weekday_1": "Monday",
+    "weekday_2": "Tuesday",
+    "weekday_3": "Wednesday",
+    "weekday_4": "Thursday",
+    "weekday_5": "Friday",
+    "weekday_6": "Saturday"
   },
   "frequency": "Frequency",
   "tags": "Tags",
@@ -256,7 +271,8 @@
       "email-must-be-valid": "The email must be valid!",
       "password-is-required": "A password is required",
       "password-must-be-at-least-6-chars": "The password must be at least 6 characters"
-    }
+    },
+    "interval": "Every"
   },
   "metrics": {
     "fill-survey": "Fill in our survey about the app",

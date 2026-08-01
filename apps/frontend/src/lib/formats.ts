@@ -21,8 +21,42 @@ const dateLocale = () => (i18n.language === 'en' ? enUS : pl);
  * phrase needs the accusative ("co środę", "co sobotę"), and no formatting option produces that.
  * Seven keys per locale is the honest price of a phrase that reads correctly.
  */
-export const formatRecurrence = (date: Date | string | undefined, frequency?: FREQUENCY) => {
-  if (frequency === FREQUENCY.DAILY) {
+/**
+ * The same phrase for a cadence that skips some of its units — "co 4 tygodnie, w środę".
+ *
+ * The weekday is its own key rather than part of the sentence, so each language keeps its own
+ * word order around it: Polish declines it after both "co" and "w", English puts it after "on".
+ */
+const formatInterval = (date: Date, frequency: FREQUENCY, count: number) => {
+  const weekday = i18n.t(`recurrence.weekday_${date.getDay()}` as TranslationKey);
+
+  switch (frequency) {
+    case FREQUENCY.DAILY:
+      return i18n.t('recurrence.every_days' as TranslationKey, { count });
+    case FREQUENCY.WEEKLY:
+      return i18n.t('recurrence.every_weeks' as TranslationKey, { count, weekday });
+    case FREQUENCY.MONTHLY:
+      return i18n.t('recurrence.every_months' as TranslationKey, { count, day: format(date, 'd') });
+    case FREQUENCY.YEARLY:
+      return i18n.t('recurrence.every_years' as TranslationKey, {
+        count,
+        date: format(date, 'd MMMM', { locale: dateLocale() }),
+      });
+    default:
+      return '';
+  }
+};
+
+export const formatRecurrence = (
+  date: Date | string | undefined,
+  frequency?: FREQUENCY,
+  interval?: number
+) => {
+  // Only an interval worth saying out loud. Every recurrence means "every one" by default, and
+  // "co 1 tydzień" is not a phrase anybody says.
+  const every = interval && interval > 1 ? interval : undefined;
+
+  if (frequency === FREQUENCY.DAILY && !every) {
     return i18n.t('recurrence.daily');
   }
 
@@ -31,6 +65,8 @@ export const formatRecurrence = (date: Date | string | undefined, frequency?: FR
   }
 
   const d = new Date(date);
+
+  if (every) return formatInterval(d, frequency, every);
 
   switch (frequency) {
     case FREQUENCY.WEEKLY:

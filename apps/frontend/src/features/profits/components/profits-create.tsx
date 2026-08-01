@@ -27,6 +27,7 @@ const formSchema = z.object({
   profit: z.number({ error: i18n.t('errors.field-required') }),
   currency: z.string({ error: i18n.t('errors.field-required') }),
   frequency: z.string({ error: i18n.t('errors.field-required') }),
+  interval: z.number().int().min(1).optional(),
   execution: z.date({ error: i18n.t('errors.field-required') }),
 });
 
@@ -37,6 +38,7 @@ export type ProfitCreateSchema = z.infer<typeof formSchema>;
 const defaultValues = {
   currency: 'PLN',
   frequency: 'MONTHLY',
+  interval: 1,
 };
 
 export default function ProfitsCreatePage() {
@@ -103,17 +105,24 @@ export default function ProfitsCreatePage() {
                     ("co środę", "15. dnia miesiąca") and the form should not present them as two
                     unrelated decisions. */}
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field.Select
-                    fullWidth
-                    name="frequency"
-                    label={i18n.t('frequency')}
-                    options={[
-                      { label: i18n.t('DAILY'), value: 'DAILY' },
-                      { label: i18n.t('WEEKLY'), value: 'WEEKLY' },
-                      { label: i18n.t('MONTHLY'), value: 'MONTHLY' },
-                      { label: i18n.t('YEARLY'), value: 'YEARLY' },
-                    ]}
-                  />
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1">
+                      <Field.Select
+                        fullWidth
+                        name="frequency"
+                        label={i18n.t('frequency')}
+                        options={[
+                          { label: i18n.t('DAILY'), value: 'DAILY' },
+                          { label: i18n.t('WEEKLY'), value: 'WEEKLY' },
+                          { label: i18n.t('MONTHLY'), value: 'MONTHLY' },
+                          { label: i18n.t('YEARLY'), value: 'YEARLY' },
+                        ]}
+                      />
+                    </div>
+                    <div className="w-20 shrink-0">
+                      <Field.Text name="interval" type="number" label={i18n.t('forms.interval')} />
+                    </div>
+                  </div>
                   <Field.Date
                     name="execution"
                     label={i18n.t('execution')}

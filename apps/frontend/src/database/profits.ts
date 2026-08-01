@@ -16,6 +16,8 @@ export type DBProfit = {
   profit: number;
   currency: Currency;
   frequency?: FREQUENCY;
+  /** How many units of the frequency between occurrences. Absent means every one. */
+  interval?: number;
   execution?: Date;
 };
 
