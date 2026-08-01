@@ -40,7 +40,10 @@
     "blocked": "Synchronizacja wstrzymana",
     "unreadable_backup": "Stara kopia na Dysku",
     "pending": "Zmiany oczekują na wysłanie",
-    "upload_failed": "Nie udało się wysłać zmian"
+    "upload_failed": "Nie udało się wysłać zmian",
+    "alert_disconnected": "Połączenie z Google Drive wygasło — zmiany zostają na tym urządzeniu",
+    "alert_failed": "Części zmian nie udało się zapisać na Google Drive",
+    "alert_reconnect": "Połącz ponownie"
   },
   "onboarding": {
     "INTRODUCTION": "Wprowadzenie",

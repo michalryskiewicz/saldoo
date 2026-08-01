@@ -236,3 +236,41 @@ test('shots: the two loading screens in both themes', async ({ browser, baseURL 
 
   await device.close();
 });
+
+/**
+ * The banner that says changes are not leaving this device.
+ *
+ * Photographed because it is the one message meant to interrupt, and how loud it reads is
+ * the whole design question: too quiet and it is the red glyph it replaces, too loud and
+ * it competes with the figures it sits above.
+ */
+test('shots: the sync banner in both themes', async ({ browser, baseURL }) => {
+  test.setTimeout(240_000);
+
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  drive.refuseUploads(403);
+  await app.openExpenses();
+  await app.addExpense({
+    description: 'Czynsz',
+    amount: 2500,
+    severity: 'HIGH',
+    frequency: 'MONTHLY',
+  });
+  await device.page.getByRole('alert').first().waitFor({ timeout: 20_000 });
+
+  for (const theme of ['light', 'dark'] as const) {
+    await device.page.setViewportSize(VIEWPORTS.desktop);
+    await app.chooseTheme(theme);
+    await device.page.getByRole('alert').first().waitFor({ timeout: 20_000 });
+    await device.page.screenshot({ path: `shots/sync-banner-${theme}.png` });
+  }
+
+  await device.close();
+});
