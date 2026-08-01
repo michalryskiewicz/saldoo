@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatMoney, formatMoneyValue, formatRecurrence } from '../formats.ts';
+import { formatDueDate, formatMoney, formatMoneyValue, formatRecurrence } from '../formats.ts';
 import { FREQUENCY } from '@/constant.ts';
 
 describe('formatMoney', () => {
@@ -98,5 +98,15 @@ describe('formatRecurrence', () => {
   it('falls back to a dash when there is genuinely nothing to say', () => {
     expect(formatRecurrence(undefined, FREQUENCY.MONTHLY)).toBe('-');
     expect(formatRecurrence(wednesday, undefined)).toBe('-');
+  });
+});
+
+describe('formatDueDate', () => {
+  it('leaves the year out when the date falls in the year being read', () => {
+    expect(formatDueDate(new Date(2026, 6, 4), new Date(2026, 0, 1))).toBe('4 lip');
+  });
+
+  it('names the year when the date does not', () => {
+    expect(formatDueDate(new Date(2027, 0, 4), new Date(2026, 0, 1))).toBe('4 sty 2027');
   });
 });
