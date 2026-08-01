@@ -1,6 +1,5 @@
 {
   "vault": {
-    "checking": "Sprawdzanie dostępu do Twoich danych",
     "setup_title": "Zabezpiecz swoje dane",
     "setup_description": "Ustaw hasło, którym zaszyfrujemy Twoje dane finansowe. Nie znamy go i nie mamy jak go odzyskać.",
     "passphrase_label": "Hasło do danych",
@@ -253,7 +252,6 @@
     "need_to_sync_with_google_drive": "Konieczna synchronizacja z Google Drive",
     "google_drive_in_sync": "Zsynchronizowano z Google Drive",
     "syncing_with_drive": "Synchronizacja danych z Google Drive",
-    "checking-actions": "Sprawdzanie wymaganych akcji",
     "planned": "Zaplanowane",
     "budgeting_strategy_description": "Limit wydatków ustalony na podstawie wybranej strategii budżetowania. Opcję te możesz zmienić w sekcji 'Konto'",
     "sum_of_planned_expenses_description": "Suma wydatków na ten miesiąc dodanych w sekcji 'Wydatki'",

@@ -6,7 +6,7 @@ import { AuthGuard } from '@/auth/guard';
 import { CONFIG } from '@/global-config.ts';
 import MiniDrawer from '../../layouts/dashboard-layout.tsx';
 import { paths } from '@/routes/paths.ts';
-import ContentLoading from '@/components/loaders/content-loading.tsx';
+import { ContentSkeleton } from '@/components/loaders/content-skeleton.tsx';
 import { MetaDataWrapper } from '@/routes/components';
 import { DataSyncWrapper } from '@/database/sync/data-sync-wrapper.tsx';
 import { OnboardingWrapper } from '@/features/onboarding/onboarding-wrapper.tsx';
@@ -23,7 +23,7 @@ const AccountPage = lazy(() => import('@/pages/dashboard/account/account.tsx'));
 function SuspenseOutlet() {
   const pathname = usePathname();
   return (
-    <Suspense key={pathname} fallback={<ContentLoading />}>
+    <Suspense key={pathname} fallback={<ContentSkeleton />}>
       <Outlet />
     </Suspense>
   );

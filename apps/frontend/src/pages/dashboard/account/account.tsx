@@ -13,7 +13,7 @@ import { useSettings } from '@/features/settings/use-settings.ts';
 import { saveSettings } from '@/database/settings.ts';
 import type { BudgetingStrategy } from '@/database/settings.service.ts';
 import type { Currency } from '@/constant.ts';
-import ContentLoading from '@/components/loaders/content-loading.tsx';
+import { ContentSkeleton } from '@/components/loaders/content-skeleton.tsx';
 import { SavingsChart } from '@/features/account/components/savings-chart.tsx';
 import { addDBTags, removeDBTags } from '@/database/tags.ts';
 import { useListTags } from '@/database/hooks/use-list-tags.tsx';
@@ -66,7 +66,7 @@ export default function Account() {
   };
 
   if (isLoading || areTagsLoading) {
-    return <ContentLoading />;
+    return <ContentSkeleton />;
   }
 
   return (

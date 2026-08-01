@@ -25,7 +25,7 @@ bun run build
 bun run migrate      # backend Prisma migrations
 ```
 
-There is no CI yet — the gates above are local-only until SALDOO-A2 lands.
+CI runs the same gates on every push and pull request (`.github/workflows/ci.yml`): one job for lint, typecheck, test and build — each step runs even after an earlier one fails, so a push reports every problem at once — and a second job for the Playwright suite. Run them locally first anyway; CI is the backstop, not the loop.
 
 ## Agent skills
 

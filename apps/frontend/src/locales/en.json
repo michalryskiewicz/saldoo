@@ -1,6 +1,5 @@
 {
   "vault": {
-    "checking": "Checking access to your data",
     "setup_title": "Secure your data",
     "setup_description": "Set a passphrase we will encrypt your financial data with. We do not know it and we have no way to recover it.",
     "passphrase_label": "Data passphrase",
@@ -253,7 +252,6 @@
     "need_to_sync_with_google_drive": "Syncing with Google Drive is required",
     "google_drive_in_sync": "Synced with Google Drive",
     "syncing_with_drive": "Syncing data with Google Drive",
-    "checking-actions": "Checking what needs doing",
     "planned": "Planned",
     "budgeting_strategy_description": "The spending limit set by your chosen budgeting strategy. You can change it in the 'Account' section",
     "sum_of_planned_expenses_description": "The total of this month's expenses added in the 'Expenses' section",
