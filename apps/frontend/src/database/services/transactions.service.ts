@@ -54,40 +54,116 @@ export async function mapBankRowToDBTransaction(
 /** How far either side of a duty's execution date a payment still counts as that duty's. */
 const MATCH_WINDOW_DAYS = 4;
 
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
 type DutyTransactionCandidate = { id: string; transactionDate?: string };
 
-type SelectTransactionForDuty = {
+type DutyToSettle = {
+  id: string;
   executionDate: Date;
+  ignored?: boolean;
+  transactionId?: string | null;
   rejectedTransactionIds?: string[];
+};
+
+type AllocateTransactionsToDuties = {
+  duties: DutyToSettle[];
   transactions: DutyTransactionCandidate[];
 };
 
+export type DutySettlement = { dutyId: string; transactionId: string };
+
+type PairingCandidate = DutySettlement & {
+  distanceInDays: number;
+  dueOn: number;
+  paidOn: number;
+};
+
 /**
- * The payment that settles a duty, if one of these is.
+ * Ranks pairings so two devices reach the same allocation from the same data.
  *
- * Matching is a date window rather than an amount, so it can land on the wrong payment —
- * which is why unlinking one has to be possible at all. A transaction the user has
- * unlinked from this duty is passed over rather than disqualifying the duty outright: the
- * next payment in the same window may well be the right one, and a duty that could never
- * be matched again would punish the person for correcting the guess.
+ * Distance decides; the rest breaks ties without ever consulting the order the rows
+ * happened to arrive in. The oldest debt is settled first, by the earliest payment.
  */
-export function selectTransactionForDuty({
-  executionDate,
-  rejectedTransactionIds,
+function closestPairingFirst(a: PairingCandidate, b: PairingCandidate): number {
+  return (
+    a.distanceInDays - b.distanceInDays ||
+    a.dueOn - b.dueOn ||
+    a.paidOn - b.paidOn ||
+    a.dutyId.localeCompare(b.dutyId) ||
+    a.transactionId.localeCompare(b.transactionId)
+  );
+}
+
+/**
+ * Which payment settles which occurrence — one payment to at most one occurrence.
+ *
+ * A date window cannot answer this one occurrence at a time: a daily expense has nine
+ * occurrences inside one payment's window, and answering for each in turn marks all nine
+ * paid off a single transfer. The answer belongs to the whole set — the closest pairing
+ * wins and takes both sides out of the running.
+ *
+ * A pairing the person has already accepted is kept and its payment spent, so re-running
+ * this never reshuffles what is on record. A payment they unlinked is passed over rather
+ * than disqualifying that occurrence outright: the next payment in the same window may
+ * well be the right one, and an occurrence that could never match again would punish them
+ * for correcting the guess. An occurrence marked as one that will not happen takes no
+ * payment at all, leaving it for the occurrence that will.
+ *
+ * Amount plays no part yet — matching is dates only, which is why unlinking exists.
+ */
+export function allocateTransactionsToDuties({
+  duties,
   transactions,
-}: SelectTransactionForDuty): DutyTransactionCandidate | undefined {
-  const rejected = new Set(rejectedTransactionIds ?? []);
+}: AllocateTransactionsToDuties): DutySettlement[] {
+  const settledDuties = new Set<string>();
+  const spentTransactions = new Set<string>();
+  const allocation: DutySettlement[] = [];
 
-  const earliest = new Date(executionDate);
-  earliest.setDate(executionDate.getDate() - MATCH_WINDOW_DAYS);
-  const latest = new Date(executionDate);
-  latest.setDate(executionDate.getDate() + MATCH_WINDOW_DAYS);
+  for (const duty of duties) {
+    if (!duty.transactionId) continue;
 
-  return transactions.find((transaction) => {
-    if (!transaction.transactionDate || rejected.has(transaction.id)) return false;
+    settledDuties.add(duty.id);
+    spentTransactions.add(duty.transactionId);
+    allocation.push({ dutyId: duty.id, transactionId: duty.transactionId });
+  }
 
-    const paidOn = new Date(transaction.transactionDate);
+  const candidates: PairingCandidate[] = [];
 
-    return paidOn >= earliest && paidOn <= latest;
-  });
+  for (const duty of duties) {
+    if (settledDuties.has(duty.id) || duty.ignored) continue;
+
+    const rejected = new Set(duty.rejectedTransactionIds ?? []);
+
+    for (const transaction of transactions) {
+      if (!transaction.transactionDate || rejected.has(transaction.id)) continue;
+
+      const paidOn = new Date(transaction.transactionDate);
+      const distanceInDays = Math.round(
+        Math.abs(paidOn.getTime() - duty.executionDate.getTime()) / DAY_IN_MS
+      );
+
+      if (distanceInDays > MATCH_WINDOW_DAYS) continue;
+
+      candidates.push({
+        dutyId: duty.id,
+        transactionId: transaction.id,
+        distanceInDays,
+        dueOn: duty.executionDate.getTime(),
+        paidOn: paidOn.getTime(),
+      });
+    }
+  }
+
+  candidates.sort(closestPairingFirst);
+
+  for (const { dutyId, transactionId } of candidates) {
+    if (settledDuties.has(dutyId) || spentTransactions.has(transactionId)) continue;
+
+    settledDuties.add(dutyId);
+    spentTransactions.add(transactionId);
+    allocation.push({ dutyId, transactionId });
+  }
+
+  return allocation;
 }

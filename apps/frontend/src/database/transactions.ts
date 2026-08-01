@@ -1,6 +1,6 @@
 import {
   mapBankRowToDBTransaction,
-  selectTransactionForDuty,
+  allocateTransactionsToDuties,
 } from '@/database/services/transactions.service.ts';
 import { db } from '@/database/index.ts';
 import { toast } from 'sonner';
@@ -88,43 +88,33 @@ export const updateDBTransactions = async (payload: UpdateDBTransactionReq[]) =>
 /**
  * Ticks every duty of this expense that a payment settles.
  *
- * The window and the rejections both live in `selectTransactionForDuty`; here it is only
- * applied to each duty in turn.
+ * The pairing lives in `allocateTransactionsToDuties`, which needs every duty and every
+ * payment at once: no duty on its own can tell whether the payment beside it has already
+ * settled its neighbour.
  */
 export const resolveDutiesForExpense = async (expenseId: string) => {
-  // Fetch all duties for the expenseId
-  const duties = (await db.duties.toArray()).filter((duty) => duty.expenseId === expenseId);
+  const duties = (await db.duties.toArray()).filter(
+    (duty) => duty.expenseId === expenseId && !!duty.executionDate
+  );
 
-  // Fetch all transactions for the expenseId and userId, with non-null transactionDate
   const transactions = (await db.transactions.toArray()).filter(
     (tx) => tx.expenseId === expenseId && !!tx.transactionDate
   );
 
-  const dutiesToUpdate: { id: string; transactionId: string }[] = [];
-  for (const duty of duties) {
-    if (!duty.executionDate) continue;
+  const allocation = allocateTransactionsToDuties({
+    duties: duties.map((duty) => ({ ...duty, executionDate: new Date(duty.executionDate) })),
+    transactions,
+  });
 
-    const matchingTransaction = selectTransactionForDuty({
-      executionDate: new Date(duty.executionDate),
-      rejectedTransactionIds: duty.rejectedTransactionIds,
-      transactions,
-    });
+  const dutiesById = new Map(duties.map((duty) => [duty.id, duty]));
 
-    if (matchingTransaction) {
-      dutiesToUpdate.push({
-        id: duty.id,
-        transactionId: matchingTransaction.id,
-      });
-    }
+  for (const { dutyId, transactionId } of allocation) {
+    const duty = dutiesById.get(dutyId);
+    if (duty?.resolved && duty.transactionId === transactionId) continue;
+
+    await documentSession.update('duties', dutyId, { resolved: true, transactionId });
   }
 
-  // Update all matched duties: set resolved=true and transactionId
-  for (const dutyUpdate of dutiesToUpdate) {
-    await documentSession.update('duties', dutyUpdate.id, {
-      resolved: true,
-      transactionId: dutyUpdate.transactionId,
-    });
-  }
   await setLastUpdated();
   outbox.markDirty();
 };
