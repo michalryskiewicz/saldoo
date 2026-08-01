@@ -14,6 +14,10 @@ import { Cell, Header } from '@/components/tanstack-table';
 import { TOTAL } from '@/constant.ts';
 import DutiesTableActions from '@/features/duties/components/duties-table-actions.tsx';
 import DutyTermCell from '@/features/duties/components/duty-term-cell.tsx';
+import DutyDescriptionButton from '@/features/duties/components/duty-description-button.tsx';
+import { dutiesEmptyReason } from '@/features/duties/services/duties-empty.service.ts';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/database';
 import { useDuties } from '@/features/duties/hooks/use-duties.tsx';
 import { type DBDuty, resolveDBDuty } from '@/database/duty.ts';
 import type { DBExpense } from '@/database/expenses.ts';
@@ -61,13 +65,15 @@ const columns: ColumnDef<DutyRow>[] = [
   {
     accessorKey: 'expense.description',
     meta: { grow: true },
-    cell: ({ row }) => (
-      <Cell.Description
-        id={row.original.id}
-        name={row.original.expense.description}
-        totalLabel={row.original.totalLabel}
-      />
-    ),
+    cell: ({ row }) => {
+      const { id, expense, totalLabel } = row.original;
+
+      if (id === TOTAL) {
+        return <Cell.Description id={id} name={expense.description} totalLabel={totalLabel} />;
+      }
+
+      return <DutyDescriptionButton expenseId={expense.id} name={expense.description} />;
+    },
     header: ({ column }) => <Header.Sort column={column} header="description" />,
   },
   {
@@ -165,12 +171,27 @@ export default function DutiesTable() {
     return { from: startOfMonth(today), to: endOfMonth(today) };
   });
   const { duties } = useDuties(range);
+  // Whether anything could be generated at all, which is what tells "you have no expenses" apart
+  // from "nothing falls due this month" — two empties that look identical and lead elsewhere.
+  const expenseCount = useLiveQuery(() => db.expenses.count(), []);
   const [paidFilter, setPaidFilter] = useState<DutyStatus>('all');
   const [query, setQuery] = useState('');
 
   // Filtered before the table sees it, so the summary totals what is on the screen rather than
   // what the month happens to hold.
   const dataToTable = searchDuties(selectVisibleDuties(duties ?? [], paidFilter), query);
+
+  const emptyReason = dutiesEmptyReason({
+    hasExpenses: (expenseCount ?? 0) > 0,
+    dutiesInRange: duties?.length ?? 0,
+    visibleRows: dataToTable.length,
+  });
+
+  const emptyMessage = query
+    ? i18n.t('table.no_search_results', { query })
+    : emptyReason
+      ? i18n.t(`duties_empty.${emptyReason.replace('-', '_')}` as TranslationKey)
+      : undefined;
 
   const totalRow = dataToTable.length
     ? [
@@ -203,7 +224,7 @@ export default function DutiesTable() {
       // A list of things falling due reads by date or it reads as nothing.
       initialSorting={[{ id: 'executionDate', desc: false }]}
       rowClassName={(row) => ROW_TONE[dutyRowTone(row)]}
-      emptyMessage={query ? i18n.t('table.no_search_results', { query }) : undefined}
+      emptyMessage={emptyMessage}
     >
       {() => (
         <div className="flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">

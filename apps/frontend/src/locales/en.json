@@ -129,6 +129,12 @@
   "here_to_link": "here.",
   "root": "Home",
   "duties": "Duties",
+  "duties_subtitle": "Every occurrence of your planned expenses in the chosen period. Tick them off as you pay.",
+  "duties_empty": {
+    "no_expenses": "No expenses yet, so there is nothing to work duties out from.",
+    "none_in_range": "Nothing falls due in this period. Try another month.",
+    "filtered": "Nothing matches the current filter."
+  },
   "expenses_subtitle": "The expenses section is for managing planned expenses. Add some and we will show you a first analysis",
   "profits_subtitle": "The profits section is for managing planned income. Add some and we will include it in the analyses",
   "create_profit": "Add profit",
