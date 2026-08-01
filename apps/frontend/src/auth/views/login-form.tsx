@@ -10,7 +10,8 @@ import { paths } from '@/routes/paths.ts';
 import { CONFIG } from '@/global-config.ts';
 import i18n from '@/i18n.ts';
 import { Button } from '@/components/ui/button.tsx';
-import { signInWithGoogle } from '@/auth/context/google';
+import { signInWithAnotherGoogleAccount, signInWithGoogle } from '@/auth/context/google';
+import { loginHintStore } from '@/auth/google/login-hint.store.ts';
 import { Logo } from '@/components/logo.tsx';
 import { Checkbox } from '@/components/ui/checkbox.tsx';
 import { Label } from '@/components/ui/label.tsx';
@@ -19,6 +20,9 @@ import { Link } from 'react-router';
 
 export function LoginForm() {
   const [acceptedRules, setAcceptedRules] = useState<boolean>(false);
+  // Read once: whether this device already knows who signs in decides whether switching
+  // account is even a thing to offer. With no hint, Google shows the chooser anyway.
+  const [remembersAccount] = useState<boolean>(() => loginHintStore.read() !== null);
 
   return (
     <div className="bg-muted flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
@@ -51,6 +55,18 @@ export function LoginForm() {
                   </svg>
                   {i18n.t('login_with_google')}
                 </Button>
+
+                {remembersAccount && (
+                  <Button
+                    variant="link"
+                    type="button"
+                    className="text-muted-foreground h-auto justify-self-center p-0 text-sm"
+                    onClick={signInWithAnotherGoogleAccount}
+                    disabled={!acceptedRules}
+                  >
+                    {i18n.t('sign_in_with_another_account')}
+                  </Button>
+                )}
 
                 <div className="flex items-start gap-3">
                   <Checkbox id="terms-2" onClick={() => setAcceptedRules((p) => !p)} />

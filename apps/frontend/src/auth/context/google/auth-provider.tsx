@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type PropsWithChildren } from 'react';
 import { AuthContext } from '../auth-context';
 import { driveTokenService } from '@/auth/google/drive-token.ts';
 import { fetchGoogleIdentity } from '@/auth/google/google-identity.service.ts';
+import { loginHintStore } from '@/auth/google/login-hint.store.ts';
 
 export type AuthContextValue = {
   user: {
@@ -31,6 +32,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       try {
         const accessToken = await driveTokenService.getAccessToken();
         const identity = await fetchGoogleIdentity(accessToken);
+
+        // Remembered here rather than at the sign-in click, because this is the point
+        // the account is *known* — and the hint is what aims the next silent renewal at
+        // the same account instead of whichever one the browser has active.
+        loginHintStore.remember(identity.email);
 
         if (!cancelled) {
           setUser({ id: identity.id, email: identity.email, name: identity.name });

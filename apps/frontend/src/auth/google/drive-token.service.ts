@@ -1,3 +1,5 @@
+import { classifyTokenFailure, type TokenFailureReason } from './token-failure.service.ts';
+
 export type GoogleTokenResponse = {
   access_token?: string;
   expires_in?: number;
@@ -5,6 +7,19 @@ export type GoogleTokenResponse = {
 };
 
 export type RequestToken = (options: { silent: boolean }) => Promise<GoogleTokenResponse>;
+
+/**
+ * A token request that failed, carrying the code Google gave for it.
+ *
+ * Exists so the reason survives the trip: the bridge to Google Identity Services used to
+ * flatten every failure into a bare `Error`, and everything downstream then had to guess.
+ */
+export class TokenRequestError extends Error {
+  constructor(readonly code: string | undefined) {
+    super(code ?? 'Token request failed');
+    this.name = 'TokenRequestError';
+  }
+}
 
 export type TokenSnapshot = {
   accessToken: string;
@@ -26,12 +41,18 @@ export const EXPIRY_MARGIN_MS = 60_000;
 const DEFAULT_EXPIRES_IN_SECONDS = 3600;
 
 /**
- * Thrown when Drive access cannot be obtained without user interaction —
- * the caller should surface the "connect" affordance instead of failing silently.
+ * Thrown when Drive access cannot be obtained without user interaction.
+ *
+ * {@link reason} is the load-bearing part: only `refused` means the grant is gone and no
+ * retry can help. Callers must not treat the other two as an ending — the records are on
+ * this device and the vault key, not Google, is what guards them.
  */
 export class DriveAuthRequiredError extends Error {
-  constructor(cause?: unknown) {
-    super('Google Drive authorization required');
+  constructor(
+    readonly reason: TokenFailureReason,
+    cause?: unknown
+  ) {
+    super(`Google Drive authorization required (${reason})`);
     this.name = 'DriveAuthRequiredError';
     this.cause = cause;
   }
@@ -84,12 +105,12 @@ export class DriveTokenService {
       response = await this.requestToken(options);
     } catch (error) {
       this.cache.clear();
-      throw new DriveAuthRequiredError(error);
+      throw new DriveAuthRequiredError(reasonOfThrown(error), error);
     }
 
     if (!response.access_token) {
       this.cache.clear();
-      throw new DriveAuthRequiredError(response.error);
+      throw new DriveAuthRequiredError(classifyTokenFailure(response.error), response.error);
     }
 
     const expiresIn = response.expires_in ?? DEFAULT_EXPIRES_IN_SECONDS;
@@ -100,4 +121,9 @@ export class DriveTokenService {
 
     return response.access_token;
   }
+}
+
+/** A throw carries no code unless it is a {@link TokenRequestError}; anything else is weather. */
+function reasonOfThrown(error: unknown): TokenFailureReason {
+  return classifyTokenFailure(error instanceof TokenRequestError ? error.code : undefined);
 }

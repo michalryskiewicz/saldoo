@@ -36,9 +36,12 @@ export function classifyUploadFailure(error: unknown): OutboxFailure {
 
   const cause = error instanceof DriveUnreachableError ? error.cause : error;
 
-  // Authorization may come back on its own through silent renewal, and the fallback
-  // button is there when it does not.
-  if (cause instanceof DriveAuthRequiredError) return 'transient';
+  // A withdrawn grant is the one authorization failure a retry cannot outlast: the same
+  // bytes meet the same refusal, and only signing in again changes it. The other two —
+  // needing the person, or being unable to ask at all — may clear on their own.
+  if (cause instanceof DriveAuthRequiredError) {
+    return cause.reason === 'refused' ? 'permanent' : 'transient';
+  }
 
   if (cause instanceof DriveRequestFailedError) {
     const retryable = cause.status === 408 || cause.status === 429 || cause.status >= 500;
