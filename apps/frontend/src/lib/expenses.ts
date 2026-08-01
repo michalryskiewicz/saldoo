@@ -13,6 +13,7 @@ import type { DBTransaction } from '@/database/transactions.ts';
 import type { DBDuty } from '@/database/duty.ts';
 import type { Currency } from '@/constant.ts';
 import type { DBTag } from '@/database/tags.ts';
+import { groupProfitsByMonth } from '@/lib/profits.ts';
 
 type SeverityTotals = { total: number; HIGH: number; MEDIUM: number; LOW: number };
 
@@ -91,7 +92,6 @@ export function getExpensesInSelectedDateRange(
 
 export function groupExpensesAndProfitsByMonth(expenses: DBExpense[], profits: DBProfit[]) {
   const expenseResult: number[] = Array(12).fill(0);
-  const profitResult: number[] = Array(12).fill(0);
 
   // Group expenses by month
   expenses.forEach((item) => {
@@ -127,17 +127,15 @@ export function groupExpensesAndProfitsByMonth(expenses: DBExpense[], profits: D
     }
   });
 
-  // Group profits by month
-  profits.forEach((item) => {
-    for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
-      profitResult[monthIndex] = profitResult[monthIndex] + item.profit;
-    }
-  });
+  // Profits, counted as often as they actually arrive. This loop used to add every profit to
+  // all twelve months whatever its frequency, which reported a one-off yearly commission of
+  // 3200 as 38 400 a year and drew the profit line flat across the overview.
+  const profitsByMonth = groupProfitsByMonth(profits);
 
   // Return array with month index, totalExpense, and totalProfits
   return MONTHS.map((_, monthIndex) => ({
     month: monthIndex,
-    totalProfits: Number(profitResult[monthIndex].toFixed(2)),
+    totalProfits: profitsByMonth[monthIndex].total,
     totalExpense: Number(expenseResult[monthIndex].toFixed(2)),
   }));
 }
