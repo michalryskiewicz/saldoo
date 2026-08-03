@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FREQUENCY, STRATEGY_PART } from '@/constant.ts';
+import { FREQUENCY, SEVERITY, STRATEGY_PART } from '@/constant.ts';
 import {
   expenseSearchText,
   searchExpenses,
@@ -9,6 +9,7 @@ import {
 const rent: SearchableExpense = {
   description: 'Czynsz',
   expense: 2500,
+  severity: SEVERITY.HIGH,
   frequency: FREQUENCY.MONTHLY,
   // 15 July 2026.
   execution: new Date('2026-07-15T00:00:00'),
@@ -19,6 +20,7 @@ const rent: SearchableExpense = {
 const coffee: SearchableExpense = {
   description: 'Kawa',
   expense: 14.99,
+  severity: SEVERITY.LOW,
   survivesIncomeLoss: false,
   frequency: FREQUENCY.DAILY,
   strategyPart: STRATEGY_PART.WANTS,
@@ -30,7 +32,8 @@ describe('expenseSearchText', () => {
     const text = expenseSearchText(rent);
 
     expect(text).toContain('Czynsz');
-    // Stored as a boolean / MONTHLY / NEEDS; read as these.
+    // Stored as HIGH / a boolean / MONTHLY / NEEDS; read as these.
+    expect(text).toContain('Wysoki');
     expect(text).toContain('Zostaje');
     expect(text).toContain('Miesięczna');
     expect(text).toContain('Potrzeby');
@@ -63,8 +66,11 @@ describe('searchExpenses', () => {
     expect(searchExpenses(rows, 'kawa')).toEqual([coffee]);
   });
 
+  it('finds rows by a priority that is never in the description', () => {
+    expect(searchExpenses(rows, 'wysoki')).toEqual([rent]);
+  });
+
   it('finds rows by whether they survive losing the income, never in the description', () => {
-    // This is the whole point of search replacing the pills in the column.
     expect(searchExpenses(rows, 'do wycięcia')).toEqual([coffee]);
   });
 

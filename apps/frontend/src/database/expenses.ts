@@ -16,10 +16,10 @@ export type DBExpense = {
   expense: number;
   currency: Currency;
   /**
-   * The priority this cost was given before it was asked whether it survives losing the income.
+   * How urgent this cost is. Optional only because records written before it existed have none.
    *
-   * Read only to answer that question for costs entered before it existed, and never written
-   * again. Nothing renders it.
+   * Also what answers `survivesIncomeLoss` for a cost that has never been asked — see there for
+   * why that stays safe now the field is editable again.
    */
   severity?: SEVERITY | null;
   /**
@@ -52,6 +52,7 @@ export const addDBExpense = async (expense: Omit<ExpenseCreateType, 'cadence'>) 
       createdAt: new Date(),
       ...expense,
       currency: expense.currency as Currency,
+      severity: expense.severity as SEVERITY,
       survivesIncomeLoss: expense.survivesIncomeLoss === 'yes',
       frequency: expense.frequency as FREQUENCY,
       strategyPart: expense.strategyPart as STRATEGY_PART,
@@ -80,6 +81,7 @@ export const updateDBExpense = async (id: string, expense: Omit<ExpenseCreateTyp
       ...expense,
       updatedAt: new Date(),
       currency: expense.currency as Currency,
+      severity: expense.severity as SEVERITY,
       survivesIncomeLoss: expense.survivesIncomeLoss === 'yes',
       frequency: expense.frequency as FREQUENCY,
       strategyPart: expense.strategyPart as STRATEGY_PART,

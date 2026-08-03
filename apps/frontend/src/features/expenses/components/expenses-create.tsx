@@ -29,6 +29,7 @@ const formSchema = z.object({
     .min(2, i18n.t('errors.min-2-length-required')),
   expense: z.number({ error: i18n.t('errors.field-required') }),
   currency: z.string({ error: i18n.t('errors.field-required') }),
+  severity: z.string({ error: i18n.t('errors.field-required') }),
   survivesIncomeLoss: z.enum(['yes', 'no'], { error: i18n.t('errors.field-required') }),
   cadence: z.string({ error: i18n.t('errors.field-required') }),
   frequency: z.string({ error: i18n.t('errors.field-required') }),
@@ -48,6 +49,7 @@ export type ExpenseCreateType = z.infer<typeof formSchema>;
 
 const defaultValues = {
   currency: 'PLN',
+  severity: 'MEDIUM',
   survivesIncomeLoss: 'yes',
   cadence: 'WEEKLY',
   frequency: 'WEEKLY',
@@ -144,6 +146,20 @@ export default function ExpensesCreate() {
 
                 <Field.Money name="expense" currencyField="currency" label={i18n.t('expense')} />
 
+                <Field.Segmented
+                  name="severity"
+                  label={i18n.t('severity')}
+                  options={[
+                    { label: i18n.t('LOW'), value: 'LOW', color: 'var(--severity-low-fill)' },
+                    {
+                      label: i18n.t('MEDIUM'),
+                      value: 'MEDIUM',
+                      color: 'var(--severity-medium-fill)',
+                    },
+                    { label: i18n.t('HIGH'), value: 'HIGH', color: 'var(--severity-high-fill)' },
+                  ]}
+                />
+
               </FormSection>
 
               <FormSection title={i18n.t('form_sections.when')}>
@@ -191,16 +207,8 @@ export default function ExpensesCreate() {
                   label={i18n.t('cost_nature.question')}
                   helperText={i18n.t('cost_nature.helper')}
                   options={[
-                    {
-                      label: i18n.t('cost_nature.irreducible'),
-                      value: 'yes',
-                      color: 'var(--cost-irreducible-fill)',
-                    },
-                    {
-                      label: i18n.t('cost_nature.reducible'),
-                      value: 'no',
-                      color: 'var(--cost-reducible-fill)',
-                    },
+                    { label: i18n.t('cost_nature.irreducible'), value: 'yes' },
+                    { label: i18n.t('cost_nature.reducible'), value: 'no' },
                   ]}
                 />
               </FormSection>

@@ -10,24 +10,42 @@ import { costInMonth } from '@/lib/recurrence.ts';
 import { groupProfitsByMonth } from '@/lib/profits.ts';
 import { survivesIncomeLoss } from '@/lib/safety-net.ts';
 
-type MonthTotals = { total: number; irreducible: number; reducible: number };
+type MonthTotals = {
+  total: number;
+  HIGH: number;
+  MEDIUM: number;
+  LOW: number;
+  irreducible: number;
+  reducible: number;
+};
 
 /**
- * Each month of the year split by what would still be owed with no income coming in.
+ * Each month of the year, split two ways at once: by priority, and by what would still be owed
+ * with no income coming in.
  *
- * Split this way rather than by priority, which was the only thing this ever reported and
- * answered a question nobody asks. How much of a cost base can actually be cut is the question
- * a person asks the moment work looks uncertain, and it is the same figure the emergency fund
- * is built from — so the chart and the fund can never disagree.
+ * Both splits, because they are different questions and the chart offers a tab for each. Priority
+ * is how urgent a cost is; irreducibility is whether it can be cut at all, and that second one is
+ * the figure the emergency fund is built from — so the chart and the fund can never disagree.
+ *
+ * A cost with no priority still counts towards the month's total; it simply has no priority bucket
+ * to land in. Indexing by a null priority would invent one. It always lands in one of the other
+ * two: every cost has an answer to whether it survives, given or derived.
  */
 export function groupExpensesByMonth(data: DBExpense[]) {
   const result: Record<number, MonthTotals> = {};
 
   const ensureMonth = (month: number) => {
-    if (!result[month]) result[month] = { total: 0, irreducible: 0, reducible: 0 };
+    if (!result[month])
+      result[month] = { total: 0, HIGH: 0, MEDIUM: 0, LOW: 0, irreducible: 0, reducible: 0 };
   };
 
-  const addToMonth = (month: number, survives: boolean, value: number) => {
+  const addToMonth = (
+    month: number,
+    severity: DBExpense['severity'],
+    survives: boolean,
+    value: number
+  ) => {
+    if (severity) result[month][severity] += value;
     result[month][survives ? 'irreducible' : 'reducible'] += value;
     result[month].total += value;
   };
@@ -41,13 +59,21 @@ export function groupExpensesByMonth(data: DBExpense[]) {
 
     for (let m = 0; m < 12; m++) {
       ensureMonth(m);
-      addToMonth(m, survives, costInMonth(item, item.expense, { year, monthIndex: m }));
+      addToMonth(
+        m,
+        item.severity,
+        survives,
+        costInMonth(item, item.expense, { year, monthIndex: m })
+      );
     }
   });
 
   return MONTHS.map((_, m) => ({
     month: m,
     total: Number(result[m]?.total?.toFixed(2)) || 0,
+    high: Number(result[m]?.HIGH?.toFixed(2)) || 0,
+    medium: Number(result[m]?.MEDIUM?.toFixed(2)) || 0,
+    low: Number(result[m]?.LOW?.toFixed(2)) || 0,
     irreducible: Number(result[m]?.irreducible?.toFixed(2)) || 0,
     reducible: Number(result[m]?.reducible?.toFixed(2)) || 0,
   }));

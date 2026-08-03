@@ -137,11 +137,13 @@ export class SaldooApp {
   async addExpense({
     description,
     amount,
+    severity,
     survivesIncomeLoss,
     frequency,
   }: {
     description: string;
     amount: number;
+    severity?: 'LOW' | 'MEDIUM' | 'HIGH';
     survivesIncomeLoss?: boolean;
     frequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
   }): Promise<void> {
@@ -158,8 +160,9 @@ export class SaldooApp {
     // Left at the form's own defaults unless asked for, so the tests that do not care about
     // either keep the shortest path through the form.
     //
-    // Whether a cost survives losing the income is a segmented control rather than a select, so
-    // it is clicked directly: both buttons are already on screen, and there is no list to open.
+    // Both are segmented controls rather than selects, so they are clicked directly: every button
+    // is already on screen and there is no list to open first.
+    if (severity) await sheet.getByRole('radio', { name: label(severity), exact: true }).click();
     if (survivesIncomeLoss === false) {
       await sheet.getByRole('radio', { name: label('cost_nature.reducible'), exact: true }).click();
     }
@@ -370,7 +373,7 @@ export class SaldooApp {
    * Scoped to `thead`: unscoped, "Wydatek" also matches the page's "Dodaj wydatek" button, which
    * opens the create drawer and silently leaves the table unsorted underneath it.
    */
-  async sortBy(header: 'description' | 'cost_nature.column'): Promise<void> {
+  async sortBy(header: 'description' | 'severity' | 'cost_nature.column'): Promise<void> {
     await this.page.locator('thead').getByRole('button', { name: label(header) }).click();
   }
 

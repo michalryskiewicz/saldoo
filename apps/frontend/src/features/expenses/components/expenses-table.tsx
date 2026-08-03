@@ -73,6 +73,14 @@ export const columns: ColumnDef<ExpenseRow>[] = [
     header: ({ column }) => <Header.Sort column={column} header="yearly_cost" />,
   },
   {
+    accessorKey: 'severity',
+    header: ({ column }) => <Header.Sort column={column} header="severity" />,
+    cell: ({ row }) => {
+      const { id, severity } = row.original;
+      return <Cell.Severity id={id} severity={severity ?? null} />;
+    },
+  },
+  {
     id: 'survivesIncomeLoss',
     accessorFn: (row) => survivesIncomeLoss(row),
     header: ({ column }) => <Header.Sort column={column} header="cost_nature.column" />,

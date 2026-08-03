@@ -36,6 +36,7 @@ test('the expenses page fits a phone, and the table stops being a table', async 
   await app.addExpense({
     description: 'Ubezpieczenie samochodu na cały rok',
     amount: 1980,
+    severity: 'MEDIUM',
     frequency: 'YEARLY',
   });
 
@@ -52,13 +53,15 @@ test('the expenses page fits a phone, and the table stops being a table', async 
   const row = device.page.getByRole('listitem').filter({ hasText: 'Ubezpieczenie' });
   await expect(row).toBeVisible();
 
-  // The figure and the chip survive the swap: the number is what the row exists to show, and
-  // whether the cost survives losing the income is the only thing colour says in this table.
+  // The figure and both chips survive the swap: the number is what the row exists to show, the
+  // priority is what colour says in this table, and whether the cost survives losing the income
+  // is the word beside it.
   //
   // Addressed by its slot. The figure is what a year of this costs, and the amount as entered is
   // a detail beside it — for a yearly cost those are the same number, so asking for the text
   // finds two elements and answers about whichever is first in the DOM.
   await expect(row.locator('[data-slot="row-figure"]')).toHaveText('1980,00 zł');
+  await expect(row.getByText('Średni')).toBeVisible();
   await expect(row.getByText('Zostaje')).toBeVisible();
 
   // Addressed by its slot rather than its words: with one expense the summary carries the same

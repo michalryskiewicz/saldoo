@@ -47,6 +47,24 @@ describe('expenses service', () => {
       expect(result.find((m) => m.month === juneIdx)?.total).toBe(60);
     });
 
+    it('reports the priority split alongside it, and both add up to the same total', () => {
+      const data = [
+        { execution: '2024-06-10', expense: 40, severity: undefined, frequency: 'YEARLY' },
+        { execution: '2024-06-15', expense: 20, severity: 'LOW', frequency: 'YEARLY' },
+        { execution: '2024-06-20', expense: 30, severity: 'HIGH', frequency: 'YEARLY' },
+      ] as never[];
+      const juneIdx = MONTHS.indexOf('June');
+      const june = groupExpensesByMonth(data).find((m) => m.month === juneIdx);
+
+      // A cost with no priority has no bucket to land in, so only these two add up to the total.
+      expect(june?.low).toBe(20);
+      expect(june?.high).toBe(30);
+      expect(june?.medium).toBe(0);
+      // Every cost has an answer to whether it survives, so these two always do.
+      expect((june?.irreducible ?? 0) + (june?.reducible ?? 0)).toBe(june?.total);
+      expect(june?.total).toBe(90);
+    });
+
     it('splits on the answer given, not on the priority the cost was once assigned', () => {
       const data = [
         {
@@ -87,9 +105,17 @@ describe('expenses service', () => {
     it('returns all months with zero values when input is empty', () => {
       const result = groupExpensesByMonth([]);
       expect(result).toHaveLength(12);
-      expect(result.every((m) => m.total === 0 && m.irreducible === 0 && m.reducible === 0)).toBe(
-        true
-      );
+      expect(
+        result.every(
+          (m) =>
+            m.total === 0 &&
+            m.irreducible === 0 &&
+            m.reducible === 0 &&
+            m.high === 0 &&
+            m.medium === 0 &&
+            m.low === 0
+        )
+      ).toBe(true);
     });
 
     it('correctly sums up monthly frequency expenses for all months', () => {
