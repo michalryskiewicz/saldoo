@@ -49,6 +49,33 @@ describe('record codec', () => {
     expect(back.endsAt?.getTime()).toBe(expense.endsAt?.getTime());
   });
 
+  /**
+   * A nested object, and the whole reason this file exists is that Yjs accepts things it cannot
+   * carry. `Date` is the one that bit: written into a `Y.Map` it reads back correctly on the
+   * device that wrote it and arrives as `{}` everywhere else. Anything new that crosses the wire
+   * gets asserted here, through a real replication hop, before it is trusted.
+   */
+  it('keeps the share of an income, nested object and all, across a replication hop', () => {
+    const tax: DBExpense = {
+      ...expense,
+      expense: 0,
+      percentageOfIncome: {
+        percent: 12,
+        profitIds: ['client-a', 'client-b'],
+        basePeriod: 'previousMonth',
+      },
+    };
+
+    const wire = overTheWire(tax, (r) => encodeRecord('expenses', r));
+    const back = decodeRecord('expenses', wire as Record<string, unknown>) as DBExpense;
+
+    expect(back.percentageOfIncome).toEqual({
+      percent: 12,
+      profitIds: ['client-a', 'client-b'],
+      basePeriod: 'previousMonth',
+    });
+  });
+
   it('keeps the non-date fields byte for byte', () => {
     const wire = overTheWire(expense, (r) => encodeRecord('expenses', r));
     const back = decodeRecord('expenses', wire as Record<string, unknown>) as DBExpense;

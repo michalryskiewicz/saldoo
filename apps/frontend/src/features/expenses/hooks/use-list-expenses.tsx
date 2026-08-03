@@ -13,6 +13,7 @@ export const useListExpenses = () => {
   // Database
   // ===========================================================================
   const allExpenses = useLiveQuery(() => db.expenses.toArray()) || [];
+  const allProfits = useLiveQuery(() => db.profits.toArray()) || [];
   const { tags } = useListTags();
 
   // ===========================================================================
@@ -44,11 +45,21 @@ export const useListExpenses = () => {
     amountKey: 'expense',
   });
 
+  // The base a share is taken of has to already be in the currency the answer is wanted in: a
+  // percentage is dimensionless, so the amount it produces has the currency of its base and none
+  // of its own. Converting the result afterwards would convert it twice.
+  const profitsInDesiredCurrency = convertDataToDesiredCurrency({
+    data: allProfits,
+    exchangeRates: exchanges,
+    desiredCurrency: settings?.currency,
+    amountKey: 'profit',
+  });
+
   const expensesWithTags = combineExpensesWithTags(allExpensesInDesiredCurrency, tags);
-  const chartData = groupExpensesByMonth(expensesWithTags);
+  const chartData = groupExpensesByMonth(expensesWithTags, profitsInDesiredCurrency);
 
   // ===========================================================================
   // Return
   // ===========================================================================
-  return { chartData, allExpenses: expensesWithTags };
+  return { chartData, allExpenses: expensesWithTags, profits: profitsInDesiredCurrency };
 };

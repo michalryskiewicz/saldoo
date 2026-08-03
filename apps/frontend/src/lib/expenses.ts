@@ -9,6 +9,8 @@ import type { DBTag } from '@/database/tags.ts';
 import { costInMonth } from '@/lib/recurrence.ts';
 import { groupProfitsByMonth } from '@/lib/profits.ts';
 import { survivesIncomeLoss } from '@/lib/safety-net.ts';
+import { expenseAmountForMonth } from '@/lib/expense-amount.ts';
+import { hasLostItsBase } from '@/lib/percentage-of-income.ts';
 
 type MonthTotals = {
   total: number;
@@ -31,7 +33,7 @@ type MonthTotals = {
  * to land in. Indexing by a null priority would invent one. It always lands in one of the other
  * two: every cost has an answer to whether it survives, given or derived.
  */
-export function groupExpensesByMonth(data: DBExpense[]) {
+export function groupExpensesByMonth(data: DBExpense[], profits: DBProfit[] = []) {
   const result: Record<number, MonthTotals> = {};
 
   const ensureMonth = (month: number) => {
@@ -54,16 +56,19 @@ export function groupExpensesByMonth(data: DBExpense[]) {
 
   data.forEach((item) => {
     if (!item.execution) return;
+    if (hasLostItsBase(item, profits)) return;
 
     const survives = survivesIncomeLoss(item);
 
     for (let m = 0; m < 12; m++) {
+      const month = { year, monthIndex: m };
+
       ensureMonth(m);
       addToMonth(
         m,
         item.severity,
         survives,
-        costInMonth(item, item.expense, { year, monthIndex: m })
+        costInMonth(item, expenseAmountForMonth(item, profits, month), month)
       );
     }
   });
@@ -86,9 +91,16 @@ export function groupExpensesAndProfitsByMonth(expenses: DBExpense[], profits: D
 
   expenses.forEach((item) => {
     if (item.execution && !isValid(new Date(item.execution))) return;
+    if (hasLostItsBase(item, profits)) return;
 
     for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
-      expenseResult[monthIndex] += costInMonth(item, item.expense, { year, monthIndex });
+      const month = { year, monthIndex };
+
+      expenseResult[monthIndex] += costInMonth(
+        item,
+        expenseAmountForMonth(item, profits, month),
+        month
+      );
     }
   });
 
@@ -105,14 +117,20 @@ export function groupExpensesAndProfitsByMonth(expenses: DBExpense[], profits: D
   }));
 }
 
-export function groupExpensesByCategory(month: number, data: (DBExpense & { tag?: DBTag })[]) {
+export function groupExpensesByCategory(
+  month: number,
+  data: (DBExpense & { tag?: DBTag })[],
+  profits: DBProfit[] = []
+) {
   const year = new Date().getFullYear();
   const tagTotals: Record<string, number> = {};
 
   data.forEach((item) => {
     if (!item.tag?.name) return;
+    if (hasLostItsBase(item, profits)) return;
 
-    const total = costInMonth(item, item.expense, { year, monthIndex: month });
+    const calendarMonth = { year, monthIndex: month };
+    const total = costInMonth(item, expenseAmountForMonth(item, profits, calendarMonth), calendarMonth);
 
     if (total > 0) {
       tagTotals[item.tag.name] = (tagTotals[item.tag.name] || 0) + total;
@@ -135,7 +153,8 @@ export function groupExpensesByStrategyPart(
     price: number;
     currency: Currency;
     expense: DBExpense | null;
-  })[]
+  })[],
+  profits: DBProfit[] = []
 ) {
   const year = new Date().getFullYear();
   const strategyTotals: Record<string, number> = {};
@@ -145,8 +164,10 @@ export function groupExpensesByStrategyPart(
   // Planned (from expenses)
   expenses.forEach((item) => {
     if (!item.strategyPart) return;
+    if (hasLostItsBase(item, profits)) return;
 
-    const total = costInMonth(item, item.expense, { year, monthIndex: month });
+    const calendarMonth = { year, monthIndex: month };
+    const total = costInMonth(item, expenseAmountForMonth(item, profits, calendarMonth), calendarMonth);
 
     if (total > 0) {
       strategyTotals[item.strategyPart] = (strategyTotals[item.strategyPart] || 0) + total;

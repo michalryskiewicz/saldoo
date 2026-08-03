@@ -24,6 +24,23 @@ describe('expenses service', () => {
     vi.useRealTimers();
   });
 
+  const invoiceInMarch = {
+    id: 'client-a',
+    profit: 10000,
+    frequency: 'YEARLY',
+    execution: new Date(2026, 2, 10),
+  } as never;
+
+  const taxOnIt = {
+    expense: 0,
+    frequency: 'MONTHLY',
+    execution: new Date(2026, 0, 20),
+    severity: 'HIGH',
+    tagId: 'tax',
+    strategyPart: 'NEEDS',
+    percentageOfIncome: { percent: 12, profitIds: ['client-a'], basePeriod: 'previousMonth' },
+  } as never;
+
   describe('groupExpensesByMonth', () => {
     it('splits a month into what would survive losing the income and what would go', () => {
       const data = [
@@ -45,6 +62,18 @@ describe('expenses service', () => {
       expect(result.find((m) => m.month === juneIdx)?.irreducible).toBe(40);
       expect(result.find((m) => m.month === juneIdx)?.reducible).toBe(20);
       expect(result.find((m) => m.month === juneIdx)?.total).toBe(60);
+    });
+
+    it('works out a share of a named income, and never calls it irreducible', () => {
+      freezeClock('2026-06-15');
+      const months = groupExpensesByMonth([taxOnIt], [invoiceInMarch]);
+
+      expect(months[3].total).toBe(1200);
+      expect(months[3].reducible).toBe(1200);
+      // A tax on income is nothing when there is no income, so the fund never covers it — and this
+      // chart is built from the same answer.
+      expect(months[3].irreducible).toBe(0);
+      expect(months[2].total).toBe(0);
     });
 
     it('reports the priority split alongside it, and both add up to the same total', () => {
@@ -195,6 +224,34 @@ describe('expenses service', () => {
       expect(result[2].totalExpense).toBeGreaterThan(0);
       // All months should include monthly, weekly, and daily
       expect(result.every((m) => m.totalExpense > 0)).toBe(true);
+    });
+
+    /**
+     * A flat-rate tax, drawn where it actually falls. The invoice is a single yearly one in March,
+     * so the only month with a base is March — and the tax on it is an April cost. March itself
+     * carries no tax at all, which is the whole point of the base period: April's own invoices
+     * have nothing to do with April's tax.
+     */
+    it('works out a share of a named income per month, from the month the share is of', () => {
+      freezeClock('2026-06-15');
+      const invoice = {
+        id: 'client-a',
+        profit: 10000,
+        frequency: 'YEARLY',
+        execution: new Date(2026, 2, 10),
+      } as never;
+      const tax = {
+        expense: 0,
+        frequency: 'MONTHLY',
+        execution: new Date(2026, 0, 20),
+        percentageOfIncome: { percent: 12, profitIds: ['client-a'], basePeriod: 'previousMonth' },
+      } as never;
+
+      const months = groupExpensesAndProfitsByMonth([tax], [invoice]);
+
+      expect(months[2].totalExpense).toBe(0);
+      expect(months[3].totalExpense).toBe(1200);
+      expect(months[4].totalExpense).toBe(0);
     });
 
     it('correctly sums monthly profits into every month', () => {
@@ -538,5 +595,47 @@ describe('expenses service', () => {
       const result = calculateFinancialSafetyNet(0, legacy as never[]);
       expect(result).toEqual({ small: 6600, medium: 13200, comfort: 26400 });
     });
+  });
+});
+
+describe('a share of a named income, wherever a total is drawn', () => {
+  const freezeClock = (iso: string) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(iso));
+  };
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const invoiceInMarch = {
+    id: 'client-a',
+    profit: 10000,
+    frequency: 'YEARLY',
+    execution: new Date(2026, 2, 10),
+  } as never;
+
+  const taxOnIt = {
+    expense: 0,
+    frequency: 'MONTHLY',
+    execution: new Date(2026, 0, 20),
+    tag: { name: 'PODATKI' },
+    strategyPart: 'NEEDS',
+    percentageOfIncome: { percent: 12, profitIds: ['client-a'], basePeriod: 'previousMonth' },
+  } as never;
+
+  it('reaches the category breakdown', () => {
+    freezeClock('2026-06-15');
+
+    expect(groupExpensesByCategory(3, [taxOnIt], [invoiceInMarch])).toEqual([
+      { tag: 'PODATKI', total: 1200 },
+    ]);
+  });
+
+  it('reaches the budget-strategy breakdown', () => {
+    freezeClock('2026-06-15');
+    const parts = groupExpensesByStrategyPart(3, [taxOnIt], [], [], [invoiceInMarch]);
+
+    expect(parts.find((part) => part.strategyPart === 'NEEDS')?.planned).toBe(1200);
   });
 });

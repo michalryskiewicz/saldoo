@@ -14,6 +14,7 @@ import {
 } from '@/lib/expenses.ts';
 import { useListTags } from '@/database/hooks/use-list-tags.tsx';
 import { spendingByDayOfMonth } from '@/lib/monthly-spending.ts';
+import { expenseAmountForMonth } from '@/lib/expense-amount.ts';
 
 export const useOverviewData = () => {
   // ===========================================================================
@@ -66,12 +67,20 @@ export const useOverviewData = () => {
   }));
 
   // Merge expenses into duties
+  const calendarMonthOf = (day: Date | string) => {
+    const date = new Date(day);
+
+    return { year: date.getFullYear(), monthIndex: date.getMonth() };
+  };
+
   const dutiesWithExpense = duties.map((duty) => {
     const expense = expensesWithTag?.find((expense) => expense.id === duty.expenseId);
     return {
       ...duty,
       expense: expense ?? null,
-      price: expense?.expense || 0,
+      // Not `expense.expense`, which is meaningless for a cost that is a share of an income: the
+      // amount owed depends on which month the occurrence falls in.
+      price: expense ? expenseAmountForMonth(expense, profits, calendarMonthOf(duty.executionDate)) : 0,
       currency: expense?.currency || 'EUR',
     };
   });
@@ -114,13 +123,18 @@ export const useOverviewData = () => {
 
   const { month: monthIndex } = getFromDate(new Date());
 
-  const radialChart = groupExpensesByCategory(monthIndex, expensesInSelectedCurrency);
+  const radialChart = groupExpensesByCategory(
+    monthIndex,
+    expensesInSelectedCurrency,
+    profitsInSelectedCurrency
+  );
 
   const expensesByStrategyPart = groupExpensesByStrategyPart(
     monthIndex,
     expensesInSelectedCurrency,
     transactionsInSelectedCurrency,
-    dutiesWithExpenseInSelectedCurrency
+    dutiesWithExpenseInSelectedCurrency,
+    profitsInSelectedCurrency
   );
 
   const savings = chartData.find((c) => c.month === monthIndex);

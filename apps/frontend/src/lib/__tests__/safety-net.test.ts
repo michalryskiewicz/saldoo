@@ -25,4 +25,19 @@ describe('survivesIncomeLoss', () => {
     expect(survivesIncomeLoss(expense({ severity: SEVERITY.MEDIUM }))).toBe(true);
     expect(survivesIncomeLoss(expense({ severity: SEVERITY.HIGH }))).toBe(true);
   });
+
+  /**
+   * A share of an income is zero when there is no income, so it cannot be something the fund has
+   * to cover. The fund is worked out from *planned* income, though, which is exactly why the app
+   * cannot be left to notice this on its own.
+   */
+  it('never counts a share of an income, whatever anybody answered about it', () => {
+    const tax: Partial<DBExpense> = {
+      percentageOfIncome: { percent: 12, profitIds: ['client-a'], basePeriod: 'previousMonth' },
+    };
+
+    expect(survivesIncomeLoss(expense({ ...tax }))).toBe(false);
+    expect(survivesIncomeLoss(expense({ ...tax, severity: SEVERITY.HIGH }))).toBe(false);
+    expect(survivesIncomeLoss(expense({ ...tax, survivesIncomeLoss: true }))).toBe(false);
+  });
 });

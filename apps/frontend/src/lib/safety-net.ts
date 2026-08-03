@@ -17,6 +17,15 @@ import { SEVERITY } from '@/constant.ts';
  * form asks both questions and writes both answers, so a cost whose priority somebody changed has
  * an explicit answer here by the time the save lands. The fallback only ever speaks for a cost
  * nobody has opened since.
+ *
+ * A cost that is a **share of an income** is never in the fund, and is not asked. It is zero when
+ * the income is zero, by construction — a flat-rate tax on nothing earned is nothing owed. Said out
+ * loud rather than left to the arithmetic: the fund is worked out from *planned* income, so left
+ * alone it would demand savings for a tax on invoices that, in the very situation being planned
+ * for, nobody is going to send.
  */
-export const survivesIncomeLoss = (expense: DBExpense): boolean =>
-  expense.survivesIncomeLoss ?? expense.severity !== SEVERITY.LOW;
+export const survivesIncomeLoss = (expense: DBExpense): boolean => {
+  if (expense.percentageOfIncome) return false;
+
+  return expense.survivesIncomeLoss ?? expense.severity !== SEVERITY.LOW;
+};

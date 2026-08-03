@@ -30,6 +30,22 @@ export type DBExpense = {
    * outbox to every device (ADR 0001) for no new information.
    */
   survivesIncomeLoss?: boolean;
+  /**
+   * The share of a named income this cost is, for costs that have no amount of their own — a
+   * flat-rate tax, a percentage for the accountant.
+   *
+   * Absent is the ordinary case: `expense` is the amount and that is all. Present, `expense` is
+   * meaningless and the amount is worked out per month — see `expenseAmountForMonth`.
+   *
+   * The three parts mean nothing apart and always move together, so they travel as one object.
+   * `basePeriod` is which month the share is taken of: a flat-rate tax is due by the 20th of the
+   * month after the invoice it is a share of.
+   */
+  percentageOfIncome?: {
+    percent: number;
+    profitIds: string[];
+    basePeriod: 'thisMonth' | 'previousMonth';
+  };
   frequency?: FREQUENCY;
   /** How many units of the frequency between occurrences. Absent means every one. */
   interval?: number;
