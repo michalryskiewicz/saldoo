@@ -81,8 +81,15 @@
   "expenses": "Wydatki",
   "list": "Lista",
   "create": "Dodaj",
-  "by_severity": "Priorytet",
+  "by_cost_nature": "Bez dochodu",
   "total": "Całkowita",
+  "cost_nature": {
+    "question": "Płaciłbyś to bez dochodu?",
+    "helper": "Odpowiedź decyduje, czy ten koszt wlicza się do poduszki finansowej. Poduszka to nie koszt Twojego życia — to tylko to, czego nie da się wyłączyć, gdy przestają wpływać pieniądze.",
+    "irreducible": "Zostaje",
+    "reducible": "Do wycięcia",
+    "column": "Bez dochodu"
+  },
   "duties_total": {
     "all": "Suma w okresie",
     "unpaid": "Do zapłaty",
@@ -99,7 +106,6 @@
   "money_in": "Wpływy",
   "money_out": "Wydatki",
   "assignment": "Przypisanie",
-  "severity": "Priorytet",
   "execution": "Wykonanie",
   "due_date": "Termin",
   "form_sections": {
@@ -137,9 +143,6 @@
   },
   "frequency": "Częstotliwość",
   "tags": "Tagi",
-  "HIGH": "Wysoki",
-  "MEDIUM": "Średni",
-  "LOW": "Niski",
   "open_menu": "Otwórz menu",
   "edit": "Edytuj",
   "remove": "Usuń",
@@ -300,9 +303,6 @@
     "paid_description": "Suma wydatków na ten miesiąc oznaczonych w sekcji 'Zobowiązania' i 'Transakcje'",
     "used": "Zużyto",
     "used_description": "Procent zużycia wydatków na podstawie sekcji 'Zobowiązania' i 'Transakcje'",
-    "HIGH": "Wysoki",
-    "MEDIUM": "Średni",
-    "LOW": "Niski",
     "totalExpense": "Wydatki",
     "totalProfits": "Zyski",
     "week": "Tydzień",
@@ -337,8 +337,8 @@
   "bank_description": "Poniżej wybierz bank z którego chcesz dodać transakcje",
   "financial_safety_net": {
     "title": "Poduszka finansowa",
-    "description": "Ile oszczędności potrzebujesz żeby zebrać swoją poduszkę finansową",
-    "tooltip": "Poduszka finansowa to rezerwa środków przeznaczona na pokrycie podstawowych wydatków w sytuacjach kryzysowych, takich jak utrata pracy czy nagłe koszty zdrowotne. Zalecana kwota powinna obejmować planowane miesięczne wydatki + 10% na nieprzewidziane zdarzenia, np. awarie sprzętu lub samochodu.",
+    "description": "Ile musisz mieć odłożone, żeby przeżyć bez żadnego dochodu",
+    "tooltip": "Poduszka finansowa to rezerwa, z której żyjesz, gdy przestaje wpływać dochód. Liczona wyłącznie z kosztów, których nie da się wtedy wyłączyć — plus 10% na to, czego nie przewidziałeś, np. awarię sprzętu albo samochodu.",
     "3_months": "3 miesiące",
     "6_months": "6 miesięcy",
     "12_months": "12 miesięcy"

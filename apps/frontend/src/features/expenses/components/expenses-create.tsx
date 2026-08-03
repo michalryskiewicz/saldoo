@@ -21,6 +21,7 @@ import { useAppSelector } from '@/store/store.ts';
 import { checkIfOpen } from '@/lib/helpers.ts';
 import { useMemo } from 'react';
 import { presetFor, withResolvedCadence } from '@/lib/recurrence-presets.ts';
+import { survivesIncomeLoss } from '@/lib/safety-net.ts';
 
 const formSchema = z.object({
   description: z
@@ -28,7 +29,7 @@ const formSchema = z.object({
     .min(2, i18n.t('errors.min-2-length-required')),
   expense: z.number({ error: i18n.t('errors.field-required') }),
   currency: z.string({ error: i18n.t('errors.field-required') }),
-  severity: z.string({ error: i18n.t('errors.field-required') }),
+  survivesIncomeLoss: z.enum(['yes', 'no'], { error: i18n.t('errors.field-required') }),
   cadence: z.string({ error: i18n.t('errors.field-required') }),
   frequency: z.string({ error: i18n.t('errors.field-required') }),
   interval: z.number().int().min(1).optional(),
@@ -47,7 +48,7 @@ export type ExpenseCreateType = z.infer<typeof formSchema>;
 
 const defaultValues = {
   currency: 'PLN',
-  severity: 'MEDIUM',
+  survivesIncomeLoss: 'yes',
   cadence: 'WEEKLY',
   frequency: 'WEEKLY',
   interval: 1,
@@ -79,7 +80,14 @@ export default function ExpensesCreate() {
             strategyPart: budgetingPartsOptions[0]?.value,
           }
         : expense
-          ? { ...expense, cadence: presetFor(expense) }
+          ? {
+              ...expense,
+              cadence: presetFor(expense),
+              // Asked as a word because the control deals in words. A cost that has never been
+              // asked arrives showing what it is already counted as, so opening the drawer and
+              // saving is how an old cost gets an answer of its own.
+              survivesIncomeLoss: survivesIncomeLoss(expense) ? 'yes' : 'no',
+            }
           : defaultValues,
     [budgetingPartsOptions, expense, id]
   );
@@ -136,15 +144,6 @@ export default function ExpensesCreate() {
 
                 <Field.Money name="expense" currencyField="currency" label={i18n.t('expense')} />
 
-                <Field.Segmented
-                  name="severity"
-                  label={i18n.t('severity')}
-                  options={[
-                    { label: i18n.t('LOW'), value: 'LOW', color: 'var(--severity-low-fill)' },
-                    { label: i18n.t('MEDIUM'), value: 'MEDIUM', color: 'var(--severity-medium-fill)' },
-                    { label: i18n.t('HIGH'), value: 'HIGH', color: 'var(--severity-high-fill)' },
-                  ]}
-                />
               </FormSection>
 
               <FormSection title={i18n.t('form_sections.when')}>
@@ -185,6 +184,24 @@ export default function ExpensesCreate() {
                   label={i18n.t('forms.strategy-part')}
                   helperText={i18n.t('forms.strategy-part-tooltip')}
                   options={budgetingPartsOptions}
+                />
+
+                <Field.Segmented
+                  name="survivesIncomeLoss"
+                  label={i18n.t('cost_nature.question')}
+                  helperText={i18n.t('cost_nature.helper')}
+                  options={[
+                    {
+                      label: i18n.t('cost_nature.irreducible'),
+                      value: 'yes',
+                      color: 'var(--cost-irreducible-fill)',
+                    },
+                    {
+                      label: i18n.t('cost_nature.reducible'),
+                      value: 'no',
+                      color: 'var(--cost-reducible-fill)',
+                    },
+                  ]}
                 />
               </FormSection>
 

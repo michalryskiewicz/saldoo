@@ -24,14 +24,14 @@ import { Link } from 'react-router';
 import { useListExpenses } from '@/features/expenses/hooks/use-list-expenses.tsx';
 
 /**
- * Severity keeps the colours it has in the table.
+ * The split keeps the colours it has in the table.
  *
- * These three bars are the same fact the priority column states, so reaching into the chart
- * ramp for them said "low" in green in one place and in teal in the other. The ramp is for
- * series that mean nothing in particular; severity means something, and it already has tokens.
+ * These bars are the same fact the table's column states, so reaching into the chart ramp for
+ * them said "irreducible" in red in one place and in teal in the other. The ramp is for series
+ * that mean nothing in particular; this one means something, and it already has tokens.
  *
  * The *fill* tier, not the mark tier: a stacked bar is a large area, and the saturation that
- * makes an 8px dot visible makes a 300px block shout. `total` is not a severity, so it stays a
+ * makes an 8px dot visible makes a 300px block shout. `total` is neither half, so it stays a
  * chart colour.
  */
 const chartConfig = {
@@ -39,17 +39,13 @@ const chartConfig = {
     label: i18n.t('metrics.totalExpense'),
     color: 'var(--series-expense)',
   },
-  high: {
-    label: i18n.t('metrics.HIGH'),
-    color: 'var(--severity-high-fill)',
+  irreducible: {
+    label: i18n.t('cost_nature.irreducible'),
+    color: 'var(--cost-irreducible-fill)',
   },
-  medium: {
-    label: i18n.t('metrics.MEDIUM'),
-    color: 'var(--severity-medium-fill)',
-  },
-  low: {
-    label: i18n.t('metrics.LOW'),
-    color: 'var(--severity-low-fill)',
+  reducible: {
+    label: i18n.t('cost_nature.reducible'),
+    color: 'var(--cost-reducible-fill)',
   },
 } satisfies ChartConfig;
 
@@ -58,7 +54,7 @@ export const ExpensesChart = () => {
   const { settings } = useSettings();
   const { isMobile } = useSidebar();
 
-  const [chartDisplay, setChartDisplay] = useState<'total' | 'severity'>('total');
+  const [chartDisplay, setChartDisplay] = useState<'total' | 'cost_nature'>('total');
 
   return (
     <>
@@ -68,8 +64,8 @@ export const ExpensesChart = () => {
             <TabsTrigger value="total" onClick={() => setChartDisplay('total')}>
               {i18n.t('total')}
             </TabsTrigger>
-            <TabsTrigger value="severity" onClick={() => setChartDisplay('severity')}>
-              {i18n.t('by_severity')}
+            <TabsTrigger value="cost_nature" onClick={() => setChartDisplay('cost_nature')}>
+              {i18n.t('by_cost_nature')}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -127,7 +123,7 @@ export const ExpensesChart = () => {
                             {formatMoneyValue(value, settings?.currency)}
                           </div>
                           {/* Add this after the last item */}
-                          {index === 2 && (
+                          {index === 1 && (
                             <div className="text-foreground mt-1.5 flex basis-full items-center border-t pt-1.5 text-xs font-medium">
                               {i18n.t('total')}
                               <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
@@ -145,9 +141,13 @@ export const ExpensesChart = () => {
                 <Bar dataKey="total" stackId="a" fill="var(--color-total)" radius={4} />
               ) : (
                 <>
-                  <Bar dataKey="high" stackId="a" fill="var(--color-high)" radius={4} />
-                  <Bar dataKey="medium" stackId="a" fill="var(--color-medium)" radius={4} />
-                  <Bar dataKey="low" stackId="a" fill="var(--color-low)" radius={4} />
+                  <Bar
+                    dataKey="irreducible"
+                    stackId="a"
+                    fill="var(--color-irreducible)"
+                    radius={4}
+                  />
+                  <Bar dataKey="reducible" stackId="a" fill="var(--color-reducible)" radius={4} />
                 </>
               )}
             </BarChart>

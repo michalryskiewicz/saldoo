@@ -81,8 +81,15 @@
   "expenses": "Expenses",
   "list": "List",
   "create": "Add",
-  "by_severity": "Priority",
+  "by_cost_nature": "Without income",
   "total": "Total",
+  "cost_nature": {
+    "question": "Would you still pay this with no income?",
+    "helper": "The answer decides whether this cost counts towards the emergency fund. The fund is not what your life costs — only what cannot be switched off once the money stops arriving.",
+    "irreducible": "Stays",
+    "reducible": "Would go",
+    "column": "Without income"
+  },
   "duties_total": {
     "all": "Total in period",
     "unpaid": "To pay",
@@ -99,7 +106,6 @@
   "money_in": "In",
   "money_out": "Out",
   "assignment": "Filed as",
-  "severity": "Priority",
   "execution": "Due",
   "due_date": "Due",
   "form_sections": {
@@ -137,9 +143,6 @@
   },
   "frequency": "Frequency",
   "tags": "Tags",
-  "HIGH": "High",
-  "MEDIUM": "Medium",
-  "LOW": "Low",
   "open_menu": "Open menu",
   "edit": "Edit",
   "remove": "Delete",
@@ -300,9 +303,6 @@
     "paid_description": "The total of this month's expenses marked in the 'Duties' and 'Transactions' sections",
     "used": "Used",
     "used_description": "How much of the budget is used, based on the 'Duties' and 'Transactions' sections",
-    "HIGH": "High",
-    "MEDIUM": "Medium",
-    "LOW": "Low",
     "totalExpense": "Expenses",
     "totalProfits": "Profits",
     "week": "Week",
@@ -337,8 +337,8 @@
   "bank_description": "Choose the bank you want to add transactions from",
   "financial_safety_net": {
     "title": "Emergency fund",
-    "description": "How much you need to save to build up your emergency fund",
-    "tooltip": "An emergency fund is money set aside to cover essential expenses in a crisis — losing your job, or a sudden medical cost. The recommended amount should cover your planned monthly expenses plus 10% for the unexpected, such as a broken appliance or car repair.",
+    "description": "How much you need put aside to live with no income at all",
+    "tooltip": "An emergency fund is what you live on once the income stops. Sized only on the costs you cannot switch off then, plus 10% for what you did not foresee — a broken appliance, a car repair.",
     "3_months": "3 months",
     "6_months": "6 months",
     "12_months": "12 months"

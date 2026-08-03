@@ -47,10 +47,9 @@
   --color-severity-low: var(--severity-low);
   --color-severity-medium: var(--severity-medium);
   --color-severity-high: var(--severity-high);
-  --color-severity-low-fill: var(--severity-low-fill);
-  --color-severity-medium-fill: var(--severity-medium-fill);
-  --color-severity-high-fill: var(--severity-high-fill);
-  --color-severity-fill-foreground: var(--severity-fill-foreground);
+  --color-cost-reducible-fill: var(--cost-reducible-fill);
+  --color-cost-irreducible-fill: var(--cost-irreducible-fill);
+  --color-cost-fill-foreground: var(--cost-fill-foreground);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -148,12 +147,11 @@
    * its neighbours, not the background. The 3:1 rule is for a mark that carries its meaning
    * alone, which is the tier above.
    */
-  --severity-low-fill: oklch(0.80 0.16 150);
-  --severity-medium-fill: oklch(0.87 0.16 95);
-  --severity-high-fill: oklch(0.72 0.19 25.3);
+  --cost-reducible-fill: oklch(0.80 0.16 150);
+  --cost-irreducible-fill: oklch(0.72 0.19 25.3);
   /* Chips and bars carry dark text, in both themes: the fill is the same mid-light colour in
      each, so one foreground serves both and the chip cannot drift from the bar. */
-  --severity-fill-foreground: oklch(0.22 0.02 260);
+  --cost-fill-foreground: oklch(0.22 0.02 260);
 
   --sidebar: oklch(0.985 0.002 247.839);
   --sidebar-foreground: oklch(0.13 0.028 261.692);
@@ -214,10 +212,9 @@
   /* The fills do not change with the theme. A chip in the table and a bar in the chart have to
      be the same colour to read as the same fact, and splitting them per theme is how they
      drifted apart in the first place. */
-  --severity-low-fill: oklch(0.80 0.16 150);
-  --severity-medium-fill: oklch(0.87 0.16 95);
-  --severity-high-fill: oklch(0.72 0.19 25.3);
-  --severity-fill-foreground: oklch(0.22 0.02 260);
+  --cost-reducible-fill: oklch(0.80 0.16 150);
+  --cost-irreducible-fill: oklch(0.72 0.19 25.3);
+  --cost-fill-foreground: oklch(0.22 0.02 260);
 
   --sidebar: oklch(0.21 0.034 264.665);
   --sidebar-foreground: oklch(0.985 0.002 247.839);

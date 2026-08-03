@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FREQUENCY, SEVERITY, STRATEGY_PART } from '@/constant.ts';
+import { FREQUENCY, STRATEGY_PART } from '@/constant.ts';
 import {
   expenseSearchText,
   searchExpenses,
@@ -9,7 +9,6 @@ import {
 const rent: SearchableExpense = {
   description: 'Czynsz',
   expense: 2500,
-  severity: SEVERITY.HIGH,
   frequency: FREQUENCY.MONTHLY,
   // 15 July 2026.
   execution: new Date('2026-07-15T00:00:00'),
@@ -20,7 +19,7 @@ const rent: SearchableExpense = {
 const coffee: SearchableExpense = {
   description: 'Kawa',
   expense: 14.99,
-  severity: SEVERITY.LOW,
+  survivesIncomeLoss: false,
   frequency: FREQUENCY.DAILY,
   strategyPart: STRATEGY_PART.WANTS,
   tag: { name: 'JEDZENIE' },
@@ -31,8 +30,8 @@ describe('expenseSearchText', () => {
     const text = expenseSearchText(rent);
 
     expect(text).toContain('Czynsz');
-    // Stored as HIGH / MONTHLY / NEEDS; read as these.
-    expect(text).toContain('Wysoki');
+    // Stored as a boolean / MONTHLY / NEEDS; read as these.
+    expect(text).toContain('Zostaje');
     expect(text).toContain('Miesięczna');
     expect(text).toContain('Potrzeby');
     expect(text).toContain('MIESZKANIE');
@@ -50,9 +49,9 @@ describe('expenseSearchText', () => {
 
   it('leaves out the placeholder dash, which is a mark and not a word', () => {
     // Otherwise typing a hyphen "matches" every row that happens to have no date.
-    const bare: SearchableExpense = { description: 'Coś', expense: 0, severity: null };
+    const bare: SearchableExpense = { description: 'Coś', expense: 0 };
 
-    expect(expenseSearchText(bare)).toBe('Coś 0');
+    expect(expenseSearchText(bare)).toBe('Coś Zostaje 0');
     expect(searchExpenses([bare], '-')).toEqual([]);
   });
 });
@@ -64,9 +63,9 @@ describe('searchExpenses', () => {
     expect(searchExpenses(rows, 'kawa')).toEqual([coffee]);
   });
 
-  it('finds rows by a priority that is never in the description', () => {
-    // This is the whole point of search replacing the priority pills.
-    expect(searchExpenses(rows, 'wysoki')).toEqual([rent]);
+  it('finds rows by whether they survive losing the income, never in the description', () => {
+    // This is the whole point of search replacing the pills in the column.
+    expect(searchExpenses(rows, 'do wycięcia')).toEqual([coffee]);
   });
 
   it('finds rows by how often they recur', () => {
@@ -75,8 +74,8 @@ describe('searchExpenses', () => {
   });
 
   it('narrows across fields as more words are typed', () => {
-    expect(searchExpenses(rows, 'wysoki czynsz')).toEqual([rent]);
-    expect(searchExpenses(rows, 'wysoki kawa')).toEqual([]);
+    expect(searchExpenses(rows, 'zostaje czynsz')).toEqual([rent]);
+    expect(searchExpenses(rows, 'zostaje kawa')).toEqual([]);
   });
 
   it('finds a row by its amount', () => {

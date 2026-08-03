@@ -3,7 +3,7 @@ import { searchDuties } from '../duties-search.service.ts';
 
 const duty = (description: string, executionDate: Date, expense = 1000) => ({
   executionDate,
-  expense: { description, expense, severity: 'HIGH' as const },
+  expense: { description, expense, survivesIncomeLoss: true },
 });
 
 const RENT = duty('Czynsz', new Date(2026, 6, 4));

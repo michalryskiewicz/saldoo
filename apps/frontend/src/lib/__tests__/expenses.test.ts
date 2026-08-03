@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
+  calculateFinancialSafetyNet,
   groupExpensesAndProfitsByMonth,
   groupExpensesByCategory,
   groupExpensesByMonth,
@@ -24,7 +25,7 @@ describe('expenses service', () => {
   });
 
   describe('groupExpensesByMonth', () => {
-    it('ignores expenses with missing severity and add it only to total severity bucket', () => {
+    it('splits a month into what would survive losing the income and what would go', () => {
       const data = [
         {
           execution: '2024-06-10',
@@ -41,10 +42,25 @@ describe('expenses service', () => {
       ] as never[];
       const juneIdx = MONTHS.indexOf('June');
       const result = groupExpensesByMonth(data);
-      expect(result.find((m) => m.month === juneIdx)?.low).toEqual(20);
-      expect(result.find((m) => m.month === juneIdx)?.high).toBe(0);
-      expect(result.find((m) => m.month === juneIdx)?.medium).toBe(0);
+      expect(result.find((m) => m.month === juneIdx)?.irreducible).toBe(40);
+      expect(result.find((m) => m.month === juneIdx)?.reducible).toBe(20);
       expect(result.find((m) => m.month === juneIdx)?.total).toBe(60);
+    });
+
+    it('splits on the answer given, not on the priority the cost was once assigned', () => {
+      const data = [
+        {
+          execution: '2024-06-10',
+          expense: 40,
+          severity: 'HIGH',
+          survivesIncomeLoss: false,
+          frequency: 'YEARLY',
+        },
+      ] as never[];
+      const juneIdx = MONTHS.indexOf('June');
+      const result = groupExpensesByMonth(data);
+      expect(result.find((m) => m.month === juneIdx)?.reducible).toBe(40);
+      expect(result.find((m) => m.month === juneIdx)?.irreducible).toBe(0);
     });
 
     it('handles expenses with invalid execution date by skipping them', () => {
@@ -64,17 +80,16 @@ describe('expenses service', () => {
       ] as never[];
       const julyIdx = MONTHS.indexOf('July');
       const result = groupExpensesByMonth(data);
-      expect(result.find((m) => m.month === julyIdx)?.medium).toBe(30.01);
-      expect(result.find((m) => m.month === julyIdx)?.high).toBe(0);
+      expect(result.find((m) => m.month === julyIdx)?.irreducible).toBe(30.01);
       expect(result.find((m) => m.month === julyIdx)?.total).toBe(30.01);
     });
 
     it('returns all months with zero values when input is empty', () => {
       const result = groupExpensesByMonth([]);
       expect(result).toHaveLength(12);
-      expect(
-        result.every((m) => m.total === 0 && m.high === 0 && m.medium === 0 && m.low === 0)
-      ).toBe(true);
+      expect(result.every((m) => m.total === 0 && m.irreducible === 0 && m.reducible === 0)).toBe(
+        true
+      );
     });
 
     it('correctly sums up monthly frequency expenses for all months', () => {
@@ -88,7 +103,7 @@ describe('expenses service', () => {
       ] as never[];
       const result = groupExpensesByMonth(data);
       result.forEach((m) => {
-        expect(m.high).toBe(10);
+        expect(m.irreducible).toBe(10);
         expect(m.total).toBe(10);
       });
     });
@@ -108,7 +123,7 @@ describe('expenses service', () => {
       const result = groupExpensesByMonth(data);
       // 2024-01-01 is a Monday, so count Mondays in each month
       const janIdx = MONTHS.indexOf('January');
-      expect(result.find((m) => m.month === janIdx)?.medium).toBe(
+      expect(result.find((m) => m.month === janIdx)?.irreducible).toBe(
         Number((countWeekdaysInMonth(2024, 0, 1) * 5)?.toFixed(2))
       );
     });
@@ -127,7 +142,7 @@ describe('expenses service', () => {
       ] as never[];
       const febIdx = MONTHS.indexOf('February');
       const result = groupExpensesByMonth(data);
-      expect(result.find((m) => m.month === febIdx)?.low).toBe(
+      expect(result.find((m) => m.month === febIdx)?.reducible).toBe(
         Number((daysInMonth(2024, 1) * 2)?.toFixed(2))
       );
     });
@@ -455,6 +470,47 @@ describe('expenses service', () => {
       const days = daysInMonth(year, month);
       expect(result.find((r) => r.strategyPart === 'NEEDS')?.planned).toBe(10 * sundays);
       expect(result.find((r) => r.strategyPart === 'WANTS')?.planned).toBe(2 * days);
+    });
+  });
+
+  describe('calculateFinancialSafetyNet', () => {
+    const rent = {
+      execution: '2025-01-10',
+      expense: 1000,
+      frequency: 'MONTHLY',
+      severity: 'HIGH',
+    };
+
+    it('covers three, six and twelve months of a cost, with the buffer on top', () => {
+      freezeClock('2025-01-15');
+      const result = calculateFinancialSafetyNet(0, [rent] as never[]);
+      expect(result).toEqual({ small: 3300, medium: 6600, comfort: 13200 });
+    });
+
+    it('leaves out a cost that would not be there without the income', () => {
+      freezeClock('2025-01-15');
+      const gym = { ...rent, expense: 100, survivesIncomeLoss: false };
+      const result = calculateFinancialSafetyNet(0, [rent, gym] as never[]);
+      expect(result).toEqual({ small: 3300, medium: 6600, comfort: 13200 });
+    });
+
+    /**
+     * The whole of the migration, asserted where it is felt.
+     *
+     * Nothing is rewritten in the vault, so an expense entered before the question existed answers
+     * it from the priority it was given. `MEDIUM` was the form's default and `HIGH` was chosen, so
+     * both go on counting exactly as they did; `LOW` is the only value somebody had to pick on
+     * purpose, and the only one that moves a figure.
+     */
+    it('reads costs entered before the question existed from the priority they carry', () => {
+      freezeClock('2025-01-15');
+      const legacy = [
+        { ...rent, severity: 'MEDIUM' },
+        { ...rent, severity: 'HIGH' },
+        { ...rent, expense: 100, severity: 'LOW' },
+      ];
+      const result = calculateFinancialSafetyNet(0, legacy as never[]);
+      expect(result).toEqual({ small: 6600, medium: 13200, comfort: 26400 });
     });
   });
 });

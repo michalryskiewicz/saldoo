@@ -8,20 +8,27 @@ import type { Currency } from '@/constant.ts';
 import type { DBTag } from '@/database/tags.ts';
 import { costInMonth } from '@/lib/recurrence.ts';
 import { groupProfitsByMonth } from '@/lib/profits.ts';
+import { survivesIncomeLoss } from '@/lib/safety-net.ts';
 
-type SeverityTotals = { total: number; HIGH: number; MEDIUM: number; LOW: number };
+type MonthTotals = { total: number; irreducible: number; reducible: number };
 
+/**
+ * Each month of the year split by what would still be owed with no income coming in.
+ *
+ * Split this way rather than by priority, which was the only thing this ever reported and
+ * answered a question nobody asks. How much of a cost base can actually be cut is the question
+ * a person asks the moment work looks uncertain, and it is the same figure the emergency fund
+ * is built from — so the chart and the fund can never disagree.
+ */
 export function groupExpensesByMonth(data: DBExpense[]) {
-  const result: Record<number, SeverityTotals> = {};
+  const result: Record<number, MonthTotals> = {};
 
   const ensureMonth = (month: number) => {
-    if (!result[month]) result[month] = { total: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+    if (!result[month]) result[month] = { total: 0, irreducible: 0, reducible: 0 };
   };
 
-  // An expense with no severity still counts towards the month's total; it simply
-  // has no bucket to land in. Indexing by a null severity would invent one.
-  const addToMonth = (month: number, severity: DBExpense['severity'], value: number) => {
-    if (severity) result[month][severity] += value;
+  const addToMonth = (month: number, survives: boolean, value: number) => {
+    result[month][survives ? 'irreducible' : 'reducible'] += value;
     result[month].total += value;
   };
 
@@ -30,18 +37,19 @@ export function groupExpensesByMonth(data: DBExpense[]) {
   data.forEach((item) => {
     if (!item.execution) return;
 
+    const survives = survivesIncomeLoss(item);
+
     for (let m = 0; m < 12; m++) {
       ensureMonth(m);
-      addToMonth(m, item.severity, costInMonth(item, item.expense, { year, monthIndex: m }));
+      addToMonth(m, survives, costInMonth(item, item.expense, { year, monthIndex: m }));
     }
   });
 
   return MONTHS.map((_, m) => ({
     month: m,
     total: Number(result[m]?.total?.toFixed(2)) || 0,
-    high: Number(result[m]?.HIGH?.toFixed(2)) || 0,
-    medium: Number(result[m]?.MEDIUM?.toFixed(2)) || 0,
-    low: Number(result[m]?.LOW?.toFixed(2)) || 0,
+    irreducible: Number(result[m]?.irreducible?.toFixed(2)) || 0,
+    reducible: Number(result[m]?.reducible?.toFixed(2)) || 0,
   }));
 }
 
@@ -164,6 +172,13 @@ export function groupExpensesByStrategyPart(
   });
 }
 
+/**
+ * What has to be put aside to live for three, six or twelve months with no income at all.
+ *
+ * Only costs that would still be there once the income stops. A fund sized on everything a
+ * person spends answers a different question — what their life costs — and would demand they
+ * save up for a year of the gym membership they would cancel in the first week.
+ */
 export function calculateFinancialSafetyNet(month: number, data: DBExpense[]) {
   const results: Record<string, number> = {
     small: 0, // 3 months
@@ -175,6 +190,7 @@ export function calculateFinancialSafetyNet(month: number, data: DBExpense[]) {
 
   data.forEach((item) => {
     if (!item.execution) return;
+    if (!survivesIncomeLoss(item)) return;
 
     // 3, 6, 12-months periods
     let totalSmall = 0;

@@ -12,6 +12,7 @@ import { useListExpenses } from '@/features/expenses/hooks/use-list-expenses.tsx
 import type { DBExpense } from '@/database/expenses.ts';
 import type { DBTag } from '@/database/tags.ts';
 import { costInYear } from '@/lib/recurrence.ts';
+import { survivesIncomeLoss } from '@/lib/safety-net.ts';
 
 /**
  * A row as the table sees it: an expense with its tag joined in.
@@ -72,12 +73,12 @@ export const columns: ColumnDef<ExpenseRow>[] = [
     header: ({ column }) => <Header.Sort column={column} header="yearly_cost" />,
   },
   {
-    accessorKey: 'severity',
-    header: ({ column }) => <Header.Sort column={column} header="severity" />,
-    cell: ({ row }) => {
-      const { id, severity } = row.original;
-      return <Cell.Severity id={id} severity={severity} />;
-    },
+    id: 'survivesIncomeLoss',
+    accessorFn: (row) => survivesIncomeLoss(row),
+    header: ({ column }) => <Header.Sort column={column} header="cost_nature.column" />,
+    cell: ({ row }) => (
+      <Cell.CostNature id={row.original.id} survives={survivesIncomeLoss(row.original)} />
+    ),
   },
   {
     accessorKey: 'frequency',

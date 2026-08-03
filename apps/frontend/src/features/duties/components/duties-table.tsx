@@ -21,6 +21,7 @@ import { db } from '@/database';
 import { useDuties } from '@/features/duties/hooks/use-duties.tsx';
 import { type DBDuty, resolveDBDuty } from '@/database/duty.ts';
 import type { DBExpense } from '@/database/expenses.ts';
+import { survivesIncomeLoss } from '@/lib/safety-net.ts';
 import { useState } from 'react';
 import { endOfMonth, startOfMonth } from 'date-fns';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs.tsx';
@@ -89,12 +90,15 @@ const columns: ColumnDef<DutyRow>[] = [
     },
   },
   {
-    accessorKey: 'expense.severity',
-    header: ({ column }) => <Header.Sort column={column} header="severity" />,
-    cell: ({ row }) => {
-      const { id, severity } = row.original.expense;
-      return <Cell.Severity id={id} severity={severity} />;
-    },
+    id: 'survivesIncomeLoss',
+    accessorFn: (row) => survivesIncomeLoss(row.expense),
+    header: ({ column }) => <Header.Sort column={column} header="cost_nature.column" />,
+    cell: ({ row }) => (
+      <Cell.CostNature
+        id={row.original.expense.id}
+        survives={survivesIncomeLoss(row.original.expense)}
+      />
+    ),
   },
   {
     accessorKey: 'executionDate',

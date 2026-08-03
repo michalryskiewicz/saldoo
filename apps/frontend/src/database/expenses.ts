@@ -15,7 +15,21 @@ export type DBExpense = {
   description: string;
   expense: number;
   currency: Currency;
-  severity: SEVERITY | null;
+  /**
+   * The priority this cost was given before it was asked whether it survives losing the income.
+   *
+   * Read only to answer that question for costs entered before it existed, and never written
+   * again. Nothing renders it.
+   */
+  severity?: SEVERITY | null;
+  /**
+   * Whether this cost would still be there with no income coming in — see `survivesIncomeLoss`.
+   *
+   * Absent means nobody has answered it, and the answer is derived rather than stored. Rewriting
+   * every record to say out loud what can be computed would push the whole vault through the
+   * outbox to every device (ADR 0001) for no new information.
+   */
+  survivesIncomeLoss?: boolean;
   frequency?: FREQUENCY;
   /** How many units of the frequency between occurrences. Absent means every one. */
   interval?: number;
@@ -38,7 +52,7 @@ export const addDBExpense = async (expense: Omit<ExpenseCreateType, 'cadence'>) 
       createdAt: new Date(),
       ...expense,
       currency: expense.currency as Currency,
-      severity: expense.severity as SEVERITY,
+      survivesIncomeLoss: expense.survivesIncomeLoss === 'yes',
       frequency: expense.frequency as FREQUENCY,
       strategyPart: expense.strategyPart as STRATEGY_PART,
     });
@@ -66,7 +80,7 @@ export const updateDBExpense = async (id: string, expense: Omit<ExpenseCreateTyp
       ...expense,
       updatedAt: new Date(),
       currency: expense.currency as Currency,
-      severity: expense.severity as SEVERITY,
+      survivesIncomeLoss: expense.survivesIncomeLoss === 'yes',
       frequency: expense.frequency as FREQUENCY,
       strategyPart: expense.strategyPart as STRATEGY_PART,
     });

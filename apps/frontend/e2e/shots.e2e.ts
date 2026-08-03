@@ -96,11 +96,11 @@ const dutiesLabel = pl.duties;
 
 /** Enough variety for colour, alignment and column width to be judgeable at a glance. */
 const EXPENSES = [
-  { description: 'Czynsz', amount: 2500, severity: 'HIGH', frequency: 'MONTHLY' },
-  { description: 'Abonament telefon', amount: 65, severity: 'LOW', frequency: 'MONTHLY' },
-  { description: 'Zakupy spożywcze', amount: 480.5, severity: 'MEDIUM', frequency: 'WEEKLY' },
-  { description: 'Ubezpieczenie samochodu', amount: 1980, severity: 'MEDIUM', frequency: 'YEARLY' },
-  { description: 'Kawa', amount: 14.99, severity: 'LOW', frequency: 'DAILY' },
+  { description: 'Czynsz', amount: 2500, frequency: 'MONTHLY' },
+  { description: 'Abonament telefon', amount: 65, survivesIncomeLoss: false, frequency: 'MONTHLY' },
+  { description: 'Zakupy spożywcze', amount: 480.5, frequency: 'WEEKLY' },
+  { description: 'Ubezpieczenie samochodu', amount: 1980, frequency: 'YEARLY' },
+  { description: 'Kawa', amount: 14.99, survivesIncomeLoss: false, frequency: 'DAILY' },
 ] as const;
 
 test.skip(!process.env.SHOTS, 'Set SHOTS=1 to take screenshots.');
@@ -422,7 +422,6 @@ test('shots: the sync banner in both themes', async ({ browser, baseURL }) => {
   await app.addExpense({
     description: 'Czynsz',
     amount: 2500,
-    severity: 'HIGH',
     frequency: 'MONTHLY',
   });
   await device.page.getByRole('alert').first().waitFor({ timeout: 20_000 });

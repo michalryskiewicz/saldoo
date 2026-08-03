@@ -137,12 +137,12 @@ export class SaldooApp {
   async addExpense({
     description,
     amount,
-    severity,
+    survivesIncomeLoss,
     frequency,
   }: {
     description: string;
     amount: number;
-    severity?: 'LOW' | 'MEDIUM' | 'HIGH';
+    survivesIncomeLoss?: boolean;
     frequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
   }): Promise<void> {
     await this.openExpenses();
@@ -158,9 +158,11 @@ export class SaldooApp {
     // Left at the form's own defaults unless asked for, so the tests that do not care about
     // either keep the shortest path through the form.
     //
-    // Priority is a segmented control rather than a select, so it is clicked directly: three
-    // buttons, all of them already on screen, and no list to open first.
-    if (severity) await sheet.getByRole('radio', { name: label(severity), exact: true }).click();
+    // Whether a cost survives losing the income is a segmented control rather than a select, so
+    // it is clicked directly: both buttons are already on screen, and there is no list to open.
+    if (survivesIncomeLoss === false) {
+      await sheet.getByRole('radio', { name: label('cost_nature.reducible'), exact: true }).click();
+    }
     if (frequency) await this.chooseOption(sheet, label('forms.cadence'), label(`cadence.${frequency}`));
 
     await sheet.getByLabel(label('forms.first-execution'), { exact: true }).click();
@@ -368,11 +370,8 @@ export class SaldooApp {
    * Scoped to `thead`: unscoped, "Wydatek" also matches the page's "Dodaj wydatek" button, which
    * opens the create drawer and silently leaves the table unsorted underneath it.
    */
-  async sortBy(header: 'description' | 'severity'): Promise<void> {
-    await this.page
-      .locator('thead')
-      .getByRole('button', { name: label(header === 'description' ? 'description' : 'severity') })
-      .click();
+  async sortBy(header: 'description' | 'cost_nature.column'): Promise<void> {
+    await this.page.locator('thead').getByRole('button', { name: label(header) }).click();
   }
 
   /**
@@ -745,6 +744,37 @@ export class SaldooApp {
   }
 
   // === Overview ===
+
+  /**
+   * That one window of the emergency fund reads a given figure.
+   *
+   * Read as a number rather than as a string: the card groups thousands with a non-breaking
+   * space and appends a currency, neither of which this is about — and an assertion on the
+   * rendered string would fail the day somebody changes the separator rather than the day the
+   * fund changes. The grouping space goes, the decimal comma becomes a point, everything else
+   * that is not a digit goes with the currency.
+   *
+   * Polled rather than read once: the figure is derived from a live Dexie query, so it arrives a
+   * tick after the expense that moved it.
+   */
+  async expectSafetyNet(window: '3_months' | '6_months' | '12_months', amount: number) {
+    await this.openOverview();
+
+    const figure = this.page
+      .locator('[data-slot="card-content"] > div')
+      .filter({ hasText: label(`financial_safety_net.${window}`) })
+      .locator('[data-slot="card-title"]');
+
+    const asNumber = (text: string) =>
+      Number(
+        text
+          .replace(/\s/g, '')
+          .replace(',', '.')
+          .replace(/[^\d.]/g, '')
+      );
+
+    await expect.poll(async () => asNumber((await figure.textContent()) ?? '')).toBe(amount);
+  }
 
   async openOverview(): Promise<void> {
     if (new URL(this.page.url()).pathname !== OVERVIEW_PATH) await this.open(OVERVIEW_PATH);
