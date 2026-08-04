@@ -1,4 +1,5 @@
 import { addMonths, endOfMonth } from 'date-fns';
+import i18n from '@/i18n.ts';
 import type { DBExpense } from '@/database/expenses.ts';
 import type { DBProfit } from '@/database/profits.ts';
 
@@ -56,4 +57,29 @@ export const endsWithItsIncome = (
     .reduce((latest, day) => (day > latest ? day : latest));
 
   return endOfMonth(share.basePeriod === 'thisMonth' ? lastDay : addMonths(lastDay, 1));
+};
+
+/**
+ * A share, in words, for the column that would otherwise show the amount.
+ *
+ * That column reads `expense`, which for a share is zero — the number stored, and not the truth: a
+ * share has no amount at all until a month is named. What it does have is what it is a share *of*,
+ * so that is what the row says.
+ *
+ * Every income named rather than counted. "12% z 3 przychodów" tells the reader nothing about which
+ * three, and this is the figure the whole cost is built from.
+ *
+ * When none of them can be found the row says so. Naming nothing would read as a share of
+ * everything, and printing 12% beside an empty base is the silent zero all over again.
+ */
+export const describeShare = (expense: DBExpense, profits: DBProfit[]): string | undefined => {
+  const share = expense.percentageOfIncome;
+
+  if (!share) return undefined;
+
+  const named = baseOf(expense, profits).map((profit) => profit.description);
+
+  if (!named.length) return `${share.percent}% — ${i18n.t('amount_mode.base-gone')}`;
+
+  return `${share.percent}% ${i18n.t('amount_mode.of')} ${named.join(', ')}`;
 };

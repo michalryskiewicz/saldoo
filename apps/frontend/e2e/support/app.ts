@@ -139,12 +139,16 @@ export class SaldooApp {
     amount,
     severity,
     survivesIncomeLoss,
+    shareOfIncome,
     frequency,
   }: {
     description: string;
-    amount: number;
+    /** Left out for a cost that is a share of an income: it has no amount of its own. */
+    amount?: number;
     severity?: 'LOW' | 'MEDIUM' | 'HIGH';
     survivesIncomeLoss?: boolean;
+    /** Turns the amount into a percentage of one named income. */
+    shareOfIncome?: { percent: number; income: string };
     frequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
   }): Promise<void> {
     await this.openExpenses();
@@ -155,7 +159,22 @@ export class SaldooApp {
 
     // Exact throughout: 'Kategoria' is also a prefix of 'Kategoria Strategii Budżetu'.
     await sheet.getByLabel(label('description'), { exact: true }).fill(description);
-    await sheet.getByLabel(label('expense'), { exact: true }).fill(String(amount));
+
+    // The amount field and the three that ask about a share are the same slot in the form, so only
+    // one of them is on screen at a time.
+    if (shareOfIncome) {
+      await sheet.getByRole('radio', { name: label('amount_mode.share'), exact: true }).click();
+      await sheet
+        .getByLabel(label('amount_mode.percent'), { exact: true })
+        .fill(String(shareOfIncome.percent));
+
+      await sheet.getByRole('combobox', { name: label('amount_mode.of-income') }).click();
+      await this.page.getByRole('option', { name: shareOfIncome.income }).click();
+      // The list stays open on a click, because picking several is the point of the control.
+      await this.page.keyboard.press('Escape');
+    } else {
+      await sheet.getByLabel(label('expense'), { exact: true }).fill(String(amount));
+    }
 
     // Left at the form's own defaults unless asked for, so the tests that do not care about
     // either keep the shortest path through the form.

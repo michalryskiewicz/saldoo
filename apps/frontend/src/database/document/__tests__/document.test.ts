@@ -191,6 +191,38 @@ describe('document', () => {
     expect(readAllRecords(phone, 'duties')).toHaveLength(1);
   });
 
+  /**
+   * Clearing a field, which is not the same as leaving it alone.
+   *
+   * A partial update writes the keys it was given and touches nothing else, which is the whole
+   * point of it — so "this field no longer applies" has to be sayable. It came up switching a cost
+   * from a share of an income back to a plain amount: without this the share stays on the record,
+   * every total goes on computing 12% of an invoice, and the form shows an amount that nothing
+   * reads.
+   *
+   * A key explicitly set to `undefined` means remove it; a key simply absent still means leave it
+   * alone. Both directions are asserted, because a delete pass that could not tell them apart
+   * would wipe every field a partial update did not mention.
+   */
+  it('removes a field set to undefined, and still leaves absent fields alone', () => {
+    const laptop = createDocument();
+    const phone = createDocument();
+
+    putRecord(laptop, 'expenses', {
+      ...expense('e1', 'Tax', 0),
+      percentageOfIncome: { percent: 12, profitIds: ['client-a'], basePeriod: 'previousMonth' },
+    });
+    sync(laptop, phone);
+
+    updateFields(laptop, 'expenses', 'e1', { expense: 2500, percentageOfIncome: undefined });
+    sync(laptop, phone);
+
+    const received = readRecord(phone, 'expenses', 'e1') as DBExpense;
+    expect(received.percentageOfIncome).toBeUndefined();
+    expect(received.expense).toBe(2500);
+    expect(received.description).toBe('Tax');
+  });
+
   it('rebuilds dates as real Dates on the receiving device', () => {
     const laptop = createDocument();
     const phone = createDocument();

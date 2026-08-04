@@ -12,6 +12,7 @@ import { useListExpenses } from '@/features/expenses/hooks/use-list-expenses.tsx
 import type { DBExpense } from '@/database/expenses.ts';
 import type { DBTag } from '@/database/tags.ts';
 import { expenseCostInYear } from '@/lib/expense-amount.ts';
+import { describeShare } from '@/lib/percentage-of-income.ts';
 import { survivesIncomeLoss } from '@/lib/safety-net.ts';
 
 /**
@@ -25,7 +26,12 @@ import { survivesIncomeLoss } from '@/lib/safety-net.ts';
  * income needs the incomes to be resolved at all, and a module-level `accessorFn` has no way to
  * reach them.
  */
-export type ExpenseRow = DBExpense & { tag?: DBTag; totalLabel?: string; yearlyCost?: number };
+export type ExpenseRow = DBExpense & {
+  tag?: DBTag;
+  totalLabel?: string;
+  yearlyCost?: number;
+  shareLabel?: string;
+};
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const columns: ColumnDef<ExpenseRow>[] = [
@@ -47,9 +53,13 @@ export const columns: ColumnDef<ExpenseRow>[] = [
     // of different frequencies have no shared amount to add up. What they do have is what they
     // cost over a year, which is the column beside this one.
     cell: ({ row }) => {
-      const { id, expense, currency } = row.original;
+      const { id, expense, currency, shareLabel } = row.original;
 
       if (id === TOTAL) return null;
+
+      // A share has no amount of its own — `expense` is zero — so the row says what it is a share
+      // of instead of printing a nought and calling it the price.
+      if (shareLabel) return <Cell.Text id={id} name={shareLabel} />;
 
       return <Cell.Money id={id} price={expense} currency={currency} />;
     },
@@ -133,6 +143,7 @@ export const ExpensesTable = () => {
   const dataToTable = searchExpenses(allExpenses ?? [], query).map((row) => ({
     ...row,
     yearlyCost: expenseCostInYear(row, profits, year),
+    shareLabel: describeShare(row, profits),
   }));
 
   // A summary row rather than a stored expense, so it is shaped like one on purpose.

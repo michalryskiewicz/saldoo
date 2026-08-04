@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { FREQUENCY } from '@/constant.ts';
 import type { DBExpense } from '@/database/expenses.ts';
 import type { DBProfit } from '@/database/profits.ts';
-import { endsWithItsIncome, hasLostItsBase } from '../percentage-of-income.ts';
+import { describeShare, endsWithItsIncome, hasLostItsBase } from '../percentage-of-income.ts';
 
 const expense = (fields: Partial<DBExpense>): DBExpense => fields as DBExpense;
 
@@ -89,5 +89,37 @@ describe('hasLostItsBase', () => {
     expect(
       hasLostItsBase(taxOn(['client-a', 'client-b']), [income({ id: 'client-b' })])
     ).toBe(false);
+  });
+});
+
+describe('describeShare', () => {
+  it('has nothing to describe about a cost with an amount of its own', () => {
+    expect(describeShare(expense({ expense: 2500 }), [])).toBeUndefined();
+  });
+
+  /**
+   * The amount column would otherwise read "0,00 zł", which is the number stored and not the truth:
+   * a share has no amount until a month is named. What it does have is what it is a share *of*.
+   */
+  it('says what the share is and what it is a share of', () => {
+    const tax = taxOn(['client-a']);
+
+    expect(describeShare(tax, [income({ description: 'Faktura klient A' })])).toBe(
+      '12% z Faktura klient A'
+    );
+  });
+
+  it('names all of them when the share is of several incomes', () => {
+    const tax = taxOn(['client-a', 'client-b']);
+    const incomes = [
+      income({ id: 'client-a', description: 'Faktura A' }),
+      income({ id: 'client-b', description: 'Faktura B' }),
+    ];
+
+    expect(describeShare(tax, incomes)).toBe('12% z Faktura A, Faktura B');
+  });
+
+  it('says the base is gone rather than naming nothing', () => {
+    expect(describeShare(taxOn(['client-a']), [])).toBe('12% — brak podstawy');
   });
 });

@@ -56,6 +56,39 @@ export type DBExpense = {
   tagId?: string;
 };
 
+type CostFromForm = Omit<ExpenseCreateType, 'cadence'>;
+
+/**
+ * The parts of a cost the form asks about in pieces and the record holds as a whole.
+ *
+ * A share is three fields on screen and one object in the vault, because its three parts mean
+ * nothing apart and must never drift out of step. `expense` is zero for a share: the amount is not
+ * a number anybody typed, it is worked out per month from the invoices.
+ *
+ * `undefined` on the way back to a plain amount is load-bearing — `updateFields` removes a field
+ * given as undefined, and without that the share would stay on the record and every total would go
+ * on taking 12% of an invoice the cost no longer has anything to do with.
+ *
+ * The fund question goes the same way: a share is never in the fund, and storing an answer nobody
+ * was asked would leave a value the app contradicts.
+ */
+const asStoredCost = (form: CostFromForm) =>
+  form.amountMode === 'share'
+    ? {
+        expense: 0,
+        percentageOfIncome: {
+          percent: form.percent as number,
+          profitIds: form.profitIds as string[],
+          basePeriod: form.basePeriod as 'thisMonth' | 'previousMonth',
+        },
+        survivesIncomeLoss: undefined,
+      }
+    : {
+        expense: form.expense as number,
+        percentageOfIncome: undefined,
+        survivesIncomeLoss: form.survivesIncomeLoss === 'yes',
+      };
+
 /**
  * @returns whether the write landed. Callers close a drawer on the strength of this: reporting
  * nothing made a save that never happened look exactly like one that did, and the only
@@ -67,9 +100,9 @@ export const addDBExpense = async (expense: Omit<ExpenseCreateType, 'cadence'>) 
       id: uuidv4(),
       createdAt: new Date(),
       ...expense,
+      ...asStoredCost(expense),
       currency: expense.currency as Currency,
       severity: expense.severity as SEVERITY,
-      survivesIncomeLoss: expense.survivesIncomeLoss === 'yes',
       frequency: expense.frequency as FREQUENCY,
       strategyPart: expense.strategyPart as STRATEGY_PART,
     });
@@ -96,9 +129,9 @@ export const updateDBExpense = async (id: string, expense: Omit<ExpenseCreateTyp
     await documentSession.update('expenses', id, {
       ...expense,
       updatedAt: new Date(),
+      ...asStoredCost(expense),
       currency: expense.currency as Currency,
       severity: expense.severity as SEVERITY,
-      survivesIncomeLoss: expense.survivesIncomeLoss === 'yes',
       frequency: expense.frequency as FREQUENCY,
       strategyPart: expense.strategyPart as STRATEGY_PART,
     });

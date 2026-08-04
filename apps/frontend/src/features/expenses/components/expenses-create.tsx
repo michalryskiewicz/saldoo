@@ -22,15 +22,23 @@ import { checkIfOpen } from '@/lib/helpers.ts';
 import { useMemo } from 'react';
 import { presetFor, withResolvedCadence } from '@/lib/recurrence-presets.ts';
 import { survivesIncomeLoss } from '@/lib/safety-net.ts';
+import {
+  ExpenseAmountFields,
+  ExpenseFundQuestion,
+} from '@/features/expenses/components/expense-amount-fields.tsx';
 
 const formSchema = z.object({
   description: z
     .string({ error: i18n.t('errors.field-required') })
     .min(2, i18n.t('errors.min-2-length-required')),
-  expense: z.number({ error: i18n.t('errors.field-required') }),
+  amountMode: z.enum(['fixed', 'share']),
+  expense: z.number().optional(),
+  percent: z.number().optional(),
+  profitIds: z.array(z.string()).optional(),
+  basePeriod: z.enum(['thisMonth', 'previousMonth']).optional(),
   currency: z.string({ error: i18n.t('errors.field-required') }),
   severity: z.string({ error: i18n.t('errors.field-required') }),
-  survivesIncomeLoss: z.enum(['yes', 'no'], { error: i18n.t('errors.field-required') }),
+  survivesIncomeLoss: z.enum(['yes', 'no']).optional(),
   cadence: z.string({ error: i18n.t('errors.field-required') }),
   frequency: z.string({ error: i18n.t('errors.field-required') }),
   interval: z.number().int().min(1).optional(),
@@ -38,17 +46,36 @@ const formSchema = z.object({
   endsAt: z.date().optional(),
   tagId: z.string({ error: i18n.t('errors.field-required') }),
   strategyPart: z.string({ error: i18n.t('errors.field-required') }),
-}).refine((values) => !values.endsAt || values.endsAt >= values.execution, {
-  // Silently generating nothing at all is the alternative, and a form that accepts an answer it
-  // cannot honour is worse than one that refuses it.
-  error: i18n.t('errors.ends-before-it-starts'),
-  path: ['endsAt'],
-});
+})
+  .refine((values) => !values.endsAt || values.endsAt >= values.execution, {
+    // Silently generating nothing at all is the alternative, and a form that accepts an answer it
+    // cannot honour is worse than one that refuses it.
+    error: i18n.t('errors.ends-before-it-starts'),
+    path: ['endsAt'],
+  })
+  // Each mode requires what the other has no use for, so the requirement is stated per mode rather
+  // than on the fields: marking them all required would refuse every form, and marking none would
+  // accept a share of nothing.
+  .refine((values) => values.amountMode !== 'fixed' || typeof values.expense === 'number', {
+    error: i18n.t('errors.field-required'),
+    path: ['expense'],
+  })
+  .refine((values) => values.amountMode !== 'share' || (values.percent ?? 0) > 0, {
+    error: i18n.t('errors.percent-required'),
+    path: ['percent'],
+  })
+  .refine((values) => values.amountMode !== 'share' || Boolean(values.profitIds?.length), {
+    error: i18n.t('errors.income-required'),
+    path: ['profitIds'],
+  });
 
 export type ExpenseCreateType = z.infer<typeof formSchema>;
 
 const defaultValues = {
   currency: 'PLN',
+  amountMode: 'fixed',
+  basePeriod: 'previousMonth',
+  profitIds: [],
   severity: 'MEDIUM',
   survivesIncomeLoss: 'yes',
   cadence: 'WEEKLY',
@@ -64,6 +91,9 @@ export default function ExpensesCreate() {
 
   const id = useAppSelector((state) => state.preferences.expensesDrawerId);
   const expense = useLiveQuery(() => db.expenses.get(id ?? ''), [id]);
+  const profits = useLiveQuery(() => db.profits.toArray(), []) || [];
+
+  const incomes = profits.map((profit) => ({ label: profit.description, value: profit.id }));
 
   // Today by default, computed per opening rather than in the module's own defaults: a `new Date()`
   // there is evaluated once on first import, so a tab left open across midnight would go on
@@ -89,6 +119,13 @@ export default function ExpensesCreate() {
               // asked arrives showing what it is already counted as, so opening the drawer and
               // saving is how an old cost gets an answer of its own.
               survivesIncomeLoss: survivesIncomeLoss(expense) ? 'yes' : 'no',
+              // The share is unpacked into the three fields that ask about it, and packed back up
+              // on save: the form deals in fields and the record in one object that means nothing
+              // taken apart.
+              amountMode: expense.percentageOfIncome ? 'share' : 'fixed',
+              percent: expense.percentageOfIncome?.percent,
+              profitIds: expense.percentageOfIncome?.profitIds ?? [],
+              basePeriod: expense.percentageOfIncome?.basePeriod ?? 'previousMonth',
             }
           : defaultValues,
     [budgetingPartsOptions, expense, id]
@@ -144,7 +181,7 @@ export default function ExpensesCreate() {
               <FormSection title={i18n.t('form_sections.what')}>
                 <Field.Text name="description" label={i18n.t('description')} />
 
-                <Field.Money name="expense" currencyField="currency" label={i18n.t('expense')} />
+                <ExpenseAmountFields incomes={incomes} />
 
                 <Field.Segmented
                   name="severity"
@@ -202,15 +239,7 @@ export default function ExpensesCreate() {
                   options={budgetingPartsOptions}
                 />
 
-                <Field.Segmented
-                  name="survivesIncomeLoss"
-                  label={i18n.t('cost_nature.question')}
-                  helperText={i18n.t('cost_nature.helper')}
-                  options={[
-                    { label: i18n.t('cost_nature.irreducible'), value: 'yes' },
-                    { label: i18n.t('cost_nature.reducible'), value: 'no' },
-                  ]}
-                />
+                <ExpenseFundQuestion />
               </FormSection>
 
               <Button type="submit">{i18n.t(id === NEW_ENTITY_ID ? 'submit' : 'edit')}</Button>
