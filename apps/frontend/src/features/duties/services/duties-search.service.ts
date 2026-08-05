@@ -11,6 +11,8 @@ import type { DBExpense } from '@/database/expenses.ts';
  */
 export type SearchableDuty = {
   executionDate: Date | string;
+  /** What the row shows, which is not always what the cost holds — see `duty-price.service`. */
+  price?: number;
   expense?: {
     description?: string;
     severity?: SEVERITY | null;
@@ -28,7 +30,8 @@ export type SearchableDuty = {
  * is the trap that makes this worth a named function with a test.
  *
  * The amount goes in raw as well as formatted: "1 980,00 zł" carries a non-breaking space
- * nobody types, so "1980" has to reach the number underneath.
+ * nobody types, so "1980" has to reach the number underneath. The row's price, not the cost's
+ * amount: a share of an income has none of its own, and a converted figure lives on the row.
  */
 export const dutySearchText = (row: SearchableDuty, today: Date): string =>
   [
@@ -41,7 +44,7 @@ export const dutySearchText = (row: SearchableDuty, today: Date): string =>
         )
       : '',
     formatDueDate(row.executionDate, today),
-    String(row.expense?.expense ?? ''),
+    String(row.price ?? ''),
   ]
     .filter(Boolean)
     .join(' ');

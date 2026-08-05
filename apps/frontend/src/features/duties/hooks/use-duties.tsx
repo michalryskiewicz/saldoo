@@ -3,6 +3,11 @@ import { db } from '@/database';
 import { useEffect } from 'react';
 import { addDBDutiesForDateRange, type DBDuty } from '@/database/duty.ts';
 import type { DBExpense } from '@/database/expenses';
+import { useSettings } from '@/features/settings/use-settings.ts';
+import { useListExchangeRatesQuery } from '@/store/exchange-rates.api.ts';
+import { convertDataToDesiredCurrency } from '@/lib/exchange-rate.ts';
+import { withResolvedPrice } from '@/features/duties/services/duty-price.service.ts';
+import { toISODate } from '@/lib/dates.ts';
 
 type UseDutiesArgs = {
   from: Date;
@@ -12,6 +17,12 @@ type UseDutiesArgs = {
 export const useDuties = ({ from, to }: UseDutiesArgs) => {
   const fromTime = from.getTime();
   const toTime = to.getTime();
+
+  const { settings } = useSettings();
+  const { data: exchangeRates } = useListExchangeRatesQuery({
+    fromDate: toISODate(from),
+    toDate: toISODate(to),
+  });
 
   // ==========================================================================
   // Side Effect — generate duties for the selected range
@@ -30,9 +41,10 @@ export const useDuties = ({ from, to }: UseDutiesArgs) => {
   // Live Query
   // ==========================================================================
   const mergedDuties = useLiveQuery(async () => {
-    const [duties, expenses]: [DBDuty[], DBExpense[]] = await Promise.all([
-      db.duties.toArray(),
-      db.expenses.toArray(),
+    const [duties, expenses, profits] = await Promise.all([
+      db.duties.toArray() as Promise<DBDuty[]>,
+      db.expenses.toArray() as Promise<DBExpense[]>,
+      db.profits.toArray(),
     ]);
 
     const dutiesInSelectedRange = duties.filter((duty) => {
@@ -48,13 +60,33 @@ export const useDuties = ({ from, to }: UseDutiesArgs) => {
       expenseMap.set(exp.id, exp);
     }
 
-    return dutiesInSelectedRange
+    const withExpense = dutiesInSelectedRange
       .map((duty) => ({
         ...duty,
         expense: duty.expenseId ? (expenseMap.get(duty.expenseId) ?? null) : null,
       }))
-      .filter((d) => d.expense);
+      .filter((duty): duty is typeof duty & { expense: DBExpense } => Boolean(duty.expense));
+
+    return withResolvedPrice(withExpense, profits);
   }, [fromTime, toTime]);
 
-  return { duties: mergedDuties ?? [] };
+  // Converted here rather than in the table, so the rows and the figure under them are the same
+  // money. Left alone the screen showed each cost in whatever currency it was entered in and added
+  // them anyway — the only screen of the three that did not convert.
+  //
+  // Unconverted rather than empty when there is nothing to convert with: the helper hands the rows
+  // back untouched without rates, and asking it for a conversion into no currency at all would
+  // empty the table while the settings load.
+  const rows = mergedDuties ?? [];
+  const duties = settings?.currency
+    ? convertDataToDesiredCurrency({
+        data: rows,
+        exchangeRates,
+        desiredCurrency: settings.currency,
+        amountKey: 'price',
+        dateKey: 'executionDate',
+      })
+    : rows;
+
+  return { duties, currency: settings?.currency };
 };

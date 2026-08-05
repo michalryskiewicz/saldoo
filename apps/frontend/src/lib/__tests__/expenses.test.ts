@@ -632,6 +632,21 @@ describe('a share of a named income, wherever a total is drawn', () => {
     ]);
   });
 
+  it('counts a paid share as real spending, even though its own amount is zero', () => {
+    freezeClock('2026-06-15');
+    const paid = {
+      price: 1200,
+      currency: 'PLN',
+      executionDate: new Date(2026, 3, 20),
+      resolved: true,
+      expense: { strategyPart: 'NEEDS', expense: 0 },
+    } as never;
+
+    const parts = groupExpensesByStrategyPart(3, [], [], [paid], []);
+
+    expect(parts.find((part) => part.strategyPart === 'NEEDS')?.real).toBe(1200);
+  });
+
   it('reaches the budget-strategy breakdown', () => {
     freezeClock('2026-06-15');
     const parts = groupExpensesByStrategyPart(3, [taxOnIt], [], [], [invoiceInMarch]);

@@ -190,13 +190,15 @@ export function groupExpensesByStrategyPart(
     const dutyDate = new Date(duty.executionDate);
     if (dutyDate.getFullYear() !== year || dutyDate.getMonth() !== month || duty.transactionId)
       return;
-    // You can add a value here if you want, e.g., count or sum, but duties may not have an amount
-
     if (dutiesTotals[strategyPart] === undefined) {
       dutiesTotals[strategyPart] = 0;
     }
 
-    if (duty?.expense?.expense && duty?.resolved) {
+    // On `resolved` alone. This used to also require `duty.expense.expense` to be truthy, which is
+    // a test of the amount and not of whether there is a cost behind the occurrence — and a share of
+    // an income holds zero there, so every tax the person had actually paid was thrown away before
+    // it reached the tile.
+    if (duty.resolved) {
       dutiesTotals[strategyPart] += duty.price;
     }
   });
