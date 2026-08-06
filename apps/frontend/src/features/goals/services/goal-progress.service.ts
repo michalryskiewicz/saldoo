@@ -1,3 +1,4 @@
+import { differenceInCalendarMonths } from 'date-fns';
 import type { DBExpense } from '@/database/expenses.ts';
 import type { DBContribution } from '@/database/contributions.ts';
 import { type DBClosedWindow, type DBGoal, isEmergencyFund } from '@/database/goals.ts';
@@ -18,6 +19,16 @@ export type GoalProgress = {
   percentage: number;
   /** What has to go in each month to be on time. Absent on the fund, which is paced instead. */
   requiredMonthly?: number;
+  /**
+   * Whether the deadline is this month or already gone, so `requiredMonthly` is the whole
+   * remainder rather than an instalment.
+   *
+   * The figure is right either way; the word for it is not. A card reading "40 000 a month" looks
+   * broken while being perfectly correct, so the screen says what is left instead. Nothing else
+   * changes — no state, no colour, no telling-off. Late is not a failing here; the only failure is
+   * abandoning a goal (#93 pt. 11).
+   */
+  dueNow: boolean;
   /** When the pace gets there. Present on the fund, which is the goal with no deadline. */
   completesOn?: Date;
   /** Everything this series has ever held, for a goal that rolls. */
@@ -69,6 +80,7 @@ export const goalProgress = ({
       requiredMonthly: goal.deadline
         ? requiredMonthlyContribution({ target, saved, deadline: goal.deadline }, today)
         : undefined,
+      dueNow: Boolean(goal.deadline) && differenceInCalendarMonths(new Date(goal.deadline!), today) <= 0,
       completesOn: goal.monthlyPace
         ? completionDate({ target, saved, monthlyPace: goal.monthlyPace }, today)
         : undefined,

@@ -134,6 +134,7 @@
     "strategy-part-helper": "Which part of the budgeting strategy a contribution to this meets.",
     "total_put_aside": "Put aside in total",
     "per_month": "A month",
+    "remaining": "Left to go",
     "ready_by": "Ready by",
     "held_in_total": "You hold in total",
     "funded_in_total": "Funded in total",

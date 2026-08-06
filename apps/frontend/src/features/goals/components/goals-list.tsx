@@ -51,7 +51,7 @@ export function GoalsList() {
             progressColor="bg-info"
             details={[
               row.requiredMonthly !== undefined && {
-                label: i18n.t('goal.per_month'),
+                label: i18n.t(row.dueNow ? 'goal.remaining' : 'goal.per_month'),
                 value: formatMoney(row.requiredMonthly, currency),
                 color: 'bg-muted-foreground',
               },

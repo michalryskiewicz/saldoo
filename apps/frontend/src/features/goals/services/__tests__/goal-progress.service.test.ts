@@ -64,6 +64,42 @@ describe('goalProgress', () => {
     expect(row.saved).toBe(9000);
     expect(row.percentage).toBe(100);
   });
+
+  /**
+   * A deadline in this month or already gone leaves no instalments to divide into, so the figure
+   * is the whole remainder. It is the right number and "a month" is the wrong word for it — the
+   * card reads "40 000 a month" and looks broken while being perfectly correct.
+   *
+   * Late is not a failing here; the only failure is abandoning a goal (#93 pt. 11). So the word
+   * changes and nothing else does: no state, no colour, no telling-off.
+   */
+  it('says the figure is what is left, not a monthly one, once the deadline is here', () => {
+    const thisMonth = goalProgress({
+      goals: [goal({ deadline: new Date(2026, 3, 30) })],
+      contributions: [],
+      closedWindows: [],
+      expenses: [],
+      today: APRIL_2026,
+    });
+    const gone = goalProgress({
+      goals: [goal({ deadline: new Date(2026, 1, 1) })],
+      contributions: [],
+      closedWindows: [],
+      expenses: [],
+      today: APRIL_2026,
+    });
+    const ahead = goalProgress({
+      goals: [goal({ deadline: new Date(2026, 11, 31) })],
+      contributions: [],
+      closedWindows: [],
+      expenses: [],
+      today: APRIL_2026,
+    });
+
+    expect(thisMonth[0].dueNow).toBe(true);
+    expect(gone[0].dueNow).toBe(true);
+    expect(ahead[0].dueNow).toBe(false);
+  });
 });
 
 describe('totalPutAside', () => {
