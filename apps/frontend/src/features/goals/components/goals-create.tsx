@@ -19,6 +19,15 @@ import { useAppSelector } from '@/store/store.ts';
 import { setGoalsDrawerId } from '@/store/preferences.slice.ts';
 import { addDBGoal, type CoverageMonths } from '@/database/goals.ts';
 import { useGoals } from '@/features/goals/hooks/use-goals.tsx';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/database';
+import { updateDBExpense } from '@/database/expenses.ts';
+import { setConvertingExpenseId } from '@/store/preferences.slice.ts';
+import {
+  goalDraftFromExpense,
+  lastDayItIsStillACost,
+} from '@/features/goals/services/expense-to-goal.service.ts';
+import { presetFor } from '@/lib/recurrence-presets.ts';
 
 const formSchema = z
   .object({
@@ -125,16 +134,35 @@ export default function GoalsCreate() {
 
   const id = useAppSelector((state) => state.preferences.goalsDrawerId);
 
-  const initialValues = useMemo(
-    () => ({
+  // The cost this goal is replacing, when the drawer was opened from the expenses table.
+  const convertingId = useAppSelector((state) => state.preferences.convertingExpenseId);
+  const replacing = useLiveQuery(() => db.expenses.get(convertingId ?? ''), [convertingId]);
+  const profits = useLiveQuery(() => db.profits.toArray(), []) || [];
+
+  const initialValues = useMemo(() => {
+    const blank = {
       kind: 'goal' as const,
       rollsYearly: 'no' as const,
       keepsItsMoney: 'no' as const,
       coverageMonths: '3' as const,
       strategyPart: budgetingPartsOptions[0]?.value,
-    }),
-    [budgetingPartsOptions]
-  );
+    };
+
+    if (!replacing) return blank;
+
+    // Everything the cost already knows, and nothing it does not: `keepsItsMoney` stays at its
+    // default for the person to answer, because that field decides what the lifetime figure means.
+    const draft = goalDraftFromExpense(replacing, profits, new Date());
+
+    return {
+      ...blank,
+      description: draft.description,
+      target: draft.target,
+      deadline: draft.deadline,
+      rollsYearly: 'yes' as const,
+      strategyPart: draft.strategyPart ?? blank.strategyPart,
+    };
+  }, [budgetingPartsOptions, replacing, profits]);
 
   const handleSubmit = async (values: GoalCreateType) => {
     const thisYear = new Date().getFullYear();
@@ -160,11 +188,40 @@ export default function GoalsCreate() {
 
     if (!saved) return;
 
+    // The cost stops at the end of this month, and only once the goal exists. Ending a series is
+    // not deleting it (#70), so every occurrence up to that day keeps its marks — and the strategy
+    // tile stays continuous across the boundary, the old months answered by the expense and the
+    // new ones by the goal.
+    if (replacing) {
+      await updateDBExpense(replacing.id, {
+        ...replacing,
+        cadence: presetFor(replacing),
+        amountMode: replacing.percentageOfIncome ? 'share' : 'fixed',
+        percent: replacing.percentageOfIncome?.percent,
+        profitIds: replacing.percentageOfIncome?.profitIds,
+        basePeriod: replacing.percentageOfIncome?.basePeriod,
+        survivesIncomeLoss: replacing.survivesIncomeLoss === false ? 'no' : 'yes',
+        endsAt: lastDayItIsStillACost(new Date()),
+      } as never);
+
+      dispatch(setConvertingExpenseId(''));
+    }
+
     dispatch(setGoalsDrawerId(''));
   };
 
   return (
-    <Sheet open={id === NEW_ENTITY_ID} onOpenChange={(open) => !open && dispatch(setGoalsDrawerId(''))}>
+    // Held shut until the cost being replaced has loaded. `useForm` reads its defaults once, when
+    // it mounts, so a drawer that opens before the live query answers keeps the empty values it
+    // mounted with and no later value is ever seen — the same trap as `watch()` reading a field
+    // once. `ExpensesCreate` gates on exactly this for exactly this reason.
+    <Sheet
+      open={id === NEW_ENTITY_ID && (!convertingId || Boolean(replacing))}
+      onOpenChange={(open) => {
+        if (open) return;
+        dispatch(setGoalsDrawerId(''));
+        dispatch(setConvertingExpenseId(''));
+      }}>
       <SheetContent className="xl:w-[540px] xl:max-w-none sm:w-[400px] sm:max-w-[540px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{i18n.t('goal.create_title')}</SheetTitle>

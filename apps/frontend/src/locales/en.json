@@ -139,6 +139,8 @@
     "held_in_total": "You hold in total",
     "funded_in_total": "Funded in total",
     "put_aside": "Put aside",
+    "convert": "Turn into a goal",
+    "converted": "The cost is ended and the goal is open",
     "top_up": "Top up",
     "amount": "Amount",
     "on_day": "When"
