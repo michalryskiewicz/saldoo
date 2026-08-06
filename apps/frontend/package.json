@@ -15,7 +15,8 @@
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
     "test": "vitest",
     "e2e": "playwright test",
-    "e2e:install": "playwright install chromium"
+    "e2e:install": "playwright install chromium",
+    "icons": "bun run scripts/generate-icons.ts"
   },
   "overrides": {
     "react-is": "^19.1.0"
