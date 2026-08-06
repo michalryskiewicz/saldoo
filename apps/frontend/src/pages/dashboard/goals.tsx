@@ -13,9 +13,9 @@ export default function Goals() {
 
   return (
     <>
-      <PageHeader title={i18n.t('goals.title')} description={i18n.t('goals.subtitle')}>
+      <PageHeader title={i18n.t('goal.title')} description={i18n.t('goal.subtitle')}>
         <Button onClick={() => dispatch(setGoalsDrawerId(NEW_ENTITY_ID))}>
-          {i18n.t('goals.create')}
+          {i18n.t('goal.create')}
         </Button>
       </PageHeader>
 

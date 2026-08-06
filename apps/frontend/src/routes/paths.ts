@@ -20,7 +20,6 @@ export const paths = {
     expenses: `${ROOTS.DASHBOARD}/expenses`,
     profits: `${ROOTS.DASHBOARD}/profits`,
     transactions: `${ROOTS.DASHBOARD}/transactions`,
-    onboarding: `${ROOTS.DASHBOARD}/onboarding`,
   },
   account: {
     root: `${ROOTS.DASHBOARD}/account`,

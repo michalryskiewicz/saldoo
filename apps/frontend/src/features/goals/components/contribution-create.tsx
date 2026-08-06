@@ -56,7 +56,7 @@ export default function ContributionCreate() {
     <Sheet open={Boolean(goalId) && Boolean(goal)} onOpenChange={(open) => !open && close()}>
       <SheetContent className="xl:w-[440px] sm:w-[400px] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{i18n.t('goals.put_aside')}</SheetTitle>
+          <SheetTitle>{i18n.t('goal.put_aside')}</SheetTitle>
           <SheetDescription>{goal?.description}</SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-1.5 p-4">
@@ -66,8 +66,8 @@ export default function ContributionCreate() {
             onSubmit={handleSubmit}
           >
             <div className="flex flex-col gap-7">
-              <Field.Money name="amount" currencyField="currency" label={i18n.t('goals.amount')} />
-              <Field.Date name="contributedAt" label={i18n.t('goals.on_day')} fullWidth />
+              <Field.Money name="amount" currencyField="currency" label={i18n.t('goal.amount')} />
+              <Field.Date name="contributedAt" label={i18n.t('goal.on_day')} fullWidth />
 
               <Button type="submit">{i18n.t('submit')}</Button>
             </div>

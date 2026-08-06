@@ -69,12 +69,12 @@ const KindFields = () => {
       <>
         <Field.Segmented
           name="coverageMonths"
-          label={i18n.t('goals.coverage')}
-          helperText={i18n.t('goals.coverage-helper')}
+          label={i18n.t('goal.coverage')}
+          helperText={i18n.t('goal.coverage-helper')}
           options={[
-            { label: i18n.t('goals.months_3'), value: '3' },
-            { label: i18n.t('goals.months_6'), value: '6' },
-            { label: i18n.t('goals.months_12'), value: '12' },
+            { label: i18n.t('goal.months_3'), value: '3' },
+            { label: i18n.t('goal.months_6'), value: '6' },
+            { label: i18n.t('goal.months_12'), value: '12' },
           ]}
         />
 
@@ -83,7 +83,7 @@ const KindFields = () => {
         <Field.Money
           name="monthlyPace"
           currencyField="currency"
-          label={i18n.t('goals.monthly_pace')}
+          label={i18n.t('goal.monthly_pace')}
         />
       </>
     );
@@ -92,26 +92,26 @@ const KindFields = () => {
   return (
     <>
       <Field.Text name="description" label={i18n.t('description')} />
-      <Field.Money name="target" currencyField="currency" label={i18n.t('goals.target')} />
-      <Field.Date name="deadline" label={i18n.t('goals.deadline')} fullWidth />
+      <Field.Money name="target" currencyField="currency" label={i18n.t('goal.target')} />
+      <Field.Date name="deadline" label={i18n.t('goal.deadline')} fullWidth />
 
       <Field.Segmented
         name="rollsYearly"
-        label={i18n.t('goals.rolls_yearly')}
-        helperText={i18n.t('goals.rolls_yearly-helper')}
+        label={i18n.t('goal.rolls_yearly')}
+        helperText={i18n.t('goal.rolls_yearly-helper')}
         options={[
-          { label: i18n.t('goals.rolls_no'), value: 'no' },
-          { label: i18n.t('goals.rolls_yes'), value: 'yes' },
+          { label: i18n.t('goal.rolls_no'), value: 'no' },
+          { label: i18n.t('goal.rolls_yes'), value: 'yes' },
         ]}
       />
 
       <Field.Segmented
         name="keepsItsMoney"
-        label={i18n.t('goals.keeps_its_money')}
-        helperText={i18n.t('goals.keeps_its_money-helper')}
+        label={i18n.t('goal.keeps_its_money')}
+        helperText={i18n.t('goal.keeps_its_money-helper')}
         options={[
-          { label: i18n.t('goals.spent'), value: 'no' },
-          { label: i18n.t('goals.kept'), value: 'yes' },
+          { label: i18n.t('goal.spent'), value: 'no' },
+          { label: i18n.t('goal.kept'), value: 'yes' },
         ]}
       />
     </>
@@ -141,7 +141,7 @@ export default function GoalsCreate() {
     const isFund = values.kind === 'fund';
 
     const saved = await addDBGoal({
-      description: isFund ? i18n.t('goals.emergency_fund') : (values.description as string),
+      description: isFund ? i18n.t('goal.emergency_fund') : (values.description as string),
       strategyPart: values.strategyPart as STRATEGY_PART,
       // A fund is kept by definition: it is not spent on anything, it is what stands between the
       // person and having to.
@@ -167,21 +167,21 @@ export default function GoalsCreate() {
     <Sheet open={id === NEW_ENTITY_ID} onOpenChange={(open) => !open && dispatch(setGoalsDrawerId(''))}>
       <SheetContent className="xl:w-[540px] xl:max-w-none sm:w-[400px] sm:max-w-[540px] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{i18n.t('goals.create_title')}</SheetTitle>
-          <SheetDescription>{i18n.t('goals.create_description')}</SheetDescription>
+          <SheetTitle>{i18n.t('goal.create_title')}</SheetTitle>
+          <SheetDescription>{i18n.t('goal.create_description')}</SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-1.5 p-4">
           <Form initialValues={initialValues} schema={formSchema} onSubmit={handleSubmit}>
             <div className="flex flex-col gap-7">
-              <FormSection title={i18n.t('goals.what_for')}>
+              <FormSection title={i18n.t('goal.what_for')}>
                 {/* Offered only while there is no fund. A second safety net is not a thing. */}
                 {!hasEmergencyFund && (
                   <Field.Segmented
                     name="kind"
-                    label={i18n.t('goals.kind')}
+                    label={i18n.t('goal.kind')}
                     options={[
-                      { label: i18n.t('goals.kind_goal'), value: 'goal' },
-                      { label: i18n.t('goals.kind_fund'), value: 'fund' },
+                      { label: i18n.t('goal.kind_goal'), value: 'goal' },
+                      { label: i18n.t('goal.kind_fund'), value: 'fund' },
                     ]}
                   />
                 )}
@@ -193,7 +193,7 @@ export default function GoalsCreate() {
                 <Field.Segmented
                   name="strategyPart"
                   label={i18n.t('forms.strategy-part')}
-                  helperText={i18n.t('goals.strategy-part-helper')}
+                  helperText={i18n.t('goal.strategy-part-helper')}
                   options={budgetingPartsOptions}
                 />
               </FormSection>

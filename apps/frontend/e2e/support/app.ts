@@ -771,7 +771,7 @@ export class SaldooApp {
   async openGoals(): Promise<void> {
     if (new URL(this.page.url()).pathname !== GOALS_PATH) await this.open(GOALS_PATH);
 
-    await expect(this.page.getByRole('button', { name: label('goals.create') })).toBeVisible();
+    await expect(this.page.getByRole('button', { name: label('goal.create') })).toBeVisible();
   }
 
   /**
@@ -785,23 +785,23 @@ export class SaldooApp {
     emergencyFund?: { coverageMonths: 3 | 6 | 12; monthlyPace: number };
   }): Promise<void> {
     await this.openGoals();
-    await this.page.getByRole('button', { name: label('goals.create'), exact: true }).click();
+    await this.page.getByRole('button', { name: label('goal.create'), exact: true }).click();
 
-    const sheet = this.page.getByRole('dialog', { name: label('goals.create_title') });
+    const sheet = this.page.getByRole('dialog', { name: label('goal.create_title') });
     await expect(sheet).toBeVisible();
 
     if (spec.emergencyFund) {
-      await sheet.getByRole('radio', { name: label('goals.kind_fund'), exact: true }).click();
+      await sheet.getByRole('radio', { name: label('goal.kind_fund'), exact: true }).click();
       await sheet
-        .getByRole('radio', { name: label(`goals.months_${spec.emergencyFund.coverageMonths}`), exact: true })
+        .getByRole('radio', { name: label(`goal.months_${spec.emergencyFund.coverageMonths}`), exact: true })
         .click();
       await sheet
-        .getByLabel(label('goals.monthly_pace'), { exact: true })
+        .getByLabel(label('goal.monthly_pace'), { exact: true })
         .fill(String(spec.emergencyFund.monthlyPace));
     } else {
       await sheet.getByLabel(label('description'), { exact: true }).fill(spec.description as string);
-      await sheet.getByLabel(label('goals.target'), { exact: true }).fill(String(spec.target));
-      await sheet.getByLabel(label('goals.deadline'), { exact: true }).click();
+      await sheet.getByLabel(label('goal.target'), { exact: true }).fill(String(spec.target));
+      await sheet.getByLabel(label('goal.deadline'), { exact: true }).click();
       await this.page
         .getByRole('gridcell')
         .filter({ hasText: new RegExp(`^${spec.deadlineDayOfMonth}$`) })
@@ -824,10 +824,10 @@ export class SaldooApp {
       .first()
       .click();
 
-    const sheet = this.page.getByRole('dialog', { name: label('goals.put_aside') });
+    const sheet = this.page.getByRole('dialog', { name: label('goal.put_aside') });
     await expect(sheet).toBeVisible();
 
-    await sheet.getByLabel(label('goals.amount'), { exact: true }).fill(String(amount));
+    await sheet.getByLabel(label('goal.amount'), { exact: true }).fill(String(amount));
     await sheet.getByRole('button', { name: label('submit'), exact: true }).click();
     await expect(sheet).toBeHidden();
   }

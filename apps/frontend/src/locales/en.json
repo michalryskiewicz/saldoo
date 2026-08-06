@@ -78,6 +78,7 @@
   "monthly_spending_day": "Day {{day}}",
   "monthly_spending_peak": "The most went out on day {{day}} ({{amount}})",
   "monthly_spending_none": "Nothing has left the account this month yet",
+  "goals": "Goals",
   "expenses": "Expenses",
   "list": "List",
   "create": "Add",
@@ -102,7 +103,7 @@
     "of": "of",
     "base-gone": "no base"
   },
-  "goals": {
+  "goal": {
     "title": "Goals",
     "subtitle": "What you are putting money aside for, and how it is going",
     "create": "Add a goal",

@@ -20,7 +20,7 @@ export function GoalsList() {
         <CardContent>
           {/* No call to action here: the page header already carries the only button there is,
               and a second one that opens the same drawer is two answers to one question. */}
-          <EmptyState icon={Target} description={i18n.t('goals.empty')} />
+          <EmptyState icon={Target} description={i18n.t('goal.empty')} />
         </CardContent>
       </Card>
     );
@@ -32,7 +32,7 @@ export function GoalsList() {
       <Card>
         <CardContent className="flex flex-col gap-1">
           <span className="text-muted-foreground text-xs tracking-wide uppercase">
-            {i18n.t('goals.total_put_aside')}
+            {i18n.t('goal.total_put_aside')}
           </span>
           <span className="text-3xl font-semibold tabular-nums" data-slot="total-put-aside">
             {formatMoney(totalPutAside, currency)}
@@ -51,29 +51,29 @@ export function GoalsList() {
             progressColor="bg-info"
             details={[
               row.requiredMonthly !== undefined && {
-                label: i18n.t('goals.per_month'),
+                label: i18n.t('goal.per_month'),
                 value: formatMoney(row.requiredMonthly, currency),
                 color: 'bg-muted-foreground',
               },
               row.completesOn && {
-                label: i18n.t('goals.ready_by'),
+                label: i18n.t('goal.ready_by'),
                 value: formatMonthAndYear(row.completesOn),
                 color: 'bg-muted-foreground',
               },
               row.lifetime !== undefined && {
                 label: i18n.t(
-                  row.goal.keepsItsMoney ? 'goals.held_in_total' : 'goals.funded_in_total'
+                  row.goal.keepsItsMoney ? 'goal.held_in_total' : 'goal.funded_in_total'
                 ),
                 value: formatMoney(row.lifetime, currency),
                 color: 'bg-muted-foreground',
               },
             ].filter((detail) => Boolean(detail)) as { label: string; value: string; color: string }[]}
             actionLabel={
-              isEmergencyFund(row.goal) ? i18n.t('goals.top_up') : i18n.t('goals.put_aside')
+              isEmergencyFund(row.goal) ? i18n.t('goal.top_up') : i18n.t('goal.put_aside')
             }
             // Every card's button says the same word, so the goal's name goes into the accessible
             // name: listed out of context, "Odłóż" three times is three identical buttons.
-            actionName={`${isEmergencyFund(row.goal) ? i18n.t('goals.top_up') : i18n.t('goals.put_aside')} — ${row.goal.description}`}
+            actionName={`${isEmergencyFund(row.goal) ? i18n.t('goal.top_up') : i18n.t('goal.put_aside')} — ${row.goal.description}`}
             onActionClick={() => dispatch(setContributionGoalId(row.goal.id))}
           />
         ))}

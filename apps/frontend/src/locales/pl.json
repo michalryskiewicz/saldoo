@@ -78,6 +78,7 @@
   "monthly_spending_day": "{{day}}. dnia miesiąca",
   "monthly_spending_peak": "Najwięcej wydałeś {{day}}. dnia miesiąca ({{amount}})",
   "monthly_spending_none": "W tym miesiącu nic jeszcze nie wyszło z konta",
+  "goals": "Cele",
   "expenses": "Wydatki",
   "list": "Lista",
   "create": "Dodaj",
@@ -102,7 +103,7 @@
     "of": "z",
     "base-gone": "brak podstawy"
   },
-  "goals": {
+  "goal": {
     "title": "Cele",
     "subtitle": "Na co odkładasz i jak Ci idzie",
     "create": "Dodaj cel",

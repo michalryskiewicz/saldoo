@@ -30,7 +30,7 @@ const data = {
       icon: ListTodo,
     },
     {
-      name: i18n.t('goals.title'),
+      name: i18n.t('goals'),
       url: paths.dashboard.goals,
       icon: Target,
     },

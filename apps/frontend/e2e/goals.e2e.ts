@@ -86,7 +86,7 @@ test('the emergency fund has a computed target and stays out of the total', asyn
   // Three months of a monthly 1 000 with the 10% the fund carries, worked out rather than typed.
   await expect(device.page.getByText('3300,00 zł')).toBeVisible();
 
-  await app.putAside(pl.goals.emergency_fund, 500);
+  await app.putAside(pl.goal.emergency_fund, 500);
 
   const total = device.page.locator('[data-slot="total-put-aside"]');
   await expect.poll(async () => amountOf((await total.textContent()) ?? '')).toBe(0);
