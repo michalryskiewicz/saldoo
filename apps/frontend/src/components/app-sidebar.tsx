@@ -12,7 +12,7 @@ import {
 import { paths } from '@/routes/paths';
 import { NavSingleButtonWithIcon } from '@/components/nav-single-button-with-icon.tsx';
 import i18n from '@/i18n.ts';
-import { CreditCard, ListTodo, Flame, HandCoins, Gauge } from 'lucide-react';
+import { CreditCard, ListTodo, Flame, HandCoins, Gauge, Target} from 'lucide-react';
 
 // ===========================================================================
 // DATA TO DISPLAY IN NAV BAR
@@ -28,6 +28,11 @@ const data = {
       name: i18n.t('duties'),
       url: paths.dashboard.duties,
       icon: ListTodo,
+    },
+    {
+      name: i18n.t('goals.title'),
+      url: paths.dashboard.goals,
+      icon: Target,
     },
   ],
   navMainTwo: [

@@ -16,6 +16,7 @@ export const paths = {
   dashboard: {
     root: ROOTS.DASHBOARD,
     duties: `${ROOTS.DASHBOARD}/duties`,
+    goals: `${ROOTS.DASHBOARD}/goals`,
     expenses: `${ROOTS.DASHBOARD}/expenses`,
     profits: `${ROOTS.DASHBOARD}/profits`,
     transactions: `${ROOTS.DASHBOARD}/transactions`,
@@ -36,6 +37,7 @@ export type MetadataKey =
   | 'root'
   | 'expenses'
   | 'duties'
+  | 'goals'
   | 'profits'
   | 'account'
   | 'transactions';
@@ -64,6 +66,9 @@ export const METADATA: Record<MetadataKey, { title: string }> = {
   },
   duties: {
     title: i18n.t('metadata.duties'),
+  },
+  goals: {
+    title: i18n.t('metadata.goals'),
   },
   profits: {
     title: i18n.t('metadata.profits'),

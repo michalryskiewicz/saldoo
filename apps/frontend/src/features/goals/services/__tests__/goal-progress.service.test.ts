@@ -1,0 +1,96 @@
+import { describe, expect, it } from 'vitest';
+import { STRATEGY_PART } from '@/constant.ts';
+import type { DBGoal } from '@/database/goals.ts';
+import type { DBContribution } from '@/database/contributions.ts';
+import { goalProgress, totalPutAside } from '../goal-progress.service.ts';
+
+const APRIL_2026 = new Date(2026, 3, 15);
+
+const goal = (fields: Partial<DBGoal>): DBGoal =>
+  ({
+    id: 'g1',
+    description: 'Wakacje',
+    currency: 'PLN',
+    strategyPart: STRATEGY_PART.SAVINGS,
+    keepsItsMoney: false,
+    target: 8000,
+    deadline: new Date(2026, 11, 31),
+    ...fields,
+  }) as DBGoal;
+
+const gave = (goalId: string, amount: number): DBContribution =>
+  ({ id: `c-${goalId}-${amount}`, goalId, amount, contributedAt: APRIL_2026 }) as DBContribution;
+
+describe('goalProgress', () => {
+  it('says what is in the pot and how far along that is', () => {
+    const [row] = goalProgress({
+      goals: [goal({})],
+      contributions: [gave('g1', 2000)],
+      closedWindows: [],
+      expenses: [],
+      today: APRIL_2026,
+    });
+
+    expect(row.saved).toBe(2000);
+    expect(row.target).toBe(8000);
+    expect(row.percentage).toBe(25);
+  });
+
+  it('counts only what was given to this goal', () => {
+    const [row] = goalProgress({
+      goals: [goal({})],
+      contributions: [gave('g1', 2000), gave('somebody-else', 5000)],
+      closedWindows: [],
+      expenses: [],
+      today: APRIL_2026,
+    });
+
+    expect(row.saved).toBe(2000);
+  });
+
+  /**
+   * A bar that goes past its end is a bar that has stopped meaning anything. Over-saving is not an
+   * error and is not hidden — the figure says 9 000 of 8 000 — but the bar stays a bar.
+   */
+  it('does not draw a bar past its end when more went in than was asked for', () => {
+    const [row] = goalProgress({
+      goals: [goal({})],
+      contributions: [gave('g1', 9000)],
+      closedWindows: [],
+      expenses: [],
+      today: APRIL_2026,
+    });
+
+    expect(row.saved).toBe(9000);
+    expect(row.percentage).toBe(100);
+  });
+});
+
+describe('totalPutAside', () => {
+  /**
+   * The one number above the screen. A stock, not a streak: it does not shrink when somebody
+   * stops, it stops growing (#93 pt. 4).
+   */
+  it('adds up what went towards every goal', () => {
+    const total = totalPutAside({
+      goals: [goal({ id: 'g1' }), goal({ id: 'g2' })],
+      contributions: [gave('g1', 2000), gave('g2', 1500)],
+    });
+
+    expect(total).toBe(3500);
+  });
+
+  /**
+   * The emergency fund is a goal and is not "put aside". The 8 000 for a holiday is not your
+   * safety net, and the safety net is not your holiday — counting them as one number makes both
+   * of them lies.
+   */
+  it('leaves the emergency fund out of it', () => {
+    const total = totalPutAside({
+      goals: [goal({ id: 'g1' }), goal({ id: 'fund', coverageMonths: 3, target: undefined })],
+      contributions: [gave('g1', 2000), gave('fund', 10000)],
+    });
+
+    expect(total).toBe(2000);
+  });
+});

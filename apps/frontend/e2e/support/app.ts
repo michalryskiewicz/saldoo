@@ -31,6 +31,7 @@ const DUTIES_PATH = '/dashboard/duties';
 const PROFITS_PATH = '/dashboard/profits';
 const TRANSACTIONS_PATH = '/dashboard/transactions';
 const OVERVIEW_PATH = '/dashboard';
+const GOALS_PATH = '/dashboard/goals';
 
 export class SaldooApp {
   constructor(readonly page: Page) {}
@@ -763,6 +764,72 @@ export class SaldooApp {
 
     await dialog.getByRole('button', { name: label('save_changes') }).click();
     await expect(dialog).toBeHidden();
+  }
+
+  // === Goals ===
+
+  async openGoals(): Promise<void> {
+    if (new URL(this.page.url()).pathname !== GOALS_PATH) await this.open(GOALS_PATH);
+
+    await expect(this.page.getByRole('button', { name: label('goals.create') })).toBeVisible();
+  }
+
+  /**
+   * Adds a goal, or the emergency fund — the same drawer, and which fields it shows depends on the
+   * kind, so only one of the two branches is ever filled in.
+   */
+  async addGoal(spec: {
+    description?: string;
+    target?: number;
+    deadlineDayOfMonth?: number;
+    emergencyFund?: { coverageMonths: 3 | 6 | 12; monthlyPace: number };
+  }): Promise<void> {
+    await this.openGoals();
+    await this.page.getByRole('button', { name: label('goals.create'), exact: true }).click();
+
+    const sheet = this.page.getByRole('dialog', { name: label('goals.create_title') });
+    await expect(sheet).toBeVisible();
+
+    if (spec.emergencyFund) {
+      await sheet.getByRole('radio', { name: label('goals.kind_fund'), exact: true }).click();
+      await sheet
+        .getByRole('radio', { name: label(`goals.months_${spec.emergencyFund.coverageMonths}`), exact: true })
+        .click();
+      await sheet
+        .getByLabel(label('goals.monthly_pace'), { exact: true })
+        .fill(String(spec.emergencyFund.monthlyPace));
+    } else {
+      await sheet.getByLabel(label('description'), { exact: true }).fill(spec.description as string);
+      await sheet.getByLabel(label('goals.target'), { exact: true }).fill(String(spec.target));
+      await sheet.getByLabel(label('goals.deadline'), { exact: true }).click();
+      await this.page
+        .getByRole('gridcell')
+        .filter({ hasText: new RegExp(`^${spec.deadlineDayOfMonth}$`) })
+        .first()
+        .click();
+    }
+
+    await sheet.getByRole('button', { name: label('submit'), exact: true }).click();
+    await expect(sheet).toBeHidden();
+  }
+
+  /** Declares that money went aside towards a named goal. */
+  async putAside(goal: string, amount: number): Promise<void> {
+    await this.openGoals();
+
+    await this.page
+      .locator('[data-slot="card"]')
+      .filter({ hasText: goal })
+      .getByRole('button')
+      .first()
+      .click();
+
+    const sheet = this.page.getByRole('dialog', { name: label('goals.put_aside') });
+    await expect(sheet).toBeVisible();
+
+    await sheet.getByLabel(label('goals.amount'), { exact: true }).fill(String(amount));
+    await sheet.getByRole('button', { name: label('submit'), exact: true }).click();
+    await expect(sheet).toBeHidden();
   }
 
   // === Overview ===
