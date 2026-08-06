@@ -8,6 +8,7 @@ import type { DBTag } from '@/database/tags.ts';
 import type { DBSettings } from '@/database/settings.ts';
 import type { DBGoal, DBClosedWindow } from '@/database/goals.ts';
 import type { DBContribution } from '@/database/contributions.ts';
+import type { DBPosition } from '@/database/positions.ts';
 
 export class AppDB extends Dexie {
   expenses!: Table<DBExpense, string>;
@@ -20,6 +21,7 @@ export class AppDB extends Dexie {
   goals!: Table<DBGoal, string>;
   contributions!: Table<DBContribution, string>;
   closedWindows!: Table<DBClosedWindow, string>;
+  positions!: Table<DBPosition, string>;
 
   constructor() {
     super('saldoo');
@@ -83,6 +85,25 @@ export class AppDB extends Dexie {
       goals: 'id, createdAt, updatedAt, description, currency, strategyPart, deadline, year, seriesId, closedAt',
       contributions: 'id, createdAt, updatedAt, goalId, contributedAt, transactionId',
       closedWindows: 'id, createdAt, goalId, seriesId, year',
+    });
+
+    // Version 5 adds the things a person holds or owes, which net worth is the sum of.
+    this.version(5).stores({
+      expenses:
+        'id, createdAt, updatedAt, userId, description, expense, currency, severity, frequency, execution, strategyPart, tagId',
+      profits:
+        'id, createdAt, updatedAt, userId, description, profit, currency, frequency, execution',
+      duties:
+        'id, createdAt, updatedAt, resolved, ignored, frequency, executionDate, expenseId, transactionId, &hash',
+      transactions:
+        'id, createdAt, updatedAt, transactionId, sourceBank, amount, currency, transactionDate, description, &hash, expenseId, strategyPart, tagId, duties',
+      tags: 'id, createdAt, updatedAt, userId, &name',
+      meta: '&key',
+      settings: '&id',
+      goals: 'id, createdAt, updatedAt, description, currency, strategyPart, deadline, year, seriesId, closedAt',
+      contributions: 'id, createdAt, updatedAt, goalId, contributedAt, transactionId',
+      closedWindows: 'id, createdAt, goalId, seriesId, year',
+      positions: 'id, createdAt, updatedAt, description, kind, currency, valuedOn',
     });
   }
 }

@@ -15,6 +15,7 @@ import { VaultGate } from '@/features/vault/vault-gate.tsx';
 const IndexPage = lazy(() => import('@/pages/dashboard/main.tsx'));
 const DutiesPage = lazy(() => import('@/pages/dashboard/duties.tsx'));
 const GoalsPage = lazy(() => import('@/pages/dashboard/goals.tsx'));
+const WealthPage = lazy(() => import('@/pages/dashboard/wealth.tsx'));
 const ExpensesPage = lazy(() => import('@/pages/dashboard/expenses.tsx'));
 const ProfitsPage = lazy(() => import('@/pages/dashboard/profits.tsx'));
 const TransactionsPage = lazy(() => import('@/pages/dashboard/transactions.tsx'));
@@ -68,6 +69,14 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <MetaDataWrapper page="goals">
             <GoalsPage />
+          </MetaDataWrapper>
+        ),
+      },
+      {
+        path: paths.dashboard.wealth,
+        element: (
+          <MetaDataWrapper page="wealth">
+            <WealthPage />
           </MetaDataWrapper>
         ),
       },

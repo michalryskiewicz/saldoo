@@ -149,6 +149,28 @@ describe('record codec', () => {
     expect(backAsClosed.contributed).toBe(26000);
   });
 
+  it('keeps a position across a replication hop', () => {
+    const position = {
+      id: 'p1',
+      createdAt: new Date('2026-01-02T03:04:05.000Z'),
+      description: 'IKE',
+      kind: 'asset',
+      value: 31000,
+      currency: 'PLN',
+      valuedOn: new Date('2026-07-01T00:00:00.000Z'),
+    };
+
+    const back = decodeRecord(
+      'positions',
+      overTheWire(position, (r) => encodeRecord('positions', r)) as Record<string, unknown>
+    ) as typeof position;
+
+    expect(back.valuedOn).toBeInstanceOf(Date);
+    expect(back.valuedOn.getTime()).toBe(position.valuedOn.getTime());
+    expect(back.value).toBe(31000);
+    expect(back.kind).toBe('asset');
+  });
+
   it('keeps the non-date fields byte for byte', () => {
     const wire = overTheWire(expense, (r) => encodeRecord('expenses', r));
     const back = decodeRecord('expenses', wire as Record<string, unknown>) as DBExpense;

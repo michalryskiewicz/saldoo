@@ -3,6 +3,7 @@ import { ExpensesByCategoryChart } from '@/features/overview/components/categori
 
 import { BudgetingStrategyCards } from '@/features/overview/components/budgeting-strategy-cards.tsx';
 import { FinancialSafetyNetCard } from '@/features/overview/components/financial-safety-net-card.tsx';
+import { NetWorthCard } from '@/features/net-worth/components/net-worth-card.tsx';
 import MonthlySpendingChart from '@/features/overview/components/monthly-spending-chart.tsx';
 import { SetUpPersonalPreferencesIndicator } from '@/components/set-up-personal-preferences-indicator.tsx';
 import { ContentSkeleton } from '@/components/loaders/content-skeleton.tsx';
@@ -33,6 +34,7 @@ export default function Page() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 h-fit">
         <ExpensesByCategoryChart />
         <div className="h-full gap-4 flex flex-col w-full">
+          <NetWorthCard />
           <FinancialSafetyNetCard />
           <MonthlySpendingChart />
         </div>
