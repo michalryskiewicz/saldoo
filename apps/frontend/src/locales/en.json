@@ -153,6 +153,7 @@
     "kept": "It stays mine",
     "strategy-part-helper": "Which part of the budgeting strategy a contribution to this meets.",
     "total_put_aside": "Put aside in total",
+    "confirmed_of": "A statement backs {{confirmed}}",
     "per_month": "A month",
     "remaining": "Left to go",
     "ready_by": "Ready by",

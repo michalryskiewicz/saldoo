@@ -3,7 +3,7 @@ import {
   mapINGRowToDBTransaction,
   mapPKOBPRowToDBTransaction,
   mapBankRowToDBTransaction,
-  allocateTransactionsToDuties,
+  allocateTransactionsToOccurrences,
 } from '../transactions.service';
 
 describe('transactions.service', () => {
@@ -155,10 +155,10 @@ describe('transactions.service', () => {
   });
 });
 
-describe('allocateTransactionsToDuties', () => {
+describe('allocateTransactionsToOccurrences', () => {
   it('lets one payment settle one occurrence, not every occurrence it falls near', () => {
-    const allocation = allocateTransactionsToDuties({
-      duties: [
+    const allocation = allocateTransactionsToOccurrences({
+      occurrences: [
         { id: 'duty-13th', executionDate: new Date(2026, 6, 13) },
         { id: 'duty-14th', executionDate: new Date(2026, 6, 14) },
         { id: 'duty-15th', executionDate: new Date(2026, 6, 15) },
@@ -166,12 +166,12 @@ describe('allocateTransactionsToDuties', () => {
       transactions: [{ id: 'the-only-payment', transactionDate: '2026-07-14' }],
     });
 
-    expect(allocation).toEqual([{ dutyId: 'duty-14th', transactionId: 'the-only-payment' }]);
+    expect(allocation).toEqual([{ occurrenceId: 'duty-14th', transactionId: 'the-only-payment' }]);
   });
 
   it('passes over a payment this occurrence was unlinked from, however close it lands', () => {
-    const allocation = allocateTransactionsToDuties({
-      duties: [
+    const allocation = allocateTransactionsToOccurrences({
+      occurrences: [
         {
           id: 'duty-15th',
           executionDate: new Date(2026, 6, 15),
@@ -184,12 +184,12 @@ describe('allocateTransactionsToDuties', () => {
       ],
     });
 
-    expect(allocation).toEqual([{ dutyId: 'duty-15th', transactionId: 'the-right-one' }]);
+    expect(allocation).toEqual([{ occurrenceId: 'duty-15th', transactionId: 'the-right-one' }]);
   });
 
   it('leaves a payment already settled where it is, even when it sits closer to another occurrence', () => {
-    const allocation = allocateTransactionsToDuties({
-      duties: [
+    const allocation = allocateTransactionsToOccurrences({
+      occurrences: [
         {
           id: 'duty-15th',
           executionDate: new Date(2026, 6, 15),
@@ -201,7 +201,7 @@ describe('allocateTransactionsToDuties', () => {
     });
 
     expect(allocation).toEqual([
-      { dutyId: 'duty-15th', transactionId: 'the-payment-on-record' },
+      { occurrenceId: 'duty-15th', transactionId: 'the-payment-on-record' },
     ]);
   });
 
@@ -210,10 +210,10 @@ describe('allocateTransactionsToDuties', () => {
     const after = { id: 'a-duty-16th', executionDate: new Date(2026, 6, 16) };
     const transactions = [{ id: 'the-only-payment', transactionDate: '2026-07-15' }];
 
-    const asListed = allocateTransactionsToDuties({ duties: [before, after], transactions });
-    const reversed = allocateTransactionsToDuties({ duties: [after, before], transactions });
+    const asListed = allocateTransactionsToOccurrences({ occurrences: [before, after], transactions });
+    const reversed = allocateTransactionsToOccurrences({ occurrences: [after, before], transactions });
 
-    expect(asListed).toEqual([{ dutyId: 'z-duty-14th', transactionId: 'the-only-payment' }]);
+    expect(asListed).toEqual([{ occurrenceId: 'z-duty-14th', transactionId: 'the-only-payment' }]);
     expect(reversed).toEqual(asListed);
   });
 
@@ -222,22 +222,22 @@ describe('allocateTransactionsToDuties', () => {
     const later = { id: 'the-later-payment', transactionDate: '2026-07-16' };
     const duties = [{ id: 'duty-15th', executionDate: new Date(2026, 6, 15) }];
 
-    const asListed = allocateTransactionsToDuties({ duties, transactions: [earlier, later] });
-    const reversed = allocateTransactionsToDuties({ duties, transactions: [later, earlier] });
+    const asListed = allocateTransactionsToOccurrences({ occurrences: duties, transactions: [earlier, later] });
+    const reversed = allocateTransactionsToOccurrences({ occurrences: duties, transactions: [later, earlier] });
 
-    expect(asListed).toEqual([{ dutyId: 'duty-15th', transactionId: 'the-earlier-payment' }]);
+    expect(asListed).toEqual([{ occurrenceId: 'duty-15th', transactionId: 'the-earlier-payment' }]);
     expect(reversed).toEqual(asListed);
   });
 
   it('lets a payment reach a real occurrence past one the person said would not happen', () => {
-    const allocation = allocateTransactionsToDuties({
-      duties: [
+    const allocation = allocateTransactionsToOccurrences({
+      occurrences: [
         { id: 'duty-skipped', executionDate: new Date(2026, 6, 14), ignored: true },
         { id: 'duty-15th', executionDate: new Date(2026, 6, 15) },
       ],
       transactions: [{ id: 'the-only-payment', transactionDate: '2026-07-14' }],
     });
 
-    expect(allocation).toEqual([{ dutyId: 'duty-15th', transactionId: 'the-only-payment' }]);
+    expect(allocation).toEqual([{ occurrenceId: 'duty-15th', transactionId: 'the-only-payment' }]);
   });
 });
