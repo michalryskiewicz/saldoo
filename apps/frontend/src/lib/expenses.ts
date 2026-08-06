@@ -8,20 +8,47 @@ import type { Currency } from '@/constant.ts';
 import type { DBTag } from '@/database/tags.ts';
 import { costInMonth } from '@/lib/recurrence.ts';
 import { groupProfitsByMonth } from '@/lib/profits.ts';
+import { survivesIncomeLoss } from '@/lib/safety-net.ts';
+import { expenseAmountForMonth } from '@/lib/expense-amount.ts';
+import { hasLostItsBase } from '@/lib/percentage-of-income.ts';
 
-type SeverityTotals = { total: number; HIGH: number; MEDIUM: number; LOW: number };
+type MonthTotals = {
+  total: number;
+  HIGH: number;
+  MEDIUM: number;
+  LOW: number;
+  irreducible: number;
+  reducible: number;
+};
 
-export function groupExpensesByMonth(data: DBExpense[]) {
-  const result: Record<number, SeverityTotals> = {};
+/**
+ * Each month of the year, split two ways at once: by priority, and by what would still be owed
+ * with no income coming in.
+ *
+ * Both splits, because they are different questions and the chart offers a tab for each. Priority
+ * is how urgent a cost is; irreducibility is whether it can be cut at all, and that second one is
+ * the figure the emergency fund is built from — so the chart and the fund can never disagree.
+ *
+ * A cost with no priority still counts towards the month's total; it simply has no priority bucket
+ * to land in. Indexing by a null priority would invent one. It always lands in one of the other
+ * two: every cost has an answer to whether it survives, given or derived.
+ */
+export function groupExpensesByMonth(data: DBExpense[], profits: DBProfit[] = []) {
+  const result: Record<number, MonthTotals> = {};
 
   const ensureMonth = (month: number) => {
-    if (!result[month]) result[month] = { total: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+    if (!result[month])
+      result[month] = { total: 0, HIGH: 0, MEDIUM: 0, LOW: 0, irreducible: 0, reducible: 0 };
   };
 
-  // An expense with no severity still counts towards the month's total; it simply
-  // has no bucket to land in. Indexing by a null severity would invent one.
-  const addToMonth = (month: number, severity: DBExpense['severity'], value: number) => {
+  const addToMonth = (
+    month: number,
+    severity: DBExpense['severity'],
+    survives: boolean,
+    value: number
+  ) => {
     if (severity) result[month][severity] += value;
+    result[month][survives ? 'irreducible' : 'reducible'] += value;
     result[month].total += value;
   };
 
@@ -29,10 +56,20 @@ export function groupExpensesByMonth(data: DBExpense[]) {
 
   data.forEach((item) => {
     if (!item.execution) return;
+    if (hasLostItsBase(item, profits)) return;
+
+    const survives = survivesIncomeLoss(item);
 
     for (let m = 0; m < 12; m++) {
+      const month = { year, monthIndex: m };
+
       ensureMonth(m);
-      addToMonth(m, item.severity, costInMonth(item, item.expense, { year, monthIndex: m }));
+      addToMonth(
+        m,
+        item.severity,
+        survives,
+        costInMonth(item, expenseAmountForMonth(item, profits, month), month)
+      );
     }
   });
 
@@ -42,6 +79,8 @@ export function groupExpensesByMonth(data: DBExpense[]) {
     high: Number(result[m]?.HIGH?.toFixed(2)) || 0,
     medium: Number(result[m]?.MEDIUM?.toFixed(2)) || 0,
     low: Number(result[m]?.LOW?.toFixed(2)) || 0,
+    irreducible: Number(result[m]?.irreducible?.toFixed(2)) || 0,
+    reducible: Number(result[m]?.reducible?.toFixed(2)) || 0,
   }));
 }
 
@@ -52,9 +91,16 @@ export function groupExpensesAndProfitsByMonth(expenses: DBExpense[], profits: D
 
   expenses.forEach((item) => {
     if (item.execution && !isValid(new Date(item.execution))) return;
+    if (hasLostItsBase(item, profits)) return;
 
     for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
-      expenseResult[monthIndex] += costInMonth(item, item.expense, { year, monthIndex });
+      const month = { year, monthIndex };
+
+      expenseResult[monthIndex] += costInMonth(
+        item,
+        expenseAmountForMonth(item, profits, month),
+        month
+      );
     }
   });
 
@@ -71,14 +117,20 @@ export function groupExpensesAndProfitsByMonth(expenses: DBExpense[], profits: D
   }));
 }
 
-export function groupExpensesByCategory(month: number, data: (DBExpense & { tag?: DBTag })[]) {
+export function groupExpensesByCategory(
+  month: number,
+  data: (DBExpense & { tag?: DBTag })[],
+  profits: DBProfit[] = []
+) {
   const year = new Date().getFullYear();
   const tagTotals: Record<string, number> = {};
 
   data.forEach((item) => {
     if (!item.tag?.name) return;
+    if (hasLostItsBase(item, profits)) return;
 
-    const total = costInMonth(item, item.expense, { year, monthIndex: month });
+    const calendarMonth = { year, monthIndex: month };
+    const total = costInMonth(item, expenseAmountForMonth(item, profits, calendarMonth), calendarMonth);
 
     if (total > 0) {
       tagTotals[item.tag.name] = (tagTotals[item.tag.name] || 0) + total;
@@ -101,7 +153,8 @@ export function groupExpensesByStrategyPart(
     price: number;
     currency: Currency;
     expense: DBExpense | null;
-  })[]
+  })[],
+  profits: DBProfit[] = []
 ) {
   const year = new Date().getFullYear();
   const strategyTotals: Record<string, number> = {};
@@ -111,8 +164,10 @@ export function groupExpensesByStrategyPart(
   // Planned (from expenses)
   expenses.forEach((item) => {
     if (!item.strategyPart) return;
+    if (hasLostItsBase(item, profits)) return;
 
-    const total = costInMonth(item, item.expense, { year, monthIndex: month });
+    const calendarMonth = { year, monthIndex: month };
+    const total = costInMonth(item, expenseAmountForMonth(item, profits, calendarMonth), calendarMonth);
 
     if (total > 0) {
       strategyTotals[item.strategyPart] = (strategyTotals[item.strategyPart] || 0) + total;
@@ -135,13 +190,15 @@ export function groupExpensesByStrategyPart(
     const dutyDate = new Date(duty.executionDate);
     if (dutyDate.getFullYear() !== year || dutyDate.getMonth() !== month || duty.transactionId)
       return;
-    // You can add a value here if you want, e.g., count or sum, but duties may not have an amount
-
     if (dutiesTotals[strategyPart] === undefined) {
       dutiesTotals[strategyPart] = 0;
     }
 
-    if (duty?.expense?.expense && duty?.resolved) {
+    // On `resolved` alone. This used to also require `duty.expense.expense` to be truthy, which is
+    // a test of the amount and not of whether there is a cost behind the occurrence — and a share of
+    // an income holds zero there, so every tax the person had actually paid was thrown away before
+    // it reached the tile.
+    if (duty.resolved) {
       dutiesTotals[strategyPart] += duty.price;
     }
   });
@@ -164,6 +221,13 @@ export function groupExpensesByStrategyPart(
   });
 }
 
+/**
+ * What has to be put aside to live for three, six or twelve months with no income at all.
+ *
+ * Only costs that would still be there once the income stops. A fund sized on everything a
+ * person spends answers a different question — what their life costs — and would demand they
+ * save up for a year of the gym membership they would cancel in the first week.
+ */
 export function calculateFinancialSafetyNet(month: number, data: DBExpense[]) {
   const results: Record<string, number> = {
     small: 0, // 3 months
@@ -175,6 +239,7 @@ export function calculateFinancialSafetyNet(month: number, data: DBExpense[]) {
 
   data.forEach((item) => {
     if (!item.execution) return;
+    if (!survivesIncomeLoss(item)) return;
 
     // 3, 6, 12-months periods
     let totalSmall = 0;

@@ -3,7 +3,8 @@ import { searchDuties } from '../duties-search.service.ts';
 
 const duty = (description: string, executionDate: Date, expense = 1000) => ({
   executionDate,
-  expense: { description, expense, severity: 'HIGH' as const },
+  price: expense,
+  expense: { description, expense, survivesIncomeLoss: true },
 });
 
 const RENT = duty('Czynsz', new Date(2026, 6, 4));
@@ -37,4 +38,15 @@ describe('searchDuties', () => {
   it('is not a filter when nothing has been typed', () => {
     expect(searchDuties(ROWS, '')).toHaveLength(3);
   });
+});
+
+/**
+ * A share of an income has no amount on its record, and a converted row's figure lives on the row
+ * rather than on the cost. Searching the cost's field answered nothing to the number on screen.
+ */
+it('finds an occurrence by the amount actually shown on the row', () => {
+  const tax = duty('Ryczałt', new Date(2026, 3, 20), 0);
+  const shown = { ...tax, price: 1200 };
+
+  expect(descriptionsOf(searchDuties([shown], '1200'))).toEqual(['Ryczałt']);
 });

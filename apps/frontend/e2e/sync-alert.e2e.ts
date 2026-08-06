@@ -30,7 +30,7 @@ test('a Drive that refuses uploads is announced, with the one action that fixes 
   // Online, signed in, holding a fresh token — every reason to believe things are fine.
   drive.refuseUploads(403);
   await app.openExpenses();
-  await app.addExpense({ description: 'Czynsz', amount: 2500, severity: 'HIGH', frequency: 'MONTHLY' });
+  await app.addExpense({ description: 'Czynsz', amount: 2500, frequency: 'MONTHLY' });
 
   const banner = device.page.getByRole('alert').filter({ hasText: pl.sync.alert_failed });
 
@@ -49,7 +49,7 @@ test('a Drive that is behaving says nothing at all', async ({ browser, baseURL }
   await app.createVault(PASSPHRASE);
   await app.completeOnboarding();
   await app.openExpenses();
-  await app.addExpense({ description: 'Kawa', amount: 14.99, severity: 'LOW', frequency: 'DAILY' });
+  await app.addExpense({ description: 'Kawa', amount: 14.99, survivesIncomeLoss: false, frequency: 'DAILY' });
   await app.waitUntilSynced();
 
   // The guard against a banner that cries wolf: it must be absent on the ordinary path,

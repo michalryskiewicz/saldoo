@@ -65,6 +65,12 @@ export function putRecord(doc: Y.Doc, table: DocumentTable, record: object): voi
  * Writes only the given fields, leaving the rest untouched — the operation that
  * makes concurrent edits to different fields survive each other.
  *
+ * A field given as `undefined` is **removed**. Leaving a field alone and saying it
+ * no longer applies are different intentions and both have to be expressible: a key
+ * that is absent means the former, a key explicitly set to `undefined` the latter.
+ * `encodeRecord` drops undefined on its way to the wire — correctly, nothing should
+ * carry it — so the removals are read off the fields as given.
+ *
  * A no-op when the record is absent: it may have been deleted on another device,
  * and re-creating it from a partial update would resurrect a record the user
  * deleted with most of its fields missing.
@@ -76,6 +82,9 @@ export function updateFields(
   fields: object,
 ): void {
   const encoded = encodeRecord(table, fields);
+  const cleared = Object.entries(fields)
+    .filter(([, value]) => value === undefined)
+    .map(([key]) => key);
 
   doc.transact(() => {
     const target = tableMap(doc, table).get(id);
@@ -83,6 +92,10 @@ export function updateFields(
 
     for (const [key, value] of Object.entries(encoded)) {
       target.set(key, value);
+    }
+
+    for (const key of cleared) {
+      target.delete(key);
     }
   });
 }

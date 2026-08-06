@@ -11,16 +11,27 @@ import { Cell, Header } from '@/components/tanstack-table';
 import { useListExpenses } from '@/features/expenses/hooks/use-list-expenses.tsx';
 import type { DBExpense } from '@/database/expenses.ts';
 import type { DBTag } from '@/database/tags.ts';
-import { costInYear } from '@/lib/recurrence.ts';
+import { expenseCostInYear } from '@/lib/expense-amount.ts';
+import { describeShare } from '@/lib/percentage-of-income.ts';
+import { survivesIncomeLoss } from '@/lib/safety-net.ts';
 
 /**
  * A row as the table sees it: an expense with its tag joined in.
  *
- * `totalLabel` rides on the summary row rather than being read from state by the column
- * definitions, which are module-level and know nothing about it. Carrying it as data keeps the
- * columns a constant — rebuilt per render they would reset the table's own sorting.
+ * `totalLabel` and `yearlyCost` ride on the row rather than being read from state by the column
+ * definitions, which are module-level and know nothing about either. Carrying them as data keeps
+ * the columns a constant — rebuilt per render they would reset the table's own sorting.
+ *
+ * `yearlyCost` in particular *cannot* be worked out by a column: a cost that is a share of an
+ * income needs the incomes to be resolved at all, and a module-level `accessorFn` has no way to
+ * reach them.
  */
-export type ExpenseRow = DBExpense & { tag?: DBTag; totalLabel?: string };
+export type ExpenseRow = DBExpense & {
+  tag?: DBTag;
+  totalLabel?: string;
+  yearlyCost?: number;
+  shareLabel?: string;
+};
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const columns: ColumnDef<ExpenseRow>[] = [
@@ -42,9 +53,13 @@ export const columns: ColumnDef<ExpenseRow>[] = [
     // of different frequencies have no shared amount to add up. What they do have is what they
     // cost over a year, which is the column beside this one.
     cell: ({ row }) => {
-      const { id, expense, currency } = row.original;
+      const { id, expense, currency, shareLabel } = row.original;
 
       if (id === TOTAL) return null;
+
+      // A share has no amount of its own — `expense` is zero — so the row says what it is a share
+      // of instead of printing a nought and calling it the price.
+      if (shareLabel) return <Cell.Text id={id} name={shareLabel} />;
 
       return <Cell.Money id={id} price={expense} currency={currency} />;
     },
@@ -60,8 +75,7 @@ export const columns: ColumnDef<ExpenseRow>[] = [
     meta: { mobile: 'figure' as const },
     // The summary carries its figure already: it is a sum of years, not a plan with a year of
     // its own, and asking what a total recurs at answers nothing.
-    accessorFn: (row) =>
-      row.id === TOTAL ? row.expense : costInYear(row, row.expense, new Date().getFullYear()),
+    accessorFn: (row) => row.yearlyCost ?? 0,
     cell: ({ row, getValue }) => (
       <Cell.Money
         id={row.original.id}
@@ -76,8 +90,16 @@ export const columns: ColumnDef<ExpenseRow>[] = [
     header: ({ column }) => <Header.Sort column={column} header="severity" />,
     cell: ({ row }) => {
       const { id, severity } = row.original;
-      return <Cell.Severity id={id} severity={severity} />;
+      return <Cell.Severity id={id} severity={severity ?? null} />;
     },
+  },
+  {
+    id: 'survivesIncomeLoss',
+    accessorFn: (row) => survivesIncomeLoss(row),
+    header: ({ column }) => <Header.Sort column={column} header="cost_nature.column" />,
+    cell: ({ row }) => (
+      <Cell.CostNature id={row.original.id} survives={survivesIncomeLoss(row.original)} />
+    ),
   },
   {
     accessorKey: 'frequency',
@@ -111,13 +133,18 @@ export const columns: ColumnDef<ExpenseRow>[] = [
 ];
 
 export const ExpensesTable = () => {
-  const { allExpenses } = useListExpenses();
+  const { allExpenses, profits } = useListExpenses();
   const [query, setQuery] = useState('');
 
   // Filtered before the table sees it, so the summary is a total of what is on the screen. Were
   // the search inside the table, the rows would narrow and the total would go on reporting the
   // sum of everything -- a figure that answers a question nobody asked.
-  const dataToTable = searchExpenses(allExpenses ?? [], query);
+  const year = new Date().getFullYear();
+  const dataToTable = searchExpenses(allExpenses ?? [], query).map((row) => ({
+    ...row,
+    yearlyCost: expenseCostInYear(row, profits, year),
+    shareLabel: describeShare(row, profits),
+  }));
 
   // A summary row rather than a stored expense, so it is shaped like one on purpose.
   //
@@ -125,7 +152,6 @@ export const ExpensesTable = () => {
   // amounts as entered put a weekly figure beside a yearly one and called the result a total; a
   // single month would be honest but would read as zero for eleven twelfths of every yearly
   // cost. Counted over a year, every plan contributes what it actually costs.
-  const year = new Date().getFullYear();
   const totalRow: ExpenseRow[] = dataToTable.length
     ? [
         {
@@ -133,7 +159,8 @@ export const ExpensesTable = () => {
           createdAt: new Date(),
           description: 'TOTAL',
           totalLabel: i18n.t('total_yearly'),
-          expense: dataToTable.reduce((total, row) => total + costInYear(row, row.expense, year), 0),
+          expense: dataToTable.reduce((total, row) => total + row.yearlyCost, 0),
+          yearlyCost: dataToTable.reduce((total, row) => total + row.yearlyCost, 0),
           currency: dataToTable[0].currency,
           severity: null,
         },

@@ -11,7 +11,7 @@ import DateRangeSelector, {
 import i18n, { type TranslationKey } from '@/i18n.ts';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Cell, Header } from '@/components/tanstack-table';
-import { TOTAL } from '@/constant.ts';
+import { TOTAL, type Currency } from '@/constant.ts';
 import DutiesTableActions from '@/features/duties/components/duties-table-actions.tsx';
 import DutyTermCell from '@/features/duties/components/duty-term-cell.tsx';
 import DutyDescriptionButton from '@/features/duties/components/duty-description-button.tsx';
@@ -21,6 +21,7 @@ import { db } from '@/database';
 import { useDuties } from '@/features/duties/hooks/use-duties.tsx';
 import { type DBDuty, resolveDBDuty } from '@/database/duty.ts';
 import type { DBExpense } from '@/database/expenses.ts';
+import { survivesIncomeLoss } from '@/lib/safety-net.ts';
 import { useState } from 'react';
 import { endOfMonth, startOfMonth } from 'date-fns';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs.tsx';
@@ -49,7 +50,12 @@ const STATUS_TABS = [
  * definitions, which are module-level and know nothing about state. Carrying it as data keeps
  * the columns a constant — rebuilt per render they would reset the table's own sorting.
  */
-export type DutyRow = DBDuty & { expense: DBExpense; totalLabel?: string };
+export type DutyRow = DBDuty & {
+  expense: DBExpense;
+  price: number;
+  currency: Currency;
+  totalLabel?: string;
+};
 
 /**
  * Struck out rather than merely quiet for a skipped occurrence: dimming alone reads as
@@ -83,18 +89,26 @@ const columns: ColumnDef<DutyRow>[] = [
     accessorKey: 'expense',
     meta: { mobile: 'figure' as const },
     header: i18n.t('expense'),
-    cell: ({ row }) => {
-      const { id, expense, currency } = row.original.expense;
-      return <Cell.Money id={id} price={expense} currency={currency} />;
-    },
+    // The row's own price and currency, not the cost's. A share of an income has no amount on its
+    // record, and a converted figure cannot live nested inside the cost it came from.
+    cell: ({ row }) => (
+      <Cell.Money
+        id={row.original.expense.id}
+        price={row.original.price}
+        currency={row.original.currency}
+      />
+    ),
   },
   {
-    accessorKey: 'expense.severity',
-    header: ({ column }) => <Header.Sort column={column} header="severity" />,
-    cell: ({ row }) => {
-      const { id, severity } = row.original.expense;
-      return <Cell.Severity id={id} severity={severity} />;
-    },
+    id: 'survivesIncomeLoss',
+    accessorFn: (row) => survivesIncomeLoss(row.expense),
+    header: ({ column }) => <Header.Sort column={column} header="cost_nature.column" />,
+    cell: ({ row }) => (
+      <Cell.CostNature
+        id={row.original.expense.id}
+        survives={survivesIncomeLoss(row.original.expense)}
+      />
+    ),
   },
   {
     accessorKey: 'executionDate',
@@ -173,7 +187,7 @@ export default function DutiesTable() {
     const today = new Date();
     return { from: startOfMonth(today), to: endOfMonth(today) };
   });
-  const { duties } = useDuties(range);
+  const { duties, currency } = useDuties(range);
   // Whether anything could be generated at all, which is what tells "you have no expenses" apart
   // from "nothing falls due this month" — two empties that look identical and lead elsewhere.
   const expenseCount = useLiveQuery(() => db.expenses.count(), []);
@@ -206,11 +220,16 @@ export default function DutiesTable() {
           // sum is what is still owed, not what the period holds, and one fixed word would be
           // wrong under two of the three.
           totalLabel: i18n.t(`duties_total.${paidFilter}` as TranslationKey),
+          // The screen's currency, not the first row's. Every row is converted into it by the
+          // time the sum happens, and borrowing whichever currency happened to sort first put a
+          // złoty label on a figure that was part euro.
+          price: sumPayableDuties(dataToTable),
+          currency,
           expense: {
             id: TOTAL,
             description: 'TOTAL',
             expense: sumPayableDuties(dataToTable),
-            currency: dataToTable?.[0]?.expense?.currency,
+            currency,
             severity: null,
             execution: undefined,
             frequency: undefined,

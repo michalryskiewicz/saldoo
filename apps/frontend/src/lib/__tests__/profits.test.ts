@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FREQUENCY } from '@/constant.ts';
 import type { DBProfit } from '@/database/profits.ts';
-import { groupProfitsByMonth } from '../profits.ts';
+import { groupProfitsByMonth, incomeBaseForMonth } from '../profits.ts';
 
 const profit = (fields: Partial<DBProfit>): DBProfit =>
   ({
@@ -104,5 +104,43 @@ describe('groupProfitsByMonth', () => {
     expect(groupProfitsByMonth([profit({ profit: 999, frequency: FREQUENCY.YEARLY })])).toEqual(
       groupProfitsByMonth([])
     );
+  });
+});
+
+describe('incomeBaseForMonth', () => {
+  const invoice = profit({
+    id: 'client-a',
+    profit: 10000,
+    frequency: FREQUENCY.MONTHLY,
+    execution: WEDNESDAY_IN_JULY,
+  });
+  const salary = profit({
+    id: 'salary',
+    profit: 7000,
+    frequency: FREQUENCY.MONTHLY,
+    execution: WEDNESDAY_IN_JULY,
+  });
+
+  it('adds up only the incomes it was pointed at', () => {
+    const base = incomeBaseForMonth([invoice, salary], ['client-a'], { year: 2026, monthIndex: 6 });
+
+    expect(base).toBe(10000);
+  });
+
+  it('counts a named income as often as it actually arrives in that month', () => {
+    const quarterly = profit({
+      id: 'commission',
+      profit: 3200,
+      frequency: FREQUENCY.YEARLY,
+      execution: WEDNESDAY_IN_JULY,
+    });
+    const month = (monthIndex: number) => incomeBaseForMonth([quarterly], ['commission'], { year: 2026, monthIndex });
+
+    expect(month(6)).toBe(3200);
+    expect(month(7)).toBe(0);
+  });
+
+  it('finds nothing for an income that is no longer there', () => {
+    expect(incomeBaseForMonth([invoice], ['deleted'], { year: 2026, monthIndex: 6 })).toBe(0);
   });
 });

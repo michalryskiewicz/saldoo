@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
+  calculateFinancialSafetyNet,
   groupExpensesAndProfitsByMonth,
   groupExpensesByCategory,
   groupExpensesByMonth,
@@ -23,8 +24,25 @@ describe('expenses service', () => {
     vi.useRealTimers();
   });
 
+  const invoiceInMarch = {
+    id: 'client-a',
+    profit: 10000,
+    frequency: 'YEARLY',
+    execution: new Date(2026, 2, 10),
+  } as never;
+
+  const taxOnIt = {
+    expense: 0,
+    frequency: 'MONTHLY',
+    execution: new Date(2026, 0, 20),
+    severity: 'HIGH',
+    tagId: 'tax',
+    strategyPart: 'NEEDS',
+    percentageOfIncome: { percent: 12, profitIds: ['client-a'], basePeriod: 'previousMonth' },
+  } as never;
+
   describe('groupExpensesByMonth', () => {
-    it('ignores expenses with missing severity and add it only to total severity bucket', () => {
+    it('splits a month into what would survive losing the income and what would go', () => {
       const data = [
         {
           execution: '2024-06-10',
@@ -41,10 +59,55 @@ describe('expenses service', () => {
       ] as never[];
       const juneIdx = MONTHS.indexOf('June');
       const result = groupExpensesByMonth(data);
-      expect(result.find((m) => m.month === juneIdx)?.low).toEqual(20);
-      expect(result.find((m) => m.month === juneIdx)?.high).toBe(0);
-      expect(result.find((m) => m.month === juneIdx)?.medium).toBe(0);
+      expect(result.find((m) => m.month === juneIdx)?.irreducible).toBe(40);
+      expect(result.find((m) => m.month === juneIdx)?.reducible).toBe(20);
       expect(result.find((m) => m.month === juneIdx)?.total).toBe(60);
+    });
+
+    it('works out a share of a named income, and never calls it irreducible', () => {
+      freezeClock('2026-06-15');
+      const months = groupExpensesByMonth([taxOnIt], [invoiceInMarch]);
+
+      expect(months[3].total).toBe(1200);
+      expect(months[3].reducible).toBe(1200);
+      // A tax on income is nothing when there is no income, so the fund never covers it — and this
+      // chart is built from the same answer.
+      expect(months[3].irreducible).toBe(0);
+      expect(months[2].total).toBe(0);
+    });
+
+    it('reports the priority split alongside it, and both add up to the same total', () => {
+      const data = [
+        { execution: '2024-06-10', expense: 40, severity: undefined, frequency: 'YEARLY' },
+        { execution: '2024-06-15', expense: 20, severity: 'LOW', frequency: 'YEARLY' },
+        { execution: '2024-06-20', expense: 30, severity: 'HIGH', frequency: 'YEARLY' },
+      ] as never[];
+      const juneIdx = MONTHS.indexOf('June');
+      const june = groupExpensesByMonth(data).find((m) => m.month === juneIdx);
+
+      // A cost with no priority has no bucket to land in, so only these two add up to the total.
+      expect(june?.low).toBe(20);
+      expect(june?.high).toBe(30);
+      expect(june?.medium).toBe(0);
+      // Every cost has an answer to whether it survives, so these two always do.
+      expect((june?.irreducible ?? 0) + (june?.reducible ?? 0)).toBe(june?.total);
+      expect(june?.total).toBe(90);
+    });
+
+    it('splits on the answer given, not on the priority the cost was once assigned', () => {
+      const data = [
+        {
+          execution: '2024-06-10',
+          expense: 40,
+          severity: 'HIGH',
+          survivesIncomeLoss: false,
+          frequency: 'YEARLY',
+        },
+      ] as never[];
+      const juneIdx = MONTHS.indexOf('June');
+      const result = groupExpensesByMonth(data);
+      expect(result.find((m) => m.month === juneIdx)?.reducible).toBe(40);
+      expect(result.find((m) => m.month === juneIdx)?.irreducible).toBe(0);
     });
 
     it('handles expenses with invalid execution date by skipping them', () => {
@@ -64,8 +127,7 @@ describe('expenses service', () => {
       ] as never[];
       const julyIdx = MONTHS.indexOf('July');
       const result = groupExpensesByMonth(data);
-      expect(result.find((m) => m.month === julyIdx)?.medium).toBe(30.01);
-      expect(result.find((m) => m.month === julyIdx)?.high).toBe(0);
+      expect(result.find((m) => m.month === julyIdx)?.irreducible).toBe(30.01);
       expect(result.find((m) => m.month === julyIdx)?.total).toBe(30.01);
     });
 
@@ -73,7 +135,15 @@ describe('expenses service', () => {
       const result = groupExpensesByMonth([]);
       expect(result).toHaveLength(12);
       expect(
-        result.every((m) => m.total === 0 && m.high === 0 && m.medium === 0 && m.low === 0)
+        result.every(
+          (m) =>
+            m.total === 0 &&
+            m.irreducible === 0 &&
+            m.reducible === 0 &&
+            m.high === 0 &&
+            m.medium === 0 &&
+            m.low === 0
+        )
       ).toBe(true);
     });
 
@@ -88,7 +158,7 @@ describe('expenses service', () => {
       ] as never[];
       const result = groupExpensesByMonth(data);
       result.forEach((m) => {
-        expect(m.high).toBe(10);
+        expect(m.irreducible).toBe(10);
         expect(m.total).toBe(10);
       });
     });
@@ -108,7 +178,7 @@ describe('expenses service', () => {
       const result = groupExpensesByMonth(data);
       // 2024-01-01 is a Monday, so count Mondays in each month
       const janIdx = MONTHS.indexOf('January');
-      expect(result.find((m) => m.month === janIdx)?.medium).toBe(
+      expect(result.find((m) => m.month === janIdx)?.irreducible).toBe(
         Number((countWeekdaysInMonth(2024, 0, 1) * 5)?.toFixed(2))
       );
     });
@@ -127,7 +197,7 @@ describe('expenses service', () => {
       ] as never[];
       const febIdx = MONTHS.indexOf('February');
       const result = groupExpensesByMonth(data);
-      expect(result.find((m) => m.month === febIdx)?.low).toBe(
+      expect(result.find((m) => m.month === febIdx)?.reducible).toBe(
         Number((daysInMonth(2024, 1) * 2)?.toFixed(2))
       );
     });
@@ -154,6 +224,34 @@ describe('expenses service', () => {
       expect(result[2].totalExpense).toBeGreaterThan(0);
       // All months should include monthly, weekly, and daily
       expect(result.every((m) => m.totalExpense > 0)).toBe(true);
+    });
+
+    /**
+     * A flat-rate tax, drawn where it actually falls. The invoice is a single yearly one in March,
+     * so the only month with a base is March — and the tax on it is an April cost. March itself
+     * carries no tax at all, which is the whole point of the base period: April's own invoices
+     * have nothing to do with April's tax.
+     */
+    it('works out a share of a named income per month, from the month the share is of', () => {
+      freezeClock('2026-06-15');
+      const invoice = {
+        id: 'client-a',
+        profit: 10000,
+        frequency: 'YEARLY',
+        execution: new Date(2026, 2, 10),
+      } as never;
+      const tax = {
+        expense: 0,
+        frequency: 'MONTHLY',
+        execution: new Date(2026, 0, 20),
+        percentageOfIncome: { percent: 12, profitIds: ['client-a'], basePeriod: 'previousMonth' },
+      } as never;
+
+      const months = groupExpensesAndProfitsByMonth([tax], [invoice]);
+
+      expect(months[2].totalExpense).toBe(0);
+      expect(months[3].totalExpense).toBe(1200);
+      expect(months[4].totalExpense).toBe(0);
     });
 
     it('correctly sums monthly profits into every month', () => {
@@ -456,5 +554,103 @@ describe('expenses service', () => {
       expect(result.find((r) => r.strategyPart === 'NEEDS')?.planned).toBe(10 * sundays);
       expect(result.find((r) => r.strategyPart === 'WANTS')?.planned).toBe(2 * days);
     });
+  });
+
+  describe('calculateFinancialSafetyNet', () => {
+    const rent = {
+      execution: '2025-01-10',
+      expense: 1000,
+      frequency: 'MONTHLY',
+      severity: 'HIGH',
+    };
+
+    it('covers three, six and twelve months of a cost, with the buffer on top', () => {
+      freezeClock('2025-01-15');
+      const result = calculateFinancialSafetyNet(0, [rent] as never[]);
+      expect(result).toEqual({ small: 3300, medium: 6600, comfort: 13200 });
+    });
+
+    it('leaves out a cost that would not be there without the income', () => {
+      freezeClock('2025-01-15');
+      const gym = { ...rent, expense: 100, survivesIncomeLoss: false };
+      const result = calculateFinancialSafetyNet(0, [rent, gym] as never[]);
+      expect(result).toEqual({ small: 3300, medium: 6600, comfort: 13200 });
+    });
+
+    /**
+     * The whole of the migration, asserted where it is felt.
+     *
+     * Nothing is rewritten in the vault, so an expense entered before the question existed answers
+     * it from the priority it was given. `MEDIUM` was the form's default and `HIGH` was chosen, so
+     * both go on counting exactly as they did; `LOW` is the only value somebody had to pick on
+     * purpose, and the only one that moves a figure.
+     */
+    it('reads costs entered before the question existed from the priority they carry', () => {
+      freezeClock('2025-01-15');
+      const legacy = [
+        { ...rent, severity: 'MEDIUM' },
+        { ...rent, severity: 'HIGH' },
+        { ...rent, expense: 100, severity: 'LOW' },
+      ];
+      const result = calculateFinancialSafetyNet(0, legacy as never[]);
+      expect(result).toEqual({ small: 6600, medium: 13200, comfort: 26400 });
+    });
+  });
+});
+
+describe('a share of a named income, wherever a total is drawn', () => {
+  const freezeClock = (iso: string) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(iso));
+  };
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const invoiceInMarch = {
+    id: 'client-a',
+    profit: 10000,
+    frequency: 'YEARLY',
+    execution: new Date(2026, 2, 10),
+  } as never;
+
+  const taxOnIt = {
+    expense: 0,
+    frequency: 'MONTHLY',
+    execution: new Date(2026, 0, 20),
+    tag: { name: 'PODATKI' },
+    strategyPart: 'NEEDS',
+    percentageOfIncome: { percent: 12, profitIds: ['client-a'], basePeriod: 'previousMonth' },
+  } as never;
+
+  it('reaches the category breakdown', () => {
+    freezeClock('2026-06-15');
+
+    expect(groupExpensesByCategory(3, [taxOnIt], [invoiceInMarch])).toEqual([
+      { tag: 'PODATKI', total: 1200 },
+    ]);
+  });
+
+  it('counts a paid share as real spending, even though its own amount is zero', () => {
+    freezeClock('2026-06-15');
+    const paid = {
+      price: 1200,
+      currency: 'PLN',
+      executionDate: new Date(2026, 3, 20),
+      resolved: true,
+      expense: { strategyPart: 'NEEDS', expense: 0 },
+    } as never;
+
+    const parts = groupExpensesByStrategyPart(3, [], [], [paid], []);
+
+    expect(parts.find((part) => part.strategyPart === 'NEEDS')?.real).toBe(1200);
+  });
+
+  it('reaches the budget-strategy breakdown', () => {
+    freezeClock('2026-06-15');
+    const parts = groupExpensesByStrategyPart(3, [taxOnIt], [], [], [invoiceInMarch]);
+
+    expect(parts.find((part) => part.strategyPart === 'NEEDS')?.planned).toBe(1200);
   });
 });

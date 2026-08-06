@@ -24,14 +24,18 @@ import { Link } from 'react-router';
 import { useListExpenses } from '@/features/expenses/hooks/use-list-expenses.tsx';
 
 /**
- * Severity keeps the colours it has in the table.
+ * Priority keeps the colours it has in the table.
  *
- * These three bars are the same fact the priority column states, so reaching into the chart
- * ramp for them said "low" in green in one place and in teal in the other. The ramp is for
- * series that mean nothing in particular; severity means something, and it already has tokens.
+ * Those three bars are the same fact the priority column states, so reaching into the chart ramp
+ * for them said "low" in green in one place and in teal in the other. The ramp is for series that
+ * mean nothing in particular; priority means something, and it already has tokens.
  *
- * The *fill* tier, not the mark tier: a stacked bar is a large area, and the saturation that
- * makes an 8px dot visible makes a 300px block shout. `total` is not a severity, so it stays a
+ * The two irreducibility bars are deliberately **not** in that family. Colour here means urgency,
+ * and whether a cost can be cut is a fact rather than an alarm — reusing the priority red would
+ * leave the same bar meaning something new the moment somebody switches tab.
+ *
+ * The *fill* tier throughout, not the mark tier: a stacked bar is a large area, and the saturation
+ * that makes an 8px dot visible makes a 300px block shout. `total` is none of these, so it stays a
  * chart colour.
  */
 const chartConfig = {
@@ -51,6 +55,14 @@ const chartConfig = {
     label: i18n.t('metrics.LOW'),
     color: 'var(--severity-low-fill)',
   },
+  irreducible: {
+    label: i18n.t('cost_nature.irreducible'),
+    color: 'var(--cost-irreducible-fill)',
+  },
+  reducible: {
+    label: i18n.t('cost_nature.reducible'),
+    color: 'var(--cost-reducible-fill)',
+  },
 } satisfies ChartConfig;
 
 export const ExpensesChart = () => {
@@ -58,7 +70,7 @@ export const ExpensesChart = () => {
   const { settings } = useSettings();
   const { isMobile } = useSidebar();
 
-  const [chartDisplay, setChartDisplay] = useState<'total' | 'severity'>('total');
+  const [chartDisplay, setChartDisplay] = useState<'total' | 'severity' | 'cost_nature'>('total');
 
   return (
     <>
@@ -70,6 +82,9 @@ export const ExpensesChart = () => {
             </TabsTrigger>
             <TabsTrigger value="severity" onClick={() => setChartDisplay('severity')}>
               {i18n.t('by_severity')}
+            </TabsTrigger>
+            <TabsTrigger value="cost_nature" onClick={() => setChartDisplay('cost_nature')}>
+              {i18n.t('by_cost_nature')}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -126,8 +141,8 @@ export const ExpensesChart = () => {
                           <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
                             {formatMoneyValue(value, settings?.currency)}
                           </div>
-                          {/* Add this after the last item */}
-                          {index === 2 && (
+                          {/* Add this after the last item, whichever split is on show */}
+                          {index === (chartDisplay === 'severity' ? 2 : 1) && (
                             <div className="text-foreground mt-1.5 flex basis-full items-center border-t pt-1.5 text-xs font-medium">
                               {i18n.t('total')}
                               <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
@@ -141,13 +156,25 @@ export const ExpensesChart = () => {
                   />
                 }
               />
-              {chartDisplay === 'total' ? (
+              {chartDisplay === 'total' && (
                 <Bar dataKey="total" stackId="a" fill="var(--color-total)" radius={4} />
-              ) : (
+              )}
+              {chartDisplay === 'severity' && (
                 <>
                   <Bar dataKey="high" stackId="a" fill="var(--color-high)" radius={4} />
                   <Bar dataKey="medium" stackId="a" fill="var(--color-medium)" radius={4} />
                   <Bar dataKey="low" stackId="a" fill="var(--color-low)" radius={4} />
+                </>
+              )}
+              {chartDisplay === 'cost_nature' && (
+                <>
+                  <Bar
+                    dataKey="irreducible"
+                    stackId="a"
+                    fill="var(--color-irreducible)"
+                    radius={4}
+                  />
+                  <Bar dataKey="reducible" stackId="a" fill="var(--color-reducible)" radius={4} />
                 </>
               )}
             </BarChart>

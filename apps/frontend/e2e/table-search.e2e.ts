@@ -34,7 +34,7 @@ test('searching finds a row by its priority, and the total follows the rows', as
   // read in.
   for (const spec of [
     { description: 'Czynsz', amount: 2500, severity: 'HIGH' as const, frequency: 'MONTHLY' as const },
-    { description: 'Kawa', amount: 100, severity: 'LOW' as const, frequency: 'MONTHLY' as const },
+    { description: 'Kawa', amount: 100, survivesIncomeLoss: false, frequency: 'MONTHLY' as const },
   ]) {
     await app.addExpense(spec);
     await device.page.reload();
@@ -45,8 +45,12 @@ test('searching finds a row by its priority, and the total follows the rows', as
   // order an unsorted table happens to hand them back in.
   expect((await app.rowDescriptions()).sort()).toEqual(['Czynsz', 'Kawa']);
 
-  // "Wysoki" is nowhere in either description; it is what HIGH is rendered as.
+  // "Wysoki" is nowhere in either description; it is what HIGH is rendered as. Same for
+  // "Zostaje", which is how a cost that survives losing the income reads.
   await app.searchFor('wysoki');
+  expect(await app.rowDescriptions()).toEqual(['Czynsz']);
+
+  await app.searchFor('zostaje');
   expect(await app.rowDescriptions()).toEqual(['Czynsz']);
   // A year of a monthly 2500.
   expect(await app.footerTotal()).toContain('30000,00');

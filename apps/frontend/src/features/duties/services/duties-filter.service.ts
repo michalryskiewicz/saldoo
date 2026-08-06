@@ -17,11 +17,17 @@ export function selectVisibleDuties<T extends MarkedDuty>(duties: T[], status: D
   return duties;
 }
 
-/** What the visible occurrences come to, skipping the ones that will not be paid. */
-export function sumPayableDuties(
-  duties: (MarkedDuty & { expense?: { expense?: number } | null })[]
-) {
+/**
+ * What the visible occurrences come to, skipping the ones that will not be paid.
+ *
+ * Adds the price resolved onto the row, never the amount on the cost behind it. Those two differ
+ * twice over: a share of an income has no amount on its record at all, and on a screen showing a
+ * currency other than the one a cost was entered in the converted figure lives on the row, because
+ * conversion cannot reach a figure nested inside the cost. Reading the nested one added złoty to
+ * euro and called the result a total.
+ */
+export function sumPayableDuties(duties: (MarkedDuty & { price?: number })[]) {
   return duties
     .filter((duty) => !duty.ignored)
-    .reduce((total, duty) => total + (duty.expense?.expense ?? 0), 0);
+    .reduce((total, duty) => total + (duty.price ?? 0), 0);
 }

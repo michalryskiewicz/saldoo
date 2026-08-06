@@ -51,6 +51,8 @@
   --color-severity-medium-fill: var(--severity-medium-fill);
   --color-severity-high-fill: var(--severity-high-fill);
   --color-severity-fill-foreground: var(--severity-fill-foreground);
+  --color-cost-reducible-fill: var(--cost-reducible-fill);
+  --color-cost-irreducible-fill: var(--cost-irreducible-fill);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -155,6 +157,15 @@
      each, so one foreground serves both and the chip cannot drift from the bar. */
   --severity-fill-foreground: oklch(0.22 0.02 260);
 
+  /* Whether a cost survives losing the income, in the chart.
+   *
+   * Deliberately outside the red-amber-green family the priority owns. Colour in this app means
+   * urgency and nothing else, and that a cost cannot be cut is a fact rather than an alarm — so
+   * flipping the chart from the priority tab to this one must not leave the same red bar meaning
+   * something new. Two blues, told apart from each other and from every priority. */
+  --cost-irreducible-fill: oklch(0.62 0.13 250);
+  --cost-reducible-fill: oklch(0.84 0.06 245);
+
   --sidebar: oklch(0.985 0.002 247.839);
   --sidebar-foreground: oklch(0.13 0.028 261.692);
   --sidebar-primary: oklch(0.21 0.034 264.665);
@@ -218,6 +229,8 @@
   --severity-medium-fill: oklch(0.87 0.16 95);
   --severity-high-fill: oklch(0.72 0.19 25.3);
   --severity-fill-foreground: oklch(0.22 0.02 260);
+  --cost-irreducible-fill: oklch(0.62 0.13 250);
+  --cost-reducible-fill: oklch(0.84 0.06 245);
 
   --sidebar: oklch(0.21 0.034 264.665);
   --sidebar-foreground: oklch(0.985 0.002 247.839);
