@@ -9,6 +9,7 @@ import type { DBSettings } from '@/database/settings.ts';
 import type { DBGoal, DBClosedWindow } from '@/database/goals.ts';
 import type { DBContribution } from '@/database/contributions.ts';
 import type { DBPosition } from '@/database/positions.ts';
+import type { DBBondHolding } from '@/database/bonds.ts';
 
 export class AppDB extends Dexie {
   expenses!: Table<DBExpense, string>;
@@ -22,6 +23,7 @@ export class AppDB extends Dexie {
   contributions!: Table<DBContribution, string>;
   closedWindows!: Table<DBClosedWindow, string>;
   positions!: Table<DBPosition, string>;
+  bonds!: Table<DBBondHolding, string>;
 
   constructor() {
     super('saldoo');
@@ -104,6 +106,26 @@ export class AppDB extends Dexie {
       contributions: 'id, createdAt, updatedAt, goalId, contributedAt, transactionId',
       closedWindows: 'id, createdAt, goalId, seriesId, year',
       positions: 'id, createdAt, updatedAt, description, kind, currency, valuedOn',
+    });
+
+    // Version 6 adds retail treasury bonds, whose value is computed rather than stated.
+    this.version(6).stores({
+      expenses:
+        'id, createdAt, updatedAt, userId, description, expense, currency, severity, frequency, execution, strategyPart, tagId',
+      profits:
+        'id, createdAt, updatedAt, userId, description, profit, currency, frequency, execution',
+      duties:
+        'id, createdAt, updatedAt, resolved, ignored, frequency, executionDate, expenseId, transactionId, &hash',
+      transactions:
+        'id, createdAt, updatedAt, transactionId, sourceBank, amount, currency, transactionDate, description, &hash, expenseId, strategyPart, tagId, duties',
+      tags: 'id, createdAt, updatedAt, userId, &name',
+      meta: '&key',
+      settings: '&id',
+      goals: 'id, createdAt, updatedAt, description, currency, strategyPart, deadline, year, seriesId, closedAt',
+      contributions: 'id, createdAt, updatedAt, goalId, contributedAt, transactionId',
+      closedWindows: 'id, createdAt, goalId, seriesId, year',
+      positions: 'id, createdAt, updatedAt, description, kind, currency, valuedOn',
+      bonds: 'id, createdAt, updatedAt, description, boughtOn, currency',
     });
   }
 }

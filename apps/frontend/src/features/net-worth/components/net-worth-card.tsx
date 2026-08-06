@@ -8,7 +8,7 @@ import { useNetWorth } from '@/features/net-worth/hooks/use-net-worth.tsx';
 import { formatValuationAge } from '@/features/net-worth/services/valuation-age.service.ts';
 
 export function NetWorthCard() {
-  const { totals, currency, valuedOn, positions } = useNetWorth();
+  const { totals, currency, valuedOn, positions, bonds } = useNetWorth();
 
   return (
     <Card className="h-full">
@@ -20,7 +20,7 @@ export function NetWorthCard() {
       </CardHeader>
 
       <CardContent>
-        {positions.length ? (
+        {positions.length || bonds.length ? (
           <div className="flex flex-col gap-3">
             <span className="text-3xl font-semibold tabular-nums" data-slot="net-worth">
               {formatMoney(totals.net, currency)}
