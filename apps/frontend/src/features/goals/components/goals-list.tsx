@@ -12,7 +12,7 @@ import { formatMonthAndYear } from '@/features/goals/services/goal-copy.service.
 
 export function GoalsList() {
   const dispatch = useDispatch();
-  const { progress, totalPutAside, currency } = useGoals();
+  const { progress, totalPutAside, confirmed, currency } = useGoals();
 
   if (!progress.length) {
     return (
@@ -36,6 +36,13 @@ export function GoalsList() {
           </span>
           <span className="text-3xl font-semibold tabular-nums" data-slot="total-put-aside">
             {formatMoney(totalPutAside, currency)}
+          </span>
+          {/* Never red and never subtracted. The rest is not wrong — it is unconfirmed, which is a
+              statement about a bank's latency rather than about the person. */}
+          <span className="text-muted-foreground text-sm" data-slot="confirmed-portion">
+            {i18n.t('goal.confirmed_of', {
+              confirmed: formatMoney(confirmed, currency),
+            })}
           </span>
         </CardContent>
       </Card>

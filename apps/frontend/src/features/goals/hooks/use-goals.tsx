@@ -8,6 +8,7 @@ import { getEarliestAndLatestDate, toISODate } from '@/lib/dates.ts';
 import { goalProgress, totalPutAside } from '@/features/goals/services/goal-progress.service.ts';
 import { applyDBRollovers, isEmergencyFund } from '@/database/goals.ts';
 import { rolloversDue } from '@/features/goals/services/rollover.service.ts';
+import { confirmedPortion } from '@/features/goals/services/goal-months.service.ts';
 import { DEFAULT_SETTINGS } from '@/database/settings.service.ts';
 
 /**
@@ -102,5 +103,14 @@ export const useGoals = () => {
       goals: convertedGoals,
       contributions: convertedContributions,
     }),
+    // Beside the figure, never instead of it: a contribution with nothing behind it is most often
+    // a transfer somebody meant to make and did, days before their bank got round to saying so.
+    confirmed: confirmedPortion(
+      convertedContributions.filter((contribution) =>
+        convertedGoals.some(
+          (goal) => goal.id === contribution.goalId && !isEmergencyFund(goal)
+        )
+      )
+    ).confirmed,
   };
 };

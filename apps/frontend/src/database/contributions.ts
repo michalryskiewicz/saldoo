@@ -35,6 +35,14 @@ export type DBContribution = {
    * figure grows on declarations and what a statement confirms is shown beside it, never instead.
    */
   transactionId?: string | null;
+  /**
+   * Payments the person has said are not this one's.
+   *
+   * Recorded rather than blocking the contribution outright: matching is a ±4 day window, so it
+   * can land on the wrong transfer, and a contribution that could never match again would punish
+   * somebody for correcting the guess.
+   */
+  rejectedTransactionIds?: string[];
 };
 
 export type ContributionDraft = Omit<DBContribution, 'id' | 'createdAt' | 'updatedAt'>;
