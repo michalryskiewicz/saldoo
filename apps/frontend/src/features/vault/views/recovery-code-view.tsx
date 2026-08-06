@@ -26,7 +26,7 @@ export function RecoveryCodeView({ recoveryCode, onConfirmed }: RecoveryCodeView
   };
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       <p className="text-muted-foreground text-sm">{i18n.t('vault.recovery_description')}</p>
 
       <code

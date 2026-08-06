@@ -32,8 +32,12 @@ export function VaultUnlockView({ onUnlock, isUnlocking, unlockError }: VaultUnl
   };
 
   return (
-    <form className="grid gap-6" onSubmit={handleSubmit} noValidate>
-      <div className="grid gap-2">
+    // `minmax(0,1fr)` rather than the default `1fr`, which is `minmax(auto,1fr)` and refuses to
+    // go below the widest child's min-content width. One button's label is a whole sentence and
+    // buttons do not wrap, so the track grew to fit it and took the password field and the other
+    // button — both full-width of that track — out past the edge of the card with it.
+    <form className="grid grid-cols-[minmax(0,1fr)] gap-6" onSubmit={handleSubmit} noValidate>
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
         <Label htmlFor="vault-secret">
           {usingRecoveryCode
             ? i18n.t('vault.recovery_code_label')
@@ -64,7 +68,9 @@ export function VaultUnlockView({ onUnlock, isUnlocking, unlockError }: VaultUnl
         {i18n.t('vault.unlock_button')}
       </Button>
 
-      <Button variant="ghost" type="button" onClick={switchMode}>
+      {/* A sentence rather than a word, so it is allowed to wrap. Buttons are `whitespace-nowrap`
+          by default, which is right for "Zapisz" and wrong for this. */}
+      <Button variant="ghost" type="button" className="h-auto whitespace-normal" onClick={switchMode}>
         {usingRecoveryCode ? i18n.t('vault.use_passphrase') : i18n.t('vault.use_recovery_code')}
       </Button>
     </form>

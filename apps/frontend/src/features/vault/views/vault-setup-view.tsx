@@ -40,8 +40,8 @@ export function VaultSetupView({ onSubmit, isSubmitting, submitError }: VaultSet
   const errorMessage = problem ? i18n.t(PROBLEM_MESSAGES[problem]) : submitError;
 
   return (
-    <form className="grid gap-6" onSubmit={handleSubmit} noValidate>
-      <div className="grid gap-2">
+    <form className="grid grid-cols-[minmax(0,1fr)] gap-6" onSubmit={handleSubmit} noValidate>
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
         <Label htmlFor="vault-passphrase">{i18n.t('vault.passphrase_label')}</Label>
         <Input
           id="vault-passphrase"
@@ -59,7 +59,7 @@ export function VaultSetupView({ onSubmit, isSubmitting, submitError }: VaultSet
         </p>
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
         <Label htmlFor="vault-passphrase-confirm">
           {i18n.t('vault.passphrase_confirm_label')}
         </Label>
