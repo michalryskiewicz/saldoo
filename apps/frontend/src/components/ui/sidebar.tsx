@@ -297,7 +297,13 @@ function SidebarInset({ className, ...props }: React.ComponentProps<'main'>) {
     <main
       data-slot="sidebar-inset"
       className={cn(
-        'bg-background relative flex w-full flex-1 flex-col',
+        // `min-w-0` is load-bearing. A flex item's `min-width` is `auto`, so without it this
+        // refuses to shrink below the widest thing inside it — a nine-column table — and the
+        // document grows instead. The sidebar is `position: fixed`, so the result does not look
+        // like a wide page: the page slides sideways underneath the sidebar, which then lies on
+        // top of the content. Zeroed here, the table's own `overflow-x-auto` frame does the
+        // scrolling, which is where a too-wide table belongs.
+        'bg-background relative flex w-full min-w-0 flex-1 flex-col',
         'md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2',
         className
       )}
