@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/database';
 import { useSettings } from '@/features/settings/use-settings.ts';
@@ -5,7 +6,8 @@ import { useListExchangeRatesQuery } from '@/store/exchange-rates.api.ts';
 import { convertDataToDesiredCurrency } from '@/lib/exchange-rate.ts';
 import { getEarliestAndLatestDate, toISODate } from '@/lib/dates.ts';
 import { goalProgress, totalPutAside } from '@/features/goals/services/goal-progress.service.ts';
-import { isEmergencyFund } from '@/database/goals.ts';
+import { applyDBRollovers, isEmergencyFund } from '@/database/goals.ts';
+import { rolloversDue } from '@/features/goals/services/rollover.service.ts';
 import { DEFAULT_SETTINGS } from '@/database/settings.service.ts';
 
 /**
@@ -63,6 +65,26 @@ export const useGoals = () => {
   ) as typeof contributions;
 
   const today = new Date();
+
+  // The turn of the year, applied when somebody next opens the screen. There is no clock running
+  // in a local-first app that may be shut for a fortnight, so the work happens on the first visit
+  // of the new year instead — which is also the first moment it could be seen.
+  //
+  // The guard is a ref rather than the effect's own dependencies: `useLiveQuery` re-emits the
+  // moment the first write lands, and without it the second pass would start before the first had
+  // finished writing the goal that makes it a no-op.
+  const rollingOver = useRef(false);
+
+  useEffect(() => {
+    const due = rolloversDue({ goals, contributions, today: new Date() });
+
+    if (!due.length || rollingOver.current) return;
+
+    rollingOver.current = true;
+    applyDBRollovers(due).finally(() => {
+      rollingOver.current = false;
+    });
+  }, [goals, contributions]);
 
   return {
     // The screen always has a currency to print in; conversion is gated on the stored one, so an

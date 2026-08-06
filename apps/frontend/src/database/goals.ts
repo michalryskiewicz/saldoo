@@ -6,6 +6,7 @@ import { documentSession } from '@/database/document/document.container.ts';
 import { outbox } from '@/database/document/outbox.container.ts';
 import { setLastUpdated } from '@/database/meta.ts';
 import { getSettings } from '@/database/settings.ts';
+import type { Rollover } from '@/features/goals/services/rollover.service.ts';
 
 /** Months of living costs the emergency fund is meant to cover. The level, not the amount. */
 export type CoverageMonths = 3 | 6 | 12;
@@ -96,7 +97,10 @@ export const isEmergencyFund = (goal: Pick<DBGoal, 'coverageMonths'>): boolean =
  * @returns whether the write landed. Callers close a drawer on the strength of this: reporting
  * nothing made a save that never happened look exactly like one that did.
  */
-export const addDBGoal = async (draft: GoalDraft): Promise<boolean> => {
+export const addDBGoal = async (
+  draft: GoalDraft,
+  { quietly = false }: { quietly?: boolean } = {}
+): Promise<boolean> => {
   try {
     const { currency } = await getSettings();
 
@@ -114,7 +118,7 @@ export const addDBGoal = async (draft: GoalDraft): Promise<boolean> => {
     });
     await setLastUpdated();
     outbox.markDirty();
-    toast(i18n.t('success.create-goal'));
+    if (!quietly) toast(i18n.t('success.create-goal'));
 
     return true;
   } catch (e) {
@@ -122,5 +126,45 @@ export const addDBGoal = async (draft: GoalDraft): Promise<boolean> => {
     toast(i18n.t('errors.create-goal'));
 
     return false;
+  }
+};
+
+/**
+ * Puts a year to bed and opens the next one.
+ *
+ * Three writes and all three matter: without the record the money that was in the pot is nowhere,
+ * without the new window there is nothing to contribute to in January, and without closing the old
+ * one the app rolls it again on the next visit.
+ *
+ * Silent by design — no toast. A year ending is not something the person did, and telling them
+ * about it as though it were an action of theirs is the kind of noise that teaches people to
+ * dismiss notices without reading them.
+ */
+export const applyDBRollovers = async (rollovers: Rollover[]): Promise<void> => {
+  for (const { closing, opening } of rollovers) {
+    try {
+      await documentSession.put('closedWindows', {
+        id: uuidv4(),
+        createdAt: new Date(),
+        ...closing,
+      });
+
+      await addDBGoal(opening, { quietly: true });
+
+      await documentSession.update('goals', closing.goalId, {
+        closedAt: new Date(),
+        updatedAt: new Date(),
+      });
+    } catch (e) {
+      // Left for the next visit rather than half-applied: the guards in `rolloversDue` are what
+      // make trying again safe, and a year that failed to close is still a year that ended.
+      console.error(e);
+      return;
+    }
+  }
+
+  if (rollovers.length) {
+    await setLastUpdated();
+    outbox.markDirty();
   }
 };
