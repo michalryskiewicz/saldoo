@@ -10,6 +10,8 @@ export type PreferencesSliceState = {
   goalsDrawerId?: string;
   /** Which goal the 'put aside' drawer is about, if it is open. */
   contributionGoalId?: string;
+  /** The expense the goal drawer was opened to replace, if it was opened that way. */
+  convertingExpenseId?: string;
 };
 
 // ===========================================================================
@@ -36,6 +38,9 @@ const preferencesSlice = createSlice({
     setContributionGoalId: (state: PreferencesSliceState, action) => {
       state.contributionGoalId = action.payload;
     },
+    setConvertingExpenseId: (state: PreferencesSliceState, action) => {
+      state.convertingExpenseId = action.payload;
+    },
   },
 });
 
@@ -45,6 +50,7 @@ export const {
   setTransactionsDrawerId,
   setGoalsDrawerId,
   setContributionGoalId,
+  setConvertingExpenseId,
 } = preferencesSlice.actions;
 
 export default preferencesSlice.reducer;
