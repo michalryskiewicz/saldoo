@@ -78,6 +78,7 @@
   "monthly_spending_day": "Day {{day}}",
   "monthly_spending_peak": "The most went out on day {{day}} ({{amount}})",
   "monthly_spending_none": "Nothing has left the account this month yet",
+  "wealth": "Net worth",
   "goals": "Goals",
   "expenses": "Expenses",
   "list": "List",
@@ -102,6 +103,25 @@
     "this-month": "This month",
     "of": "of",
     "base-gone": "no base"
+  },
+  "holdings": {
+    "title": "Net worth",
+    "subtitle": "What you hold and what you owe",
+    "create": "Add a position",
+    "create_title": "A position",
+    "create_description": "Say what it is worth today. Saldoo prices nothing on its own — the value and the date are yours.",
+    "empty": "Nothing here yet. Add an account, a pension, a flat, or a loan.",
+    "what": "What it is",
+    "kind": "Kind",
+    "asset": "I hold",
+    "liability": "I owe",
+    "value": "What it is worth",
+    "valued_on": "As at",
+    "net_worth": "Net worth",
+    "held": "Held",
+    "owed": "Owed",
+    "as_of": "Oldest valuation: {{date}}",
+    "never_valued": "No positions"
   },
   "goal": {
     "title": "Goals",
@@ -249,6 +269,9 @@
   "success": {
     "create-expense": "Expense added",
     "create-goal": "Goal created",
+    "create-position": "Position added",
+    "update-position": "Position updated",
+    "deleted-position": "Position removed",
     "create-contribution": "Contribution recorded",
     "update-expense": "Expense updated",
     "deleted-expense": "Expense deleted",
@@ -267,6 +290,9 @@
   "errors": {
     "create-expense": "Could not add the expense. Please try again later",
     "create-goal": "Could not create the goal",
+    "create-position": "Could not add the position",
+    "update-position": "Could not update the position",
+    "deleted-position": "Could not remove the position",
     "create-contribution": "Could not record the contribution",
     "update-expense": "Could not update the expense. Please try again later",
     "deleted-expense": "Could not delete the expense. Please try again later",
@@ -313,6 +339,7 @@
     "expenses": "Expenses",
     "duties": "Duties",
     "goals": "Goals",
+    "wealth": "Net worth",
     "profits": "Profits",
     "account": "Account Settings",
     "transactions": "Transactions"

@@ -78,6 +78,7 @@
   "monthly_spending_day": "{{day}}. dnia miesiąca",
   "monthly_spending_peak": "Najwięcej wydałeś {{day}}. dnia miesiąca ({{amount}})",
   "monthly_spending_none": "W tym miesiącu nic jeszcze nie wyszło z konta",
+  "wealth": "Majątek",
   "goals": "Cele",
   "expenses": "Wydatki",
   "list": "Lista",
@@ -102,6 +103,25 @@
     "this-month": "Ten miesiąc",
     "of": "z",
     "base-gone": "brak podstawy"
+  },
+  "holdings": {
+    "title": "Majątek",
+    "subtitle": "Co masz i co jesteś winien",
+    "create": "Dodaj pozycję",
+    "create_title": "Pozycja majątku",
+    "create_description": "Wpisz, ile to jest warte dzisiaj. Saldoo nie wycenia niczego samo — wartość i data są Twoje.",
+    "empty": "Nic tu jeszcze nie ma. Dodaj konto, IKE, mieszkanie albo kredyt.",
+    "what": "Co to jest",
+    "kind": "Rodzaj",
+    "asset": "Mam",
+    "liability": "Jestem winien",
+    "value": "Ile to jest warte",
+    "valued_on": "Na dzień",
+    "net_worth": "Majątek netto",
+    "held": "Masz",
+    "owed": "Jesteś winien",
+    "as_of": "Najstarsza wycena: {{date}}",
+    "never_valued": "Brak pozycji"
   },
   "goal": {
     "title": "Cele",
@@ -249,6 +269,9 @@
   "success": {
     "create-expense": "Pomyślnie dodano wydatek",
     "create-goal": "Cel utworzony",
+    "create-position": "Pozycja dodana",
+    "update-position": "Pozycja zaktualizowana",
+    "deleted-position": "Pozycja usunięta",
     "create-contribution": "Wpłata zapisana",
     "update-expense": "Pomyślnie zaktualizowano wydatek",
     "deleted-expense": "Pomyślnie usunięto wydatek",
@@ -267,6 +290,9 @@
   "errors": {
     "create-expense": "Nie udało się dodać wydatku. Spróbuj ponownie później",
     "create-goal": "Nie udało się utworzyć celu",
+    "create-position": "Nie udało się dodać pozycji",
+    "update-position": "Nie udało się zaktualizować pozycji",
+    "deleted-position": "Nie udało się usunąć pozycji",
     "create-contribution": "Nie udało się zapisać wpłaty",
     "update-expense": "Nie udało się zaktualizować wydatku. Spróbuj ponownie później",
     "deleted-expense": "Nie udało się usunąć wydatku. Spróbuj ponownie później",
@@ -313,6 +339,7 @@
     "expenses": "Wydatki",
     "duties": "Zobowiązania",
     "goals": "Cele",
+    "wealth": "Majątek",
     "profits": "Zyski",
     "account": "Ustawienia Konta",
     "transactions": "Transakcje"

@@ -12,6 +12,7 @@ export type PreferencesSliceState = {
   contributionGoalId?: string;
   /** The expense the goal drawer was opened to replace, if it was opened that way. */
   convertingExpenseId?: string;
+  positionsDrawerId?: string;
 };
 
 // ===========================================================================
@@ -41,6 +42,9 @@ const preferencesSlice = createSlice({
     setConvertingExpenseId: (state: PreferencesSliceState, action) => {
       state.convertingExpenseId = action.payload;
     },
+    setPositionsDrawerId: (state: PreferencesSliceState, action) => {
+      state.positionsDrawerId = action.payload;
+    },
   },
 });
 
@@ -51,6 +55,7 @@ export const {
   setGoalsDrawerId,
   setContributionGoalId,
   setConvertingExpenseId,
+  setPositionsDrawerId,
 } = preferencesSlice.actions;
 
 export default preferencesSlice.reducer;

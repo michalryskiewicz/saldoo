@@ -41,6 +41,7 @@ const PROJECTED_TABLES: readonly DocumentTable[] = [
   'goals',
   'contributions',
   'closedWindows',
+  'positions',
   'settings',
 ];
 
