@@ -14,7 +14,6 @@ import { Cell, Header } from '@/components/tanstack-table';
 import { TOTAL, type Currency } from '@/constant.ts';
 import DutiesTableActions from '@/features/duties/components/duties-table-actions.tsx';
 import DutyTermCell from '@/features/duties/components/duty-term-cell.tsx';
-import DutyDescriptionButton from '@/features/duties/components/duty-description-button.tsx';
 import { dutiesEmptyReason } from '@/features/duties/services/duties-empty.service.ts';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/database';
@@ -81,7 +80,7 @@ const columns: ColumnDef<DutyRow>[] = [
         return <Cell.Description id={id} name={expense.description} totalLabel={totalLabel} />;
       }
 
-      return <DutyDescriptionButton expenseId={expense.id} name={expense.description} />;
+      return <Cell.Description id={id} name={expense.description} opensExpenseId={expense.id} />;
     },
     header: ({ column }) => <Header.Sort column={column} header="description" />,
   },
