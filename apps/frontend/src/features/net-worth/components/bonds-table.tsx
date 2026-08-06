@@ -59,7 +59,6 @@ const BondActions = ({ id, name }: { id: string; name: string }) => {
   );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 const columns: ColumnDef<BondRow>[] = [
   {
     accessorKey: 'description',

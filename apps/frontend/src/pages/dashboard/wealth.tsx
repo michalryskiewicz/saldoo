@@ -8,6 +8,7 @@ import PositionsCreate from '@/features/net-worth/components/positions-create.ts
 import { PositionsTable } from '@/features/net-worth/components/positions-table.tsx';
 import BondsCreate from '@/features/net-worth/components/bonds-create.tsx';
 import { BondsTable } from '@/features/net-worth/components/bonds-table.tsx';
+import { BondsChart } from '@/features/net-worth/components/bonds-chart.tsx';
 import { setBondsDrawerId } from '@/store/preferences.slice.ts';
 import { PageHeader as SectionHeader } from '@/components/page-header.tsx';
 
@@ -35,6 +36,8 @@ export default function Wealth() {
       </SectionHeader>
 
       <BondsCreate />
+
+      <BondsChart />
 
       <BondsTable />
     </>

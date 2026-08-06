@@ -125,7 +125,13 @@
     "value": "Worth today",
     "accrued": "Accrued",
     "paid_out": "Paid out",
-    "empty": "No bonds yet."
+    "empty": "No bonds yet.",
+    "chart_title": "What these bonds are worth, and what they have earned",
+    "chart_description": "Capital and interest, month by month. Past today it is a projection at the rate you entered — a rate is only announced for the current period. Interest from bonds that pay out goes to your account, so net worth counts it there rather than here.",
+    "chart_other_currency": "Holdings in another currency left out ({{excluded}}) — a projection cannot be converted.",
+    "capital": "Capital",
+    "interest_earned": "Interest",
+    "projection": "Projection"
   },
   "holdings": {
     "title": "Net worth",

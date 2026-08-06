@@ -125,7 +125,13 @@
     "value": "Wartość dziś",
     "accrued": "Narosło",
     "paid_out": "Wypłacono",
-    "empty": "Nie masz jeszcze żadnych obligacji."
+    "empty": "Nie masz jeszcze żadnych obligacji.",
+    "chart_title": "Ile te obligacje są warte i ile zarobiły",
+    "chart_description": "Kapitał i odsetki, miesiąc po miesiącu. Za dzisiejszą datą to projekcja przy oprocentowaniu, które wpisałeś — stawka jest ogłaszana tylko na bieżący okres. Odsetki obligacji wypłacających trafiają na Twoje konto, więc w majątku liczą się tam, a nie tutaj.",
+    "chart_other_currency": "Pominięto pozycje w innej walucie ({{excluded}}) — projekcji nie da się przewalutować.",
+    "capital": "Kapitał",
+    "interest_earned": "Odsetki",
+    "projection": "Projekcja"
   },
   "holdings": {
     "title": "Majątek",

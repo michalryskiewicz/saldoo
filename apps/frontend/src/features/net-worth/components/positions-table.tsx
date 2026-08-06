@@ -52,7 +52,6 @@ const PositionActions = ({ id }: { id: string }) => {
   );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 const columns: ColumnDef<PositionRow>[] = [
   {
     accessorKey: 'description',
