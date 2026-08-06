@@ -143,19 +143,38 @@ export function groupExpensesByCategory(
   }));
 }
 
-export function groupExpensesByStrategyPart(
-  month: number,
-  expenses: DBExpense[],
-  transactions: DBTransaction[],
+/** An occurrence as the callers hand it over, with the cost that produced it joined in. */
+export type PricedDuty = Omit<DBDuty, 'expense'> & {
+  price: number;
+  currency: Currency;
   // DBDuty declares `expense?: DBExpense`; callers join it in and use null for "no
   // matching expense", so the property is replaced rather than intersected.
-  duties: (Omit<DBDuty, 'expense'> & {
-    price: number;
-    currency: Currency;
-    expense: DBExpense | null;
-  })[],
-  profits: DBProfit[] = []
-) {
+  expense: DBExpense | null;
+};
+
+export type StrategyPartsForMonth = {
+  monthIndex: number;
+  expenses: DBExpense[];
+  transactions: DBTransaction[];
+  duties: PricedDuty[];
+  profits?: DBProfit[];
+};
+
+/**
+ * Where one month's money went, by part of the budgeting strategy — planned against real.
+ *
+ * Named for what it computes rather than for the table it started with. It reads four sources and
+ * is about to read a fifth, and "grouping expenses" stopped describing it somewhere around the
+ * third: a positional argument list nobody can read at the call site is how a source gets passed
+ * in the wrong slot.
+ */
+export function strategyPartsForMonth({
+  monthIndex: month,
+  expenses,
+  transactions,
+  duties,
+  profits = [],
+}: StrategyPartsForMonth) {
   const year = new Date().getFullYear();
   const strategyTotals: Record<string, number> = {};
   const realTotals: Record<string, number> = {};

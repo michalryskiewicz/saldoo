@@ -4,7 +4,7 @@ import {
   groupExpensesAndProfitsByMonth,
   groupExpensesByCategory,
   groupExpensesByMonth,
-  groupExpensesByStrategyPart,
+  strategyPartsForMonth,
 } from '../expenses';
 import { countWeekdaysInMonth, daysInMonth, MONTHS } from '../dates';
 import type { DBExpense } from '@/database/expenses.ts';
@@ -426,7 +426,7 @@ describe('expenses service', () => {
     });
   });
 
-  describe('groupExpensesByStrategyPart', () => {
+  describe('strategyPartsForMonth', () => {
     it('returns correct planned and real totals for monthly and yearly expenses', () => {
       const month = 9; // October (0-based)
       freezeClock('2025-10-15');
@@ -485,7 +485,7 @@ describe('expenses service', () => {
       ] as unknown as (DBDuty & { price: number; currency: Currency })[];
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
-      const result = groupExpensesByStrategyPart(month, expenses, transactions, duties);
+      const result = strategyPartsForMonth({ monthIndex: month, expenses, transactions, duties });
       expect(result.find((r) => r.strategyPart === 'NEEDS')?.planned).toBe(100);
       expect(result.find((r) => r.strategyPart === 'NEEDS')?.real).toBe(100);
       expect(result.find((r) => r.strategyPart === 'WANTS')?.planned).toBe(200);
@@ -493,7 +493,7 @@ describe('expenses service', () => {
     });
 
     it('returns zero totals when no matching strategyPart exists', () => {
-      const result = groupExpensesByStrategyPart(9, [], [], []);
+      const result = strategyPartsForMonth({ monthIndex: 9, expenses: [], transactions: [], duties: [] });
       expect(result).toEqual([]);
     });
 
@@ -512,7 +512,7 @@ describe('expenses service', () => {
       ] as unknown as (DBDuty & { price: number; currency: Currency })[];
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
-      const result = groupExpensesByStrategyPart(month, [], [], duties);
+      const result = strategyPartsForMonth({ monthIndex: month, expenses: [], transactions: [], duties });
       expect(result.find((r) => r.strategyPart === 'NEEDS')?.real).toEqual(undefined);
     });
 
@@ -526,7 +526,7 @@ describe('expenses service', () => {
       const duties = [
         { price: 20, currency: 'EUR', executionDate: '2025-10-05', resolved: true },
       ] as never[];
-      const result = groupExpensesByStrategyPart(month, expenses, transactions, duties);
+      const result = strategyPartsForMonth({ monthIndex: month, expenses, transactions, duties });
       expect(result).toEqual([]);
     });
 
@@ -548,7 +548,7 @@ describe('expenses service', () => {
           frequency: 'DAILY',
         },
       ] as never[];
-      const result = groupExpensesByStrategyPart(month, expenses, [], []);
+      const result = strategyPartsForMonth({ monthIndex: month, expenses, transactions: [], duties: [] });
       const sundays = countWeekdaysInMonth(year, month, weekday);
       const days = daysInMonth(year, month);
       expect(result.find((r) => r.strategyPart === 'NEEDS')?.planned).toBe(10 * sundays);
@@ -642,14 +642,14 @@ describe('a share of a named income, wherever a total is drawn', () => {
       expense: { strategyPart: 'NEEDS', expense: 0 },
     } as never;
 
-    const parts = groupExpensesByStrategyPart(3, [], [], [paid], []);
+    const parts = strategyPartsForMonth({ monthIndex: 3, expenses: [], transactions: [], duties: [paid] });
 
     expect(parts.find((part) => part.strategyPart === 'NEEDS')?.real).toBe(1200);
   });
 
   it('reaches the budget-strategy breakdown', () => {
     freezeClock('2026-06-15');
-    const parts = groupExpensesByStrategyPart(3, [taxOnIt], [], [], [invoiceInMarch]);
+    const parts = strategyPartsForMonth({ monthIndex: 3, expenses: [taxOnIt], transactions: [], duties: [], profits: [invoiceInMarch] });
 
     expect(parts.find((part) => part.strategyPart === 'NEEDS')?.planned).toBe(1200);
   });
