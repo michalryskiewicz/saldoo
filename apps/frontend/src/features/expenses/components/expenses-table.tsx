@@ -43,6 +43,7 @@ export const columns: ColumnDef<ExpenseRow>[] = [
         id={row.original.id}
         name={row.original.description}
         totalLabel={row.original.totalLabel}
+        opensExpenseId={row.original.id === TOTAL ? undefined : row.original.id}
       />
     ),
     header: ({ column }) => <Header.Sort column={column} header="description" />,

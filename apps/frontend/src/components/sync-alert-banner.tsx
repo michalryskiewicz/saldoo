@@ -41,7 +41,7 @@ export function SyncAlertBanner({ isDriveConnected }: SyncAlertBannerProps) {
   return (
     <div
       role="alert"
-      className="bg-destructive/10 text-destructive flex flex-wrap items-center gap-3 px-4 py-2 text-sm"
+      className="bg-destructive-surface text-destructive flex flex-wrap items-center gap-3 px-4 py-2 text-sm"
     >
       <TriangleAlert className="size-4 shrink-0" aria-hidden />
       <span className="grow">{i18n.t(alert.message)}</span>

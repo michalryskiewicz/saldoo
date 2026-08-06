@@ -44,6 +44,7 @@
   --color-positive: var(--positive);
   --color-warning: var(--warning);
   --color-info: var(--info);
+  --color-destructive-surface: var(--destructive-surface);
   --color-severity-low: var(--severity-low);
   --color-severity-medium: var(--severity-medium);
   --color-severity-high: var(--severity-high);
@@ -123,6 +124,16 @@
   --positive: oklch(0.508 0.118 165.612);
   --warning: oklch(0.49 0.145 48.0);
   --info: oklch(0.546 0.245 262.881);
+
+  /*
+   * A surface carrying urgency, and the reason it is a token rather than `bg-destructive/10`.
+   *
+   * An alpha modifier is invisible to `contrast.e2e.ts`, which reads pairs of custom properties and
+   * composites them — so the one element in the app whose whole job is to be read was the one
+   * element whose legibility rested on somebody having looked at a screenshot once. Named, the
+   * pairing comes inside the guard, and the app has a word for a thing it will want again.
+   */
+  --destructive-surface: oklch(0.986 0.009 27.325);
 
   /*
    * A traffic light, as bright as the contrast floor allows.
@@ -216,6 +227,7 @@
   --positive: oklch(0.765 0.177 163.223);
   --warning: oklch(0.828 0.189 84.429);
   --info: oklch(0.707 0.165 254.624);
+  --destructive-surface: oklch(0.27 0.05 27.325);
 
   /* Same traffic light, and on a dark card it can be brighter still. */
   --severity-low: oklch(0.78 0.20 145);

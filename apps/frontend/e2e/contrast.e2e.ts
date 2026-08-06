@@ -41,6 +41,14 @@ const PAIRS: Pair[] = [
   { name: 'warning line', foreground: '--warning', background: '--card', minimum: TEXT_MINIMUM },
   { name: 'action link', foreground: '--info', background: '--card', minimum: TEXT_MINIMUM },
   { name: 'error text', foreground: '--destructive', background: '--card', minimum: TEXT_MINIMUM },
+  // The sync banner, which is the one element in the app whose whole job is to be read. It sat on
+  // an alpha modifier until #88 and so was invisible here.
+  {
+    name: 'sync banner text',
+    foreground: '--destructive',
+    background: '--destructive-surface',
+    minimum: TEXT_MINIMUM,
+  },
   // Colour is the *only* thing distinguishing these, so they answer to the graphic rule.
   { name: 'severity low dot', foreground: '--severity-low', background: '--card', minimum: GRAPHIC_MINIMUM },
   {
