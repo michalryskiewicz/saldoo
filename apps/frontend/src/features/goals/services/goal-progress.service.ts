@@ -2,6 +2,7 @@ import { differenceInCalendarMonths } from 'date-fns';
 import type { DBExpense } from '@/database/expenses.ts';
 import type { DBContribution } from '@/database/contributions.ts';
 import { type DBClosedWindow, type DBGoal, isEmergencyFund } from '@/database/goals.ts';
+import { inThePot, whatWasBuilt } from '@/features/goals/services/monument.service.ts';
 import {
   completionDate,
   emergencyFundTarget,
@@ -44,13 +45,8 @@ type ProgressInput = {
   today: Date;
 };
 
-const savedTowards = (goalId: string, contributions: DBContribution[]): number =>
-  Number(
-    contributions
-      .filter((contribution) => contribution.goalId === goalId)
-      .reduce((total, contribution) => total + contribution.amount, 0)
-      .toFixed(2)
-  );
+const movementsOf = (goalId: string, contributions: DBContribution[]) =>
+  contributions.filter((contribution) => contribution.goalId === goalId);
 
 /**
  * Each goal with the figures the screen draws it from.
@@ -67,7 +63,11 @@ export const goalProgress = ({
   today,
 }: ProgressInput): GoalProgress[] =>
   goals.map((goal) => {
-    const saved = savedTowards(goal.id, contributions);
+    const movements = movementsOf(goal.id, contributions);
+    // What is in the pot falls when money is spent; what was built never does. Two figures
+    // because they answer different questions, and one would report the best month of somebody's
+    // year as a loss (#93 pt. 5).
+    const saved = inThePot(movements);
     const target = isEmergencyFund(goal)
       ? emergencyFundTarget(goal.coverageMonths!, today.getMonth(), expenses)
       : (goal.target ?? 0);
@@ -87,7 +87,7 @@ export const goalProgress = ({
       lifetime: goal.seriesId
         ? lifetimeOfSeries(
             closedWindows.filter((window) => window.seriesId === goal.seriesId),
-            saved
+            whatWasBuilt(movements)
           )
         : undefined,
     };
@@ -108,10 +108,7 @@ export const totalPutAside = ({
 }: Pick<ProgressInput, 'goals' | 'contributions'>): number => {
   const counted = new Set(goals.filter((goal) => !isEmergencyFund(goal)).map((goal) => goal.id));
 
-  return Number(
-    contributions
-      .filter((contribution) => counted.has(contribution.goalId))
-      .reduce((total, contribution) => total + contribution.amount, 0)
-      .toFixed(2)
-  );
+  // What was built, so it cannot fall when somebody spends a goal they reached — that is the plan
+  // working, and #93 pt. 4 is explicit that this figure never decreases on its own.
+  return whatWasBuilt(contributions.filter((contribution) => counted.has(contribution.goalId)));
 };

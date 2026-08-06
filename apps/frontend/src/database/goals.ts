@@ -69,15 +69,23 @@ export type DBClosedWindow = {
   id: string;
   createdAt: Date;
   goalId: string;
-  seriesId: string;
-  /** The year the window covered. */
-  year: number;
+  /** Absent on a goal closed by hand rather than rolled: it belongs to no series. */
+  seriesId?: string;
+  /** The year the window covered, for a rollover. */
+  year?: number;
   /** What the goal was aiming at over that window. */
   target: number;
   /** What actually went in, which is the part worth keeping. */
   contributed: number;
   openedOn: Date;
   closedOn: Date;
+  /**
+   * Whether the goal was reached, for one closed by hand. Absent on a window that simply rolled —
+   * a year ending is not a decision and nobody was asked.
+   */
+  reached?: boolean;
+  /** How long it took, in months. Absent on a rollover, whose length is a year by definition. */
+  monthsItTook?: number;
 };
 
 /** A goal as the form hands it over: everything but the parts the app knows on its own. */

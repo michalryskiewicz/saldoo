@@ -29,6 +29,19 @@ export type DBContribution = {
   amount: number;
   contributedAt: Date;
   /**
+   * Money coming **out** of the pot rather than going in.
+   *
+   * The table's name is narrower than what it holds, and that is a deliberate trade: renaming a
+   * table in the document means every existing record moving, and a flag costs one field. What it
+   * buys is the property #93 pt. 5 asks for — the pot falls honestly when the money is spent and
+   * what was *built* never falls, because one figure counts both directions and the other only
+   * counts inwards.
+   *
+   * A partial withdrawal is never questioned anywhere. Taking money out of a fund because the car
+   * broke is exactly what it was for.
+   */
+  isWithdrawal?: boolean;
+  /**
    * The statement line that backs this, once one is found — #98.
    *
    * Absent means nobody has looked yet, which is the ordinary state and never a failing: the

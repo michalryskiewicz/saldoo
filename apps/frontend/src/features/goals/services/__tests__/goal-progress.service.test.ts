@@ -130,3 +130,28 @@ describe('totalPutAside', () => {
     expect(total).toBe(2000);
   });
 });
+
+/**
+ * The two figures pulling apart, asserted where a person actually reads them. Spending a holiday
+ * fund on a holiday empties the pot and unmakes none of the fourteen months that filled it.
+ */
+describe('spending what was saved', () => {
+  it('empties the pot and leaves the total put aside standing', () => {
+    const holiday = goal({ id: 'g1', target: 8000 });
+    const movements = [
+      gave('g1', 8000),
+      { ...gave('g1', 8000), id: 'spent', isWithdrawal: true } as DBContribution,
+    ];
+
+    const [row] = goalProgress({
+      goals: [holiday],
+      contributions: movements,
+      closedWindows: [],
+      expenses: [],
+      today: APRIL_2026,
+    });
+
+    expect(row.saved).toBe(0);
+    expect(totalPutAside({ goals: [holiday], contributions: movements })).toBe(8000);
+  });
+});
