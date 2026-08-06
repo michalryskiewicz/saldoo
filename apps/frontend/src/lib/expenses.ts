@@ -11,6 +11,9 @@ import { groupProfitsByMonth } from '@/lib/profits.ts';
 import { survivesIncomeLoss } from '@/lib/safety-net.ts';
 import { expenseAmountForMonth } from '@/lib/expense-amount.ts';
 import { hasLostItsBase } from '@/lib/percentage-of-income.ts';
+import type { DBGoal } from '@/database/goals.ts';
+import type { DBContribution } from '@/database/contributions.ts';
+import { requiredMonthlyContribution } from '@/lib/goals.ts';
 
 type MonthTotals = {
   total: number;
@@ -158,6 +161,8 @@ export type StrategyPartsForMonth = {
   transactions: DBTransaction[];
   duties: PricedDuty[];
   profits?: DBProfit[];
+  goals?: DBGoal[];
+  contributions?: DBContribution[];
 };
 
 /**
@@ -174,6 +179,8 @@ export function strategyPartsForMonth({
   transactions,
   duties,
   profits = [],
+  goals = [],
+  contributions = [],
 }: StrategyPartsForMonth) {
   const year = new Date().getFullYear();
   const strategyTotals: Record<string, number> = {};
@@ -220,6 +227,49 @@ export function strategyPartsForMonth({
     if (duty.resolved) {
       dutiesTotals[strategyPart] += duty.price;
     }
+  });
+
+  // Goals, on both sides.
+  //
+  // The planned side is the one that is easy to forget and the reason this is here at all: planned
+  // comes from expenses, so the moment a cost stops being an expense and becomes a goal, planned
+  // savings would drop to zero — and the tile would report somebody who had just organised their
+  // retirement saving as planning to save nothing.
+  //
+  // The part is the goal's own, never guessed. A strategy with two savings parts is what defeated
+  // every attempt to derive it: a window is not a horizon, and IKE's yearly window would make
+  // retirement savings short-term.
+  goals.forEach((goal) => {
+    if (!goal.strategyPart || goal.closedAt) return;
+
+    const saved = contributions
+      .filter((contribution) => contribution.goalId === goal.id)
+      .reduce((total, contribution) => total + contribution.amount, 0);
+
+    const required = goal.deadline
+      ? requiredMonthlyContribution(
+          { target: goal.target ?? 0, saved, deadline: goal.deadline },
+          new Date(year, month, 1)
+        )
+      : (goal.monthlyPace ?? 0);
+
+    if (required > 0) {
+      strategyTotals[goal.strategyPart] = (strategyTotals[goal.strategyPart] || 0) + required;
+    }
+
+    // Seeded even at zero, so a goal with nothing in it this month still shows its part on the
+    // tile rather than vanishing from a screen it is planned on.
+    realTotals[goal.strategyPart] = realTotals[goal.strategyPart] || 0;
+  });
+
+  contributions.forEach((contribution) => {
+    const goal = goals.find((candidate) => candidate.id === contribution.goalId);
+    if (!goal?.strategyPart) return;
+
+    const day = new Date(contribution.contributedAt);
+    if (day.getFullYear() !== year || day.getMonth() !== month) return;
+
+    realTotals[goal.strategyPart] = (realTotals[goal.strategyPart] || 0) + contribution.amount;
   });
 
   // Merge all keys

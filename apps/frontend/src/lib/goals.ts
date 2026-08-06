@@ -21,6 +21,11 @@ type PacedGoal = {
  * A deadline already past does not make this infinite or zero. What is left is owed, and it is
  * owed now: the months are floored at one, so the answer is the remainder rather than a number
  * that cannot be acted on.
+ *
+ * The deadline's own month does not count. Asked in April about the 31st of December the answer
+ * is eight instalments, not nine — the money is there at the end of November rather than on the
+ * last day it could possibly arrive. Erring the other way asks for less and lands late, and for a
+ * thing somebody is saving *towards* that is the worse of the two mistakes.
  */
 export const requiredMonthlyContribution = (
   { target, saved, deadline }: PacedGoal,
