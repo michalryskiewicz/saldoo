@@ -205,6 +205,8 @@
   "tags_placeholder": "Enter tags. Confirm with Enter or separate them with a comma ,",
   "success": {
     "create-expense": "Expense added",
+    "create-goal": "Goal created",
+    "create-contribution": "Contribution recorded",
     "update-expense": "Expense updated",
     "deleted-expense": "Expense deleted",
     "create-profit": "Profit added",
@@ -221,6 +223,8 @@
   },
   "errors": {
     "create-expense": "Could not add the expense. Please try again later",
+    "create-goal": "Could not create the goal",
+    "create-contribution": "Could not record the contribution",
     "update-expense": "Could not update the expense. Please try again later",
     "deleted-expense": "Could not delete the expense. Please try again later",
     "create-profit": "Could not add the profit. Please try again later",

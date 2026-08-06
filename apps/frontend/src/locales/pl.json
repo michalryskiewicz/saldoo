@@ -205,6 +205,8 @@
   "tags_placeholder": "Wprowadź tagi. Zatwierdź wybór Enterem lub oddziel je przecinkiem ,",
   "success": {
     "create-expense": "Pomyślnie dodano wydatek",
+    "create-goal": "Cel utworzony",
+    "create-contribution": "Wpłata zapisana",
     "update-expense": "Pomyślnie zaktualizowano wydatek",
     "deleted-expense": "Pomyślnie usunięto wydatek",
     "create-profit": "Pomyślnie dodano zysk",
@@ -221,6 +223,8 @@
   },
   "errors": {
     "create-expense": "Nie udało się dodać wydatku. Spróbuj ponownie później",
+    "create-goal": "Nie udało się utworzyć celu",
+    "create-contribution": "Nie udało się zapisać wpłaty",
     "update-expense": "Nie udało się zaktualizować wydatku. Spróbuj ponownie później",
     "deleted-expense": "Nie udało się usunąć wydatku. Spróbuj ponownie później",
     "create-profit": "Nie udało się dodać zysku. Spróbuj ponownie później",
