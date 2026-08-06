@@ -7,6 +7,9 @@ export type PreferencesSliceState = {
   expensesDrawerId?: string;
   profitsDrawerId?: string;
   transactionsDrawerId?: string;
+  goalsDrawerId?: string;
+  /** Which goal the 'put aside' drawer is about, if it is open. */
+  contributionGoalId?: string;
 };
 
 // ===========================================================================
@@ -27,10 +30,21 @@ const preferencesSlice = createSlice({
     setTransactionsDrawerId: (state: PreferencesSliceState, action) => {
       state.transactionsDrawerId = action.payload;
     },
+    setGoalsDrawerId: (state: PreferencesSliceState, action) => {
+      state.goalsDrawerId = action.payload;
+    },
+    setContributionGoalId: (state: PreferencesSliceState, action) => {
+      state.contributionGoalId = action.payload;
+    },
   },
 });
 
-export const { setExpensesDrawerId, serProfitsDrawerId, setTransactionsDrawerId } =
-  preferencesSlice.actions;
+export const {
+  setExpensesDrawerId,
+  serProfitsDrawerId,
+  setTransactionsDrawerId,
+  setGoalsDrawerId,
+  setContributionGoalId,
+} = preferencesSlice.actions;
 
 export default preferencesSlice.reducer;

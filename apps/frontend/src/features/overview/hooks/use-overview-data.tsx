@@ -10,7 +10,7 @@ import {
   calculateFinancialSafetyNet,
   groupExpensesAndProfitsByMonth,
   groupExpensesByCategory,
-  groupExpensesByStrategyPart,
+  strategyPartsForMonth,
 } from '@/lib/expenses.ts';
 import { useListTags } from '@/database/hooks/use-list-tags.tsx';
 import { spendingByDayOfMonth } from '@/lib/monthly-spending.ts';
@@ -129,13 +129,13 @@ export const useOverviewData = () => {
     profitsInSelectedCurrency
   );
 
-  const expensesByStrategyPart = groupExpensesByStrategyPart(
+  const expensesByStrategyPart = strategyPartsForMonth({
     monthIndex,
-    expensesInSelectedCurrency,
-    transactionsInSelectedCurrency,
-    dutiesWithExpenseInSelectedCurrency,
-    profitsInSelectedCurrency
-  );
+    expenses: expensesInSelectedCurrency,
+    transactions: transactionsInSelectedCurrency,
+    duties: dutiesWithExpenseInSelectedCurrency,
+    profits: profitsInSelectedCurrency,
+  });
 
   const savings = chartData.find((c) => c.month === monthIndex);
 

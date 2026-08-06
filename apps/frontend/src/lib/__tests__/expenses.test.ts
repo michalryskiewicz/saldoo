@@ -4,7 +4,7 @@ import {
   groupExpensesAndProfitsByMonth,
   groupExpensesByCategory,
   groupExpensesByMonth,
-  groupExpensesByStrategyPart,
+  strategyPartsForMonth,
 } from '../expenses';
 import { countWeekdaysInMonth, daysInMonth, MONTHS } from '../dates';
 import type { DBExpense } from '@/database/expenses.ts';
@@ -426,7 +426,7 @@ describe('expenses service', () => {
     });
   });
 
-  describe('groupExpensesByStrategyPart', () => {
+  describe('strategyPartsForMonth', () => {
     it('returns correct planned and real totals for monthly and yearly expenses', () => {
       const month = 9; // October (0-based)
       freezeClock('2025-10-15');
@@ -485,7 +485,7 @@ describe('expenses service', () => {
       ] as unknown as (DBDuty & { price: number; currency: Currency })[];
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
-      const result = groupExpensesByStrategyPart(month, expenses, transactions, duties);
+      const result = strategyPartsForMonth({ monthIndex: month, expenses, transactions, duties });
       expect(result.find((r) => r.strategyPart === 'NEEDS')?.planned).toBe(100);
       expect(result.find((r) => r.strategyPart === 'NEEDS')?.real).toBe(100);
       expect(result.find((r) => r.strategyPart === 'WANTS')?.planned).toBe(200);
@@ -493,7 +493,7 @@ describe('expenses service', () => {
     });
 
     it('returns zero totals when no matching strategyPart exists', () => {
-      const result = groupExpensesByStrategyPart(9, [], [], []);
+      const result = strategyPartsForMonth({ monthIndex: 9, expenses: [], transactions: [], duties: [] });
       expect(result).toEqual([]);
     });
 
@@ -512,7 +512,7 @@ describe('expenses service', () => {
       ] as unknown as (DBDuty & { price: number; currency: Currency })[];
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
-      const result = groupExpensesByStrategyPart(month, [], [], duties);
+      const result = strategyPartsForMonth({ monthIndex: month, expenses: [], transactions: [], duties });
       expect(result.find((r) => r.strategyPart === 'NEEDS')?.real).toEqual(undefined);
     });
 
@@ -526,7 +526,7 @@ describe('expenses service', () => {
       const duties = [
         { price: 20, currency: 'EUR', executionDate: '2025-10-05', resolved: true },
       ] as never[];
-      const result = groupExpensesByStrategyPart(month, expenses, transactions, duties);
+      const result = strategyPartsForMonth({ monthIndex: month, expenses, transactions, duties });
       expect(result).toEqual([]);
     });
 
@@ -548,7 +548,7 @@ describe('expenses service', () => {
           frequency: 'DAILY',
         },
       ] as never[];
-      const result = groupExpensesByStrategyPart(month, expenses, [], []);
+      const result = strategyPartsForMonth({ monthIndex: month, expenses, transactions: [], duties: [] });
       const sundays = countWeekdaysInMonth(year, month, weekday);
       const days = daysInMonth(year, month);
       expect(result.find((r) => r.strategyPart === 'NEEDS')?.planned).toBe(10 * sundays);
@@ -642,15 +642,138 @@ describe('a share of a named income, wherever a total is drawn', () => {
       expense: { strategyPart: 'NEEDS', expense: 0 },
     } as never;
 
-    const parts = groupExpensesByStrategyPart(3, [], [], [paid], []);
+    const parts = strategyPartsForMonth({ monthIndex: 3, expenses: [], transactions: [], duties: [paid] });
 
     expect(parts.find((part) => part.strategyPart === 'NEEDS')?.real).toBe(1200);
   });
 
   it('reaches the budget-strategy breakdown', () => {
     freezeClock('2026-06-15');
-    const parts = groupExpensesByStrategyPart(3, [taxOnIt], [], [], [invoiceInMarch]);
+    const parts = strategyPartsForMonth({ monthIndex: 3, expenses: [taxOnIt], transactions: [], duties: [], profits: [invoiceInMarch] });
 
     expect(parts.find((part) => part.strategyPart === 'NEEDS')?.planned).toBe(1200);
+  });
+});
+
+/**
+ * Goals on the tile, which is the whole reason a contribution has a strategy part at all.
+ *
+ * Both sides, and the second one is the one that is easy to forget: the moment IKE stops being an
+ * expense and becomes a goal, planned savings would drop to zero, because planned comes from
+ * expenses alone. The tile would report somebody who had just organised their retirement saving as
+ * planning to save nothing.
+ */
+describe('strategyPartsForMonth — goals', () => {
+  const freezeClock = (iso: string) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(iso));
+  };
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const ike = {
+    id: 'g1',
+    description: 'IKE',
+    currency: 'PLN',
+    strategyPart: 'LONG_TERM_SAVINGS',
+    keepsItsMoney: true,
+    target: 30000,
+    deadline: new Date(2026, 11, 31),
+    year: 2026,
+    seriesId: 's1',
+  } as never;
+
+  const empty = { expenses: [], transactions: [], duties: [] };
+
+  it('counts a declared contribution as real, in the part its goal was given', () => {
+    freezeClock('2026-04-15');
+
+    const parts = strategyPartsForMonth({
+      ...empty,
+      monthIndex: 3,
+      goals: [ike],
+      contributions: [{ goalId: 'g1', amount: 2500, contributedAt: new Date(2026, 3, 10) }],
+    } as never);
+
+    expect(parts.find((p) => p.strategyPart === 'LONG_TERM_SAVINGS')?.real).toBe(2500);
+  });
+
+  it('leaves out a contribution made in another month', () => {
+    freezeClock('2026-04-15');
+
+    const parts = strategyPartsForMonth({
+      ...empty,
+      monthIndex: 3,
+      goals: [ike],
+      contributions: [{ goalId: 'g1', amount: 2500, contributedAt: new Date(2026, 2, 10) }],
+    } as never);
+
+    expect(parts.find((p) => p.strategyPart === 'LONG_TERM_SAVINGS')?.real).toBe(0);
+  });
+
+  it("counts the goal's required monthly contribution as planned", () => {
+    // April to December is eight whole months, not nine: the deadline's own month does not count,
+    // so the money is there a month early rather than on the last possible day.
+    freezeClock('2026-04-15');
+
+    const parts = strategyPartsForMonth({
+      ...empty,
+      monthIndex: 3,
+      goals: [ike],
+      contributions: [],
+    } as never);
+
+    expect(parts.find((p) => p.strategyPart === 'LONG_TERM_SAVINGS')?.planned).toBe(3750);
+  });
+
+  /**
+   * A strategy with two savings parts is the case that killed every attempt to derive this. The
+   * goal lands where it was told to land, and nowhere else.
+   */
+  it('never guesses the part when the strategy offers two of them', () => {
+    freezeClock('2026-04-15');
+
+    const parts = strategyPartsForMonth({
+      ...empty,
+      monthIndex: 3,
+      goals: [ike],
+      contributions: [{ goalId: 'g1', amount: 2500, contributedAt: new Date(2026, 3, 10) }],
+    } as never);
+
+    expect(parts.find((p) => p.strategyPart === 'SHORT_TERM_SAVINGS')).toBeUndefined();
+  });
+
+  /**
+   * The month somebody actually looks at, and the only one where the two sources meet. Ending an
+   * expense and opening a goal for the same thing must not leave a hole in the tile — the whole
+   * point of feeding the planned side.
+   */
+  it('is continuous across the month an expense becomes a goal', () => {
+    freezeClock('2026-04-15');
+
+    const asAnExpense = {
+      execution: new Date(2026, 3, 10),
+      expense: 2500,
+      frequency: 'MONTHLY',
+      strategyPart: 'LONG_TERM_SAVINGS',
+      endsAt: new Date(2026, 3, 30),
+    } as never;
+
+    const before = strategyPartsForMonth({ ...empty, monthIndex: 3, expenses: [asAnExpense] });
+    const after = strategyPartsForMonth({
+      ...empty,
+      monthIndex: 4,
+      expenses: [asAnExpense],
+      goals: [ike],
+      contributions: [],
+    } as never);
+
+    expect(before.find((p) => p.strategyPart === 'LONG_TERM_SAVINGS')?.planned).toBe(2500);
+    // The expense has ended, so April's figure is gone; the goal is what holds the part up in May.
+    expect(
+      after.find((p) => p.strategyPart === 'LONG_TERM_SAVINGS')?.planned
+    ).toBeGreaterThan(0);
   });
 });

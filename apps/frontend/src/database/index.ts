@@ -6,6 +6,8 @@ import type { DBDuty } from '@/database/duty.ts';
 import type { DBTransaction } from '@/database/transactions.ts';
 import type { DBTag } from '@/database/tags.ts';
 import type { DBSettings } from '@/database/settings.ts';
+import type { DBGoal, DBClosedWindow } from '@/database/goals.ts';
+import type { DBContribution } from '@/database/contributions.ts';
 
 export class AppDB extends Dexie {
   expenses!: Table<DBExpense, string>;
@@ -15,6 +17,9 @@ export class AppDB extends Dexie {
   tags!: Table<DBTag, string>;
   meta!: Table<DBMeta, unknown>;
   settings!: Table<DBSettings, string>;
+  goals!: Table<DBGoal, string>;
+  contributions!: Table<DBContribution, string>;
+  closedWindows!: Table<DBClosedWindow, string>;
 
   constructor() {
     super('saldoo');
@@ -59,6 +64,25 @@ export class AppDB extends Dexie {
       tags: 'id, createdAt, updatedAt, userId, &name',
       meta: '&key',
       settings: '&id',
+    });
+
+    // Version 4 adds goals, the contributions made towards them, and the record a yearly goal
+    // leaves behind when its window ends.
+    this.version(4).stores({
+      expenses:
+        'id, createdAt, updatedAt, userId, description, expense, currency, severity, frequency, execution, strategyPart, tagId',
+      profits:
+        'id, createdAt, updatedAt, userId, description, profit, currency, frequency, execution',
+      duties:
+        'id, createdAt, updatedAt, resolved, ignored, frequency, executionDate, expenseId, transactionId, &hash',
+      transactions:
+        'id, createdAt, updatedAt, transactionId, sourceBank, amount, currency, transactionDate, description, &hash, expenseId, strategyPart, tagId, duties',
+      tags: 'id, createdAt, updatedAt, userId, &name',
+      meta: '&key',
+      settings: '&id',
+      goals: 'id, createdAt, updatedAt, description, currency, strategyPart, deadline, year, seriesId, closedAt',
+      contributions: 'id, createdAt, updatedAt, goalId, contributedAt, transactionId',
+      closedWindows: 'id, createdAt, goalId, seriesId, year',
     });
   }
 }

@@ -18,6 +18,15 @@ interface MetricCardProps {
   progressColor: string;
   details?: Array<{ label: string; value: string; color: string }>;
   actionLabel?: string;
+  /**
+   * What a screen reader should call this action, when the visible label is not enough.
+   *
+   * A grid of these cards puts the same word on every button — "Put aside", "Put aside", "Put
+   * aside" — and a person listing the buttons hears no difference between them. The visible label
+   * stays short because the card it sits in says which one it is; the accessible name has to carry
+   * that itself.
+   */
+  actionName?: string;
   actionIcon?: React.ReactNode;
   warningMessage?: string;
   onActionClick?: () => void;
@@ -38,6 +47,7 @@ export function MetricCard({
   progressColor,
   details,
   actionLabel,
+  actionName,
   actionIcon,
   warningMessage,
   onActionClick,
@@ -154,6 +164,7 @@ export function MetricCard({
             <Button
               variant="ghost"
               className="h-8 w-full rounded-none text-info gap-0 justify-start hover:brightness-110 bg-muted/50"
+              aria-label={actionName}
               onClick={onActionClick}
             >
               {actionIcon}

@@ -76,6 +76,79 @@ describe('record codec', () => {
     });
   });
 
+  /**
+   * The three records goals brought with them, each over a real replication hop.
+   *
+   * Not optional and not ceremony: a `Date` written into a `Y.Map` reads back correctly on the
+   * device that wrote it and arrives as `{}` everywhere else, so anything new that crosses the
+   * wire is asserted here before it is trusted. A goal alone carries four dates.
+   */
+  it('keeps a goal, its contributions and a closed window across a replication hop', () => {
+    const goal = {
+      id: 'g1',
+      createdAt: new Date('2026-01-02T03:04:05.000Z'),
+      updatedAt: new Date('2026-02-03T04:05:06.000Z'),
+      description: 'IKE',
+      currency: 'PLN',
+      strategyPart: 'LONG_TERM_SAVINGS',
+      keepsItsMoney: true,
+      target: 30000,
+      deadline: new Date('2026-12-31T00:00:00.000Z'),
+      year: 2026,
+      seriesId: 's1',
+      closedAt: new Date('2026-12-31T23:00:00.000Z'),
+    };
+
+    const backAsGoal = decodeRecord(
+      'goals',
+      overTheWire(goal, (r) => encodeRecord('goals', r)) as Record<string, unknown>
+    ) as typeof goal;
+
+    expect(backAsGoal.createdAt).toBeInstanceOf(Date);
+    expect(backAsGoal.deadline?.getTime()).toBe(goal.deadline.getTime());
+    expect(backAsGoal.closedAt?.getTime()).toBe(goal.closedAt.getTime());
+    expect(backAsGoal.keepsItsMoney).toBe(true);
+    expect(backAsGoal.seriesId).toBe('s1');
+
+    const contribution = {
+      id: 'c1',
+      createdAt: new Date('2026-03-01T00:00:00.000Z'),
+      goalId: 'g1',
+      amount: 2500,
+      contributedAt: new Date('2026-03-10T00:00:00.000Z'),
+    };
+
+    const backAsContribution = decodeRecord(
+      'contributions',
+      overTheWire(contribution, (r) => encodeRecord('contributions', r)) as Record<string, unknown>
+    ) as typeof contribution;
+
+    expect(backAsContribution.contributedAt).toBeInstanceOf(Date);
+    expect(backAsContribution.contributedAt.getTime()).toBe(contribution.contributedAt.getTime());
+    expect(backAsContribution.amount).toBe(2500);
+
+    const closed = {
+      id: 'w1',
+      createdAt: new Date('2027-01-01T00:00:00.000Z'),
+      goalId: 'g1',
+      seriesId: 's1',
+      year: 2026,
+      target: 30000,
+      contributed: 26000,
+      openedOn: new Date('2026-01-01T00:00:00.000Z'),
+      closedOn: new Date('2026-12-31T00:00:00.000Z'),
+    };
+
+    const backAsClosed = decodeRecord(
+      'closedWindows',
+      overTheWire(closed, (r) => encodeRecord('closedWindows', r)) as Record<string, unknown>
+    ) as typeof closed;
+
+    expect(backAsClosed.openedOn).toBeInstanceOf(Date);
+    expect(backAsClosed.closedOn.getTime()).toBe(closed.closedOn.getTime());
+    expect(backAsClosed.contributed).toBe(26000);
+  });
+
   it('keeps the non-date fields byte for byte', () => {
     const wire = overTheWire(expense, (r) => encodeRecord('expenses', r));
     const back = decodeRecord('expenses', wire as Record<string, unknown>) as DBExpense;

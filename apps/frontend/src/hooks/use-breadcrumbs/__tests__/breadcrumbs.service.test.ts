@@ -1,5 +1,7 @@
 import { findLabelByPath, getBreadcrumbsSegments } from '../breadcrumbs.service';
 import { describe, it, expect } from 'vitest';
+import { paths } from '@/routes/paths.ts';
+import pl from '@/locales/pl.json';
 
 describe('breadcrumbs.service.ts', () => {
   describe('findLabelByPath', () => {
@@ -59,5 +61,28 @@ describe('breadcrumbs.service.ts', () => {
         { label: 'account', path: '/dashboard/account' },
       ]);
     });
+  });
+});
+
+/**
+ * Every dashboard route's key has to be a string in the translations, because the breadcrumb takes
+ * the key straight off `paths` and translates it.
+ *
+ * Written after a goals screen shipped a nested `goals` block into the very key the breadcrumb
+ * wanted, and the header read "key 'goals (pl)' returned an object instead of string" — visible in
+ * the app, invisible to every test, and a class of mistake the next route can make just as easily.
+ */
+describe('every route a breadcrumb can reach has a name', () => {
+  it('translates each dashboard path to a string', () => {
+    for (const [key, path] of Object.entries(paths.dashboard)) {
+      if (typeof path !== 'string') continue;
+
+      const label = findLabelByPath(paths, path);
+      if (!label) continue;
+
+      expect(typeof pl[label as keyof typeof pl], `${key} is not a string in pl.json`).toBe(
+        'string'
+      );
+    }
   });
 });
