@@ -117,13 +117,14 @@ test('the bond chart plots the projection, not just what is held today', async (
 });
 
 /**
- * The rate is the app's job, not the person's — and where the app cannot do it, it says so rather
- * than filling in the nearest month's number under the wrong date.
+ * A purchase from years back, which is where the catalogue used to run out.
+ *
+ * Picking a month whose offer had never been read left the series list empty and the form asking
+ * for a rate — a dead end reached by choosing a perfectly ordinary month. Now every month the
+ * picker offers can be priced, and the list is what was really on sale then: ROR, DOR and TOS did
+ * not exist in 2019.
  */
-test('the app fills in the rate it knows, and asks only where it does not', async ({
-  browser,
-  baseURL,
-}) => {
+test('a bond bought years ago is priced from that month\'s offer', async ({ browser, baseURL }) => {
   const drive = createFakeDrive();
   const device = await openDevice(browser, { drive, baseURL: baseURL! });
   const app = new SaldooApp(device.page);
@@ -136,21 +137,28 @@ test('the app fills in the rate it knows, and asks only where it does not', asyn
   await device.page.getByRole('button', { name: pl.bonds.create, exact: true }).click();
 
   const sheet = device.page.getByRole('dialog', { name: pl.bonds.create_title });
-  await sheet.getByRole('combobox', { name: pl.bonds.series }).click();
-  await device.page.getByRole('option', { name: /^EDO/ }).click();
-
-  // This month is in the catalogue, so nothing is asked about the rate.
-  await expect(sheet.getByLabel(pl.bonds.rate, { exact: true })).toBeHidden();
-  // And what it worked out is on screen rather than hidden in the record: how the interest behaves,
-  // and what decides it once the first period is over.
-  await expect(sheet).toContainText(pl.bonds.compounds);
-  await expect(sheet).toContainText('inflacja');
-
-  // A month from before the catalogue reaches: the app stops guessing and asks.
   await sheet.getByRole('combobox', { name: pl.bonds.month }).click();
-  await device.page.getByRole('option').last().click();
+  await device.page.getByRole('option', { name: 'Marzec 2019', exact: true }).click();
 
-  await expect(sheet.getByLabel(pl.bonds.rate, { exact: true })).toBeVisible();
+  await sheet.getByRole('combobox', { name: pl.bonds.series }).click();
+
+  // What was on sale in March 2019, and nothing else.
+  await expect(device.page.getByRole('option', { name: /^EDO/ })).toBeVisible();
+  await expect(device.page.getByRole('option', { name: /^ROR/ })).toHaveCount(0);
+  await expect(device.page.getByRole('option', { name: /^TOS/ })).toHaveCount(0);
+
+  // The rate of that month, filled in rather than asked for: EDO carried 2.70% in March 2019.
+  await expect(device.page.getByRole('option', { name: /^EDO/ })).toContainText('2,70%');
+
+  await device.page.getByRole('option', { name: /^EDO/ }).click();
+  await expect(sheet.getByLabel(pl.bonds.rate, { exact: true })).toBeHidden();
+
+  await sheet.getByLabel(pl.bonds.quantity, { exact: true }).fill('20');
+  await sheet.getByRole('button', { name: pl.submit, exact: true }).click();
+  await expect(sheet).toBeHidden();
+
+  // Named for the month it is redeemed: a ten-year bought in March 2019 is EDO0329.
+  await expect(device.page.getByText('EDO0329')).toBeVisible();
 
   expect(device.problems()).toEqual([]);
 

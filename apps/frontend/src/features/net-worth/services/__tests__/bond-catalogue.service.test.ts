@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  catalogueMonths,
   choiceFromCode,
   draftFromCatalogue,
   rateFor,
@@ -49,24 +50,33 @@ describe('seriesOfferedIn', () => {
   });
 
   /**
-   * Nothing at all for a month nobody checked, rather than the nearest month's rates wearing the
-   * wrong date. The catalogue is a record of what was read off the Ministry's offer, and a gap in
-   * it is a fact about this app rather than about the bonds.
+   * What was actually on sale, which is not the same list every month. ROR and DOR arrived in June
+   * 2022 and TOS in August 2022, so somebody entering a purchase from 2019 is offered the four that
+   * existed and is not invited to hold something that did not.
    */
-  it('offers nothing for a month it has never been told about', () => {
-    expect(seriesOfferedIn('2019-03')).toEqual([]);
+  it('offers only the series that existed that month', () => {
+    expect(seriesOfferedIn('2019-03').map((series) => series.code)).toEqual([
+      'COI',
+      'ROS',
+      'EDO',
+      'ROD',
+    ]);
   });
 
-  it('leaves out a series the offer of that month did not name', () => {
-    // November 2024 is recorded from a summary that listed five series; the two family bonds were
-    // not among them, and inventing their rate is exactly what this catalogue exists to avoid.
-    expect(seriesOfferedIn('2024-11').map((series) => series.code)).toEqual([
-      'ROR',
-      'DOR',
-      'TOS',
-      'COI',
-      'EDO',
-    ]);
+  /**
+   * Nothing at all before the catalogue starts, rather than the oldest rate stretched backwards.
+   */
+  it('offers nothing for a month older than anything recorded', () => {
+    expect(seriesOfferedIn('2010-01')).toEqual([]);
+  });
+
+  /**
+   * And nothing past the last offer anybody has read — the case that comes round every month. The
+   * Ministry announces one month at a time, so carrying August's rate into September would be the
+   * app inventing the very number it exists to look up.
+   */
+  it('offers nothing for a month past the last offer it has read', () => {
+    expect(seriesOfferedIn('2026-09')).toEqual([]);
   });
 });
 
@@ -77,9 +87,25 @@ describe('rateFor', () => {
     expect(rateFor('EDO', '2024-11')).toBe(6.55);
   });
 
-  it('gives nothing for a month or a series it does not know', () => {
-    expect(rateFor('EDO', '2019-03')).toBeUndefined();
-    expect(rateFor('ROS', '2024-11')).toBeUndefined();
+  it('holds a rate steady across the months it did not move', () => {
+    // 6.55% ran from September 2024 to April 2025 without a change; every month in between is the
+    // same answer, and the range says so once rather than eight times.
+    expect(rateFor('EDO', '2024-09')).toBe(6.55);
+    expect(rateFor('EDO', '2025-01')).toBe(6.55);
+    expect(rateFor('EDO', '2025-05')).toBe(6.35);
+  });
+
+  it('answers for the months in between, which is the whole point', () => {
+    expect(rateFor('EDO', '2026-06')).toBe(5.35);
+    expect(rateFor('EDO', '2026-05')).toBe(5.35);
+    expect(rateFor('COI', '2026-06')).toBe(4.75);
+  });
+
+  it('gives nothing outside the series own life, or past the last offer read', () => {
+    // ROR did not exist in 2019, and no rate is stretched back to pretend it did.
+    expect(rateFor('ROR', '2019-03')).toBeUndefined();
+    expect(rateFor('EDO', '2010-01')).toBeUndefined();
+    expect(rateFor('EDO', '2026-09')).toBeUndefined();
   });
 });
 
@@ -124,7 +150,6 @@ describe('draftFromCatalogue', () => {
    * `bondValueOn` applies to a period part-way through, and the reason a month is enough to ask for.
    */
   it('dates the purchase at the end of the month it was bought in', () => {
-    expect(draftFromCatalogue({ code: 'ROR', month: '2026-02', quantity: 1 })).toBeUndefined();
     expect(draftFromCatalogue({ code: 'EDO', month: '2025-04', quantity: 1 })?.boughtOn).toEqual(
       new Date(2025, 3, 30)
     );
@@ -146,7 +171,8 @@ describe('draftFromCatalogue', () => {
   });
 
   it('is nothing at all when the catalogue has no rate to fill in', () => {
-    expect(draftFromCatalogue({ code: 'EDO', month: '2019-03', quantity: 10 })).toBeUndefined();
+    expect(draftFromCatalogue({ code: 'EDO', month: '2010-01', quantity: 10 })).toBeUndefined();
+    expect(draftFromCatalogue({ code: 'ROR', month: '2019-03', quantity: 10 })).toBeUndefined();
   });
 
   /**
@@ -155,11 +181,11 @@ describe('draftFromCatalogue', () => {
    * how often has not changed in years, and it is not what anybody has to look up.
    */
   it('takes a rate it was given for a month it does not know', () => {
-    expect(draftFromCatalogue({ code: 'EDO', month: '2019-03', quantity: 10, ratePercent: 3.2 })).toEqual({
-      description: 'EDO0329',
+    expect(draftFromCatalogue({ code: 'EDO', month: '2010-01', quantity: 10, ratePercent: 3.2 })).toEqual({
+      description: 'EDO0120',
       quantity: 10,
       nominal: 100,
-      boughtOn: new Date(2019, 2, 31),
+      boughtOn: new Date(2010, 0, 31),
       ratePercent: 3.2,
       interest: 'compounds',
       period: 'yearly',
@@ -189,5 +215,26 @@ describe('choiceFromCode', () => {
 describe('recentMonths', () => {
   it('runs back from the month given, newest first', () => {
     expect(recentMonths(3, new Date(2026, 7, 15))).toEqual(['2026-08', '2026-07', '2026-06']);
+  });
+});
+
+describe('catalogueMonths', () => {
+  /**
+   * Every month the picker can offer, with no holes in the middle: a month the person can choose
+   * and then be told nothing about is exactly the dead end this catalogue was widened to remove.
+   */
+  it('runs unbroken from the oldest recorded month to the newest', () => {
+    const months = catalogueMonths();
+
+    expect(months.at(0)).toBe('2016-01');
+    expect(months.at(-1)).toBe('2026-08');
+    expect(months).toHaveLength(128);
+    expect(new Set(months).size).toBe(months.length);
+  });
+
+  it('can price something in every month it offers', () => {
+    const dead = catalogueMonths().filter((month) => seriesOfferedIn(month).length === 0);
+
+    expect(dead).toEqual([]);
   });
 });

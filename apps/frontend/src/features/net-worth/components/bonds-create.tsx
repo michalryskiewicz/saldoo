@@ -21,6 +21,7 @@ import { addDBBond, updateDBBond } from '@/database/bonds.ts';
 import { checkIfOpen } from '@/lib/helpers.ts';
 import { formatMonthAndYear, formatPercent } from '@/lib/formats.ts';
 import {
+  catalogueMonths,
   choiceFromCode,
   draftFromCatalogue,
   rateFor,
@@ -30,9 +31,6 @@ import {
   BOND_SERIES,
   type BondSeriesCode,
 } from '@/features/net-worth/services/bond-catalogue.service.ts';
-
-/** Five years back. Long enough for anything somebody still holds and short enough to scroll. */
-const MONTHS_OFFERED = 60;
 
 const SERIES_CODES = BOND_SERIES.map((series) => series.code) as [BondSeriesCode, ...BondSeriesCode[]];
 
@@ -78,7 +76,9 @@ const BondFields = () => {
   const month = useWatch({ name: 'month' }) as string | undefined;
   const series = useWatch({ name: 'series' }) as BondSeriesCode | undefined;
 
-  const months = useMemo(() => recentMonths(MONTHS_OFFERED, new Date()), []);
+  // The whole span the catalogue can price, newest first — so a ten-year bought in 2019 can be
+  // entered as what it is rather than typed in by hand.
+  const months = useMemo(() => [...catalogueMonths()].reverse(), []);
   // Everything, when the catalogue has never read that month: which series compounds and how often
   // has not changed in years, and it is not the part anybody has to look up.
   const offered = month && seriesOfferedIn(month).length > 0 ? seriesOfferedIn(month) : BOND_SERIES;
