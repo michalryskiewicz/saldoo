@@ -878,6 +878,15 @@ export class SaldooApp {
     await expect.poll(async () => asNumber((await figure.textContent()) ?? '')).toBe(amount);
   }
 
+  /** The figure the overview leads with: what nothing has a claim on yet. */
+  async expectFreeThisMonth(amount: number): Promise<void> {
+    await this.openOverview();
+
+    const figure = this.page.locator('[data-slot="free-this-month"]');
+
+    await expect.poll(async () => asNumber((await figure.textContent()) ?? '')).toBe(amount);
+  }
+
   /**
    * What one part of the budgeting strategy reads on the overview: what has gone out against it,
    * and what was planned for it.

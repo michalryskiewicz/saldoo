@@ -439,6 +439,20 @@
   "add_transactions": "Importuj transakcje",
   "add_transactions_description": "Prześlij wyciąg bankowy w formacie CSV, aby dodać nowe transakcje.",
   "bank_description": "Poniżej wybierz bank z którego chcesz dodać transakcje",
+  "free_this_month": {
+    "title": "Wolne do końca miesiąca",
+    "tooltip": "To, czego nic jeszcze nie zajęło: planowany wpływ tego miesiąca minus to, co już wyszło z konta, minus rachunki, które jeszcze zapłacisz, minus to, co obiecane celom. To nie jest saldo konta — aplikacja go nie zna.",
+    "planned_income": "Planowany wpływ",
+    "spent": "Już wyszło",
+    "owed": "Do zapłacenia",
+    "owed_count_one": "{{count}} zobowiązanie",
+    "owed_count_few": "{{count}} zobowiązania",
+    "owed_count_many": "{{count}} zobowiązań",
+    "goals": "Obiecane celom",
+    "capacity": "W typowym miesiącu zostaje ci {{amount}}",
+    "capacity_negative": "W typowym miesiącu wychodzisz {{amount}} pod kreskę",
+    "capacity_unknown": "Jeszcze nie wiem, ile odkładasz w typowym miesiącu — potrzebuję trzech pełnych miesięcy z wyciągu"
+  },
   "financial_safety_net": {
     "title": "Poduszka finansowa",
     "description": "Ile musisz mieć odłożone, żeby przeżyć bez żadnego dochodu",

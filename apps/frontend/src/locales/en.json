@@ -439,6 +439,19 @@
   "add_transactions": "Import transactions",
   "add_transactions_description": "Upload a bank statement as CSV to add new transactions.",
   "bank_description": "Choose the bank you want to add transactions from",
+  "free_this_month": {
+    "title": "Free to the end of the month",
+    "tooltip": "What nothing has a claim on yet: this month's planned income, less what has already left the account, less the bills still to pay, less what the goals were promised. It is not a bank balance — the app does not know one.",
+    "planned_income": "Planned income",
+    "spent": "Already out",
+    "owed": "Still to pay",
+    "owed_count_one": "{{count}} bill",
+    "owed_count_other": "{{count}} bills",
+    "goals": "Promised to goals",
+    "capacity": "An ordinary month leaves you {{amount}}",
+    "capacity_negative": "An ordinary month leaves you {{amount}} short",
+    "capacity_unknown": "I do not know yet what an ordinary month leaves you — that needs three complete months of statements"
+  },
   "financial_safety_net": {
     "title": "Emergency fund",
     "description": "How much you need put aside to live with no income at all",
