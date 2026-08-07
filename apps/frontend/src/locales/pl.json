@@ -166,7 +166,9 @@
     "held": "Masz",
     "owed": "Jesteś winien",
     "as_of": "Najstarsza wycena: {{date}}",
-    "never_valued": "Brak pozycji"
+    "never_valued": "Brak pozycji",
+    "other_segment": "Pozostałe",
+    "breakdown_description": "Stan na dziś, nie historia — pozycje mają jedną wycenę, tę którą wpisałeś ostatnio. Obligacje liczymy same."
   },
   "goal": {
     "title": "Cele",

@@ -6,6 +6,7 @@ import { convertDataToDesiredCurrency } from '@/lib/exchange-rate.ts';
 import { getEarliestAndLatestDate, toISODate } from '@/lib/dates.ts';
 import { DEFAULT_SETTINGS } from '@/database/settings.service.ts';
 import { netWorthWithBonds, stalestValuation } from '@/features/net-worth/services/net-worth.service.ts';
+import { netWorthBreakdown } from '@/features/net-worth/services/net-worth-breakdown.service.ts';
 
 /**
  * What is held and what is owed, in one currency.
@@ -43,5 +44,7 @@ export const useNetWorth = () => {
     // to update one.
     totals: netWorthWithBonds(inOneCurrency, bonds, new Date()),
     valuedOn: stalestValuation(inOneCurrency),
+    // What the two sides are made of, for anything drawing the whole picture rather than the figure.
+    breakdown: netWorthBreakdown(inOneCurrency, bonds, new Date()),
   };
 };

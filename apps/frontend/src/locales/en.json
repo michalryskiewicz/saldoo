@@ -162,7 +162,9 @@
     "held": "Held",
     "owed": "Owed",
     "as_of": "Oldest valuation: {{date}}",
-    "never_valued": "No positions"
+    "never_valued": "No positions",
+    "other_segment": "Everything else",
+    "breakdown_description": "As it stands today, not a history — a position carries the one valuation you last gave it. Bonds work themselves out."
   },
   "goal": {
     "title": "Goals",
