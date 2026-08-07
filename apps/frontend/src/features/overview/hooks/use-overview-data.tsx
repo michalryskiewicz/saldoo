@@ -15,12 +15,17 @@ import {
 import { useListTags } from '@/database/hooks/use-list-tags.tsx';
 import { spendingByDayOfMonth } from '@/lib/monthly-spending.ts';
 import { expenseAmountForMonth } from '@/lib/expense-amount.ts';
+import { useGoalRecords } from '@/features/goals/hooks/use-goal-records.tsx';
 
 export const useOverviewData = () => {
   // ===========================================================================
   // Hooks
   // ===========================================================================
   const { settings, isLoading: areSettingsLoading } = useSettings();
+
+  // Already in the preferred currency and valued at the rate of the day each contribution was
+  // made, which is not the window the tiles below fetch.
+  const { goals, contributions } = useGoalRecords();
 
   // ===========================================================================
   // Database
@@ -135,6 +140,8 @@ export const useOverviewData = () => {
     transactions: transactionsInSelectedCurrency,
     duties: dutiesWithExpenseInSelectedCurrency,
     profits: profitsInSelectedCurrency,
+    goals,
+    contributions,
   });
 
   const savings = chartData.find((c) => c.month === monthIndex);

@@ -119,7 +119,10 @@ export function MetricCard({
         </h5>
 
         <div className="mt-2 flex items-baseline gap-1">
-          <div className="text-[1.2rem] font-medium leading-none text-foreground tabular-nums">
+          <div
+            data-slot="metric-value"
+            className="text-[1.2rem] font-medium leading-none text-foreground tabular-nums"
+          >
             {value}
           </div>
           <div className="text-xs leading-none text-muted-foreground tabular-nums">/ {limit}</div>
@@ -134,6 +137,7 @@ export function MetricCard({
                 {details.map((detail, index) => (
                   <div
                     key={index}
+                    data-slot="metric-detail"
                     className="flex w-full items-center text-xs leading-none text-muted-foreground dark:text-foreground/70"
                   >
                     <div className={`mr-[6px] h-2 w-2 rounded-full ${detail.color}`} />

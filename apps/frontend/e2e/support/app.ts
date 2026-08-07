@@ -22,6 +22,21 @@ function label(path: string): string {
   return found;
 }
 
+/**
+ * A rendered amount as a number.
+ *
+ * The grouping space goes, the decimal comma becomes a point, and the currency goes with
+ * everything else that is not a digit — so an assertion fails the day the figure changes rather
+ * than the day somebody changes the separator.
+ */
+const asNumber = (text: string): number =>
+  Number(
+    text
+      .replace(/\s/g, '')
+      .replace(',', '.')
+      .replace(/[^\d.]/g, '')
+  );
+
 /** Long enough to cover the outbox's 2s debounce plus the upload itself. */
 const SYNC_TIMEOUT_MS = 15_000;
 
@@ -782,6 +797,8 @@ export class SaldooApp {
     description?: string;
     target?: number;
     deadlineDayOfMonth?: number;
+    /** Left alone unless a test cares: the form defaults to the strategy's first part. */
+    strategyPart?: 'NEEDS' | 'WANTS' | 'SAVINGS' | 'NEEDS_AND_WANTS';
     emergencyFund?: { coverageMonths: 3 | 6 | 12; monthlyPace: number };
   }): Promise<void> {
     await this.openGoals();
@@ -807,6 +824,10 @@ export class SaldooApp {
         .filter({ hasText: new RegExp(`^${spec.deadlineDayOfMonth}$`) })
         .first()
         .click();
+    }
+
+    if (spec.strategyPart) {
+      await sheet.getByRole('radio', { name: label(spec.strategyPart), exact: true }).click();
     }
 
     await sheet.getByRole('button', { name: label('submit'), exact: true }).click();
@@ -854,15 +875,35 @@ export class SaldooApp {
       .filter({ hasText: label(`financial_safety_net.${window}`) })
       .locator('[data-slot="card-title"]');
 
-    const asNumber = (text: string) =>
-      Number(
-        text
-          .replace(/\s/g, '')
-          .replace(',', '.')
-          .replace(/[^\d.]/g, '')
-      );
-
     await expect.poll(async () => asNumber((await figure.textContent()) ?? '')).toBe(amount);
+  }
+
+  /**
+   * What one part of the budgeting strategy reads on the overview: what has gone out against it,
+   * and what was planned for it.
+   *
+   * Scoped by the card's own heading rather than by position, because the strategy decides how
+   * many of these there are and in what order.
+   */
+  async expectStrategyPart(
+    part: 'NEEDS' | 'WANTS' | 'SAVINGS' | 'NEEDS_AND_WANTS',
+    figures: { spent: number; planned: number }
+  ): Promise<void> {
+    await this.openOverview();
+
+    const card = this.page
+      .locator('[data-slot="card"]')
+      .filter({ has: this.page.getByRole('heading', { name: label(part), exact: true }) });
+
+    await expect
+      .poll(async () => asNumber((await card.locator('[data-slot="metric-value"]').textContent()) ?? ''))
+      .toBe(figures.spent);
+
+    await expect
+      .poll(async () =>
+        asNumber((await card.locator('[data-slot="metric-detail"]').textContent()) ?? '')
+      )
+      .toBe(figures.planned);
   }
 
   async openOverview(): Promise<void> {
