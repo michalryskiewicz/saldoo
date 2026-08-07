@@ -1,14 +1,89 @@
 import { Target } from 'lucide-react';
 import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router';
+import { paths } from '@/routes/paths.ts';
 import { Card, CardContent } from '@/components/ui/card.tsx';
 import { MetricCard } from '@/components/stats/metric-card.tsx';
 import { EmptyState } from '@/components/stats/empty-state.tsx';
+import { Button } from '@/components/ui/button.tsx';
 import { formatMoney } from '@/lib/formats.ts';
-import i18n from '@/i18n.ts';
+import i18n, { type TranslationKey } from '@/i18n.ts';
+import { NEW_ENTITY_ID } from '@/constant.ts';
 import { useGoals } from '@/features/goals/hooks/use-goals.tsx';
-import { setContributionGoalId } from '@/store/preferences.slice.ts';
+import {
+  setContributionGoalId,
+  setPositionFromGoalId,
+  setPositionsDrawerId,
+} from '@/store/preferences.slice.ts';
 import { isEmergencyFund } from '@/database/goals.ts';
-import { formatMonthAndYear } from '@/features/goals/services/goal-copy.service.ts';
+import { formatCoverage, formatMonthAndYear } from '@/features/goals/services/goal-copy.service.ts';
+import type { GoalProgress } from '@/features/goals/services/goal-progress.service.ts';
+
+/**
+ * What this goal does to the rest of the app, in one sentence per card.
+ *
+ * The screen was a register: correct figures, no consequence. Somebody could read "1 200 a month"
+ * and never learn that it is why the money free on the overview went down, or that the fund's
+ * target moved because their rent did. Every sentence is computed from the same figures the tiles
+ * are drawn from, so none of it can drift out of step with what it describes.
+ */
+const Consequence = ({ row, currency }: { row: GoalProgress; currency: string }) => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const sentence = () => {
+    if (isEmergencyFund(row.goal)) {
+      return i18n.t('goal.fund_grows_with_costs', {
+        months: row.goal.coverageMonths,
+        target: formatMoney(row.target, currency),
+        coverage: formatCoverage(row.coverageNow ?? 0),
+      });
+    }
+
+    return row.takesFromFree > 0
+      ? i18n.t('goal.takes_from_free', {
+          amount: formatMoney(row.takesFromFree, currency),
+          part: i18n.t(row.goal.strategyPart as TranslationKey),
+        })
+      : i18n.t('goal.takes_nothing');
+  };
+
+  return (
+    <div className="flex flex-col gap-2 text-xs" data-slot="goal-consequence">
+      <p>{sentence()}</p>
+
+      {row.offer && (
+        <p>
+          {i18n.t('goal.offer', {
+            pace: formatMoney(row.offer.pace, currency),
+            when: formatMonthAndYear(row.offer.deadline),
+          })}
+        </p>
+      )}
+
+      {/* The seam this app is asked about most: money declared aside is not a holding, and net
+          worth stays where it was until somebody says what the thing is actually worth. */}
+      <p>{i18n.t('goal.not_wealth')}</p>
+
+      <Button
+        variant="link"
+        className="h-auto justify-start p-0 text-xs"
+        // Listed out of context every card's link would read the same, so the goal names itself.
+        aria-label={`${i18n.t('goal.add_to_wealth')} — ${row.goal.description}`}
+        // Over to the holdings screen with the drawer open, rather than opening it here: that is
+        // where the position will live, and a form that writes to a screen somebody cannot see
+        // leaves them wondering whether anything happened.
+        onClick={() => {
+          dispatch(setPositionFromGoalId(row.goal.id));
+          dispatch(setPositionsDrawerId(NEW_ENTITY_ID));
+          navigate(paths.dashboard.wealth);
+        }}
+      >
+        {i18n.t('goal.add_to_wealth')}
+      </Button>
+    </div>
+  );
+};
 
 export function GoalsList() {
   const dispatch = useDispatch();
@@ -75,6 +150,8 @@ export function GoalsList() {
                 color: 'bg-muted-foreground',
               },
             ].filter((detail) => Boolean(detail)) as { label: string; value: string; color: string }[]}
+            status={<Consequence row={row} currency={currency} />}
+            statusColor="text-muted-foreground"
             actionLabel={
               isEmergencyFund(row.goal) ? i18n.t('goal.top_up') : i18n.t('goal.put_aside')
             }

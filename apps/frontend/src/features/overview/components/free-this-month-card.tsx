@@ -1,4 +1,5 @@
 import { Coins } from 'lucide-react';
+import { Link } from 'react-router';
 
 import {
   Card,
@@ -14,6 +15,27 @@ import { cn } from '@/lib/utils.ts';
 import i18n from '@/i18n.ts';
 import { paths } from '@/routes/paths.ts';
 import { useOverviewData } from '@/features/overview/hooks/use-overview-data.tsx';
+
+type PartProps = {
+  label: string;
+  /** The screen this part of the figure is authored on. */
+  to: string;
+  value: string;
+  /** Said beside the link rather than inside it, so the link is named by the part alone. */
+  note?: string;
+};
+
+const Part = ({ label, to, value, note }: PartProps) => (
+  <div className="flex gap-1">
+    <dt>
+      <Link to={to} className="hover:text-foreground underline-offset-4 hover:underline">
+        {label}
+      </Link>
+      {note ? ` (${note})` : ''}:
+    </dt>
+    <dd className="tabular-nums">{value}</dd>
+  </div>
+);
 
 /**
  * The one figure on the overview somebody can act on today.
@@ -73,27 +95,31 @@ export function FreeThisMonthCard() {
               {formatMoney(freeThisMonth.free, currency)}
             </span>
 
+            {/* Each part is the way to the screen that authors it: the figure is joined from four
+                tables nobody can see from here, and a link answers "where is that from" without a
+                sentence that would go stale. */}
             <dl className="text-muted-foreground flex flex-wrap gap-x-6 gap-y-1 text-sm">
-              <div className="flex gap-1">
-                <dt>{i18n.t('free_this_month.planned_income')}:</dt>
-                <dd className="tabular-nums">
-                  {formatMoney(freeThisMonth.plannedIncome, currency)}
-                </dd>
-              </div>
-              <div className="flex gap-1">
-                <dt>{i18n.t('free_this_month.spent')}:</dt>
-                <dd className="tabular-nums">{formatMoney(freeThisMonth.spent, currency)}</dd>
-              </div>
-              <div className="flex gap-1">
-                <dt>
-                  {i18n.t('free_this_month.owed')} ({owedLabel}):
-                </dt>
-                <dd className="tabular-nums">{formatMoney(freeThisMonth.owed, currency)}</dd>
-              </div>
-              <div className="flex gap-1">
-                <dt>{i18n.t('free_this_month.goals')}:</dt>
-                <dd className="tabular-nums">{formatMoney(freeThisMonth.goalsToFund, currency)}</dd>
-              </div>
+              <Part
+                label={i18n.t('free_this_month.planned_income')}
+                to={paths.dashboard.profits}
+                value={formatMoney(freeThisMonth.plannedIncome, currency)}
+              />
+              <Part
+                label={i18n.t('free_this_month.spent')}
+                to={paths.dashboard.transactions}
+                value={formatMoney(freeThisMonth.spent, currency)}
+              />
+              <Part
+                label={i18n.t('free_this_month.owed')}
+                note={owedLabel}
+                to={paths.dashboard.duties}
+                value={formatMoney(freeThisMonth.owed, currency)}
+              />
+              <Part
+                label={i18n.t('free_this_month.goals')}
+                to={paths.dashboard.goals}
+                value={formatMoney(freeThisMonth.goalsToFund, currency)}
+              />
             </dl>
           </div>
         )}

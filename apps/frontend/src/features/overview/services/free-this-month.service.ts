@@ -2,7 +2,7 @@ import type { DBTransaction } from '@/database/transactions.ts';
 import type { DBContribution } from '@/database/contributions.ts';
 import type { DBDuty } from '@/database/duty.ts';
 import type { DBGoal } from '@/database/goals.ts';
-import { requiredMonthlyContribution } from '@/lib/goals.ts';
+import { monthlyClaim } from '@/features/goals/services/monthly-claim.service.ts';
 
 /**
  * An occurrence with the amount it is for, which the record itself does not carry.
@@ -94,37 +94,14 @@ export const freeThisMonth = ({
 
   const stillOwed = thisMonthsDuties.filter((duty) => !duty.resolved);
 
-  const contributionsThisMonth = contributions.filter((contribution) =>
-    inMonth(contribution.contributedAt, today)
-  );
-
-  const towards = (goalId: string, only: (contribution: DBContribution) => boolean): number =>
-    contributionsThisMonth
-      .filter((contribution) => contribution.goalId === goalId && only(contribution))
-      .reduce((total, contribution) => total + contribution.amount, 0);
-
-  const openGoals = goals.filter((goal) => !goal.closedAt);
-
-  const reserved = openGoals.reduce((total, goal) => {
-    const saved = contributions
-      .filter((contribution) => contribution.goalId === goal.id)
-      .reduce((sum, contribution) => sum + contribution.amount, 0);
-
-    const required = goal.deadline
-      ? requiredMonthlyContribution({ target: goal.target ?? 0, saved, deadline: goal.deadline }, today)
-      : (goal.monthlyPace ?? 0);
-
-    return total + Math.max(required, towards(goal.id, () => true));
-  }, 0);
-
-  const confirmed = openGoals.reduce(
-    (total, goal) => total + towards(goal.id, (contribution) => Boolean(contribution.transactionId)),
-    0
+  const goalsToFund = round(
+    goals
+      .filter((goal) => !goal.closedAt)
+      .reduce((total, goal) => total + monthlyClaim({ goal, contributions, today }).takesFromFree, 0)
   );
 
   const spent = round(paidOut + tickedOffByHand);
   const owed = round(stillOwed.reduce((total, duty) => total + duty.price, 0));
-  const goalsToFund = round(Math.max(0, reserved - confirmed));
 
   return {
     free: round(plannedIncome - spent - owed - goalsToFund),

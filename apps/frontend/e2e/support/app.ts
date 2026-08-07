@@ -838,11 +838,14 @@ export class SaldooApp {
   async putAside(goal: string, amount: number): Promise<void> {
     await this.openGoals();
 
+    // Named, not "the first button on the card": a card carries several, and which one comes
+    // first is a layout decision that has already changed once.
     await this.page
       .locator('[data-slot="card"]')
       .filter({ hasText: goal })
-      .getByRole('button')
-      .first()
+      .getByRole('button', {
+        name: new RegExp(`^(${label('goal.put_aside')}|${label('goal.top_up')}) — `),
+      })
       .click();
 
     const sheet = this.page.getByRole('dialog', { name: label('goal.put_aside') });
