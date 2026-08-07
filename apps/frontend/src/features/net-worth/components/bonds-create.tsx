@@ -20,33 +20,35 @@ import { setBondsDrawerId } from '@/store/preferences.slice.ts';
 import { addDBBond, updateDBBond } from '@/database/bonds.ts';
 import { checkIfOpen } from '@/lib/helpers.ts';
 import { formatMonthAndYear, formatPercent } from '@/lib/formats.ts';
+import { useListBondOffersQuery } from '@/store/bond-offers.api.ts';
+import {
+  fetchedRates,
+  monthsPriceableFrom,
+  rateFrom,
+  seriesOfferedFrom,
+  type FetchedRates,
+} from '@/features/net-worth/services/bond-offers.service.ts';
 import {
   catalogueMonths,
   choiceFromCode,
   draftFromCatalogue,
-  rateFor,
   recentMonths,
   seriesCodeFor,
-  seriesOfferedIn,
   BOND_SERIES,
   type BondSeriesCode,
 } from '@/features/net-worth/services/bond-catalogue.service.ts';
 
 const SERIES_CODES = BOND_SERIES.map((series) => series.code) as [BondSeriesCode, ...BondSeriesCode[]];
 
-const formSchema = z
-  .object({
-    month: z.string({ error: i18n.t('errors.field-required') }),
-    series: z.enum(SERIES_CODES, { error: i18n.t('errors.field-required') }),
-    quantity: z.number({ error: i18n.t('errors.field-required') }).positive(),
-    ratePercent: z.number().positive().optional(),
-  })
-  // Asked for only where the catalogue cannot answer, and required there: a holding with no rate
-  // has no value, and defaulting one would be the app inventing a figure about real money.
-  .refine((values) => rateFor(values.series, values.month) !== undefined || !!values.ratePercent, {
-    path: ['ratePercent'],
-    error: i18n.t('errors.field-required'),
-  });
+const formSchema = z.object({
+  month: z.string({ error: i18n.t('errors.field-required') }),
+  series: z.enum(SERIES_CODES, { error: i18n.t('errors.field-required') }),
+  quantity: z.number({ error: i18n.t('errors.field-required') }).positive(),
+  // Required, but not by the schema: whether a rate has to be asked for depends on what the backend
+  // has read since this bundle was built, which a module-level schema cannot see. The submit
+  // decides, and reports it on this field.
+  ratePercent: z.number().positive().optional(),
+});
 
 type BondCreateType = z.infer<typeof formSchema>;
 
@@ -72,19 +74,23 @@ const laterPeriodsLabel = (code: BondSeriesCode) => {
  * as a prop, so anything watching from outside is frozen at the first render and the series list
  * would keep offering last month's.
  */
-const BondFields = () => {
+const BondFields = ({ fetched }: { fetched: FetchedRates }) => {
   const month = useWatch({ name: 'month' }) as string | undefined;
   const series = useWatch({ name: 'series' }) as BondSeriesCode | undefined;
 
-  // The whole span the catalogue can price, newest first — so a ten-year bought in 2019 can be
-  // entered as what it is rather than typed in by hand.
-  const months = useMemo(() => [...catalogueMonths()].reverse(), []);
-  // Everything, when the catalogue has never read that month: which series compounds and how often
-  // has not changed in years, and it is not the part anybody has to look up.
-  const offered = month && seriesOfferedIn(month).length > 0 ? seriesOfferedIn(month) : BOND_SERIES;
+  // Every month that can be priced, newest first — the span shipped in the bundle plus anything the
+  // backend has read since. A ten-year bought in 2019 is entered as what it is, not typed in.
+  const months = useMemo(
+    () => [...monthsPriceableFrom(fetched, catalogueMonths())].reverse(),
+    [fetched]
+  );
+  // Everything, when neither the bundle nor the backend has read that month: which series compounds
+  // and how often has not changed in years, and it is not the part anybody has to look up.
+  const offeredThen = month ? seriesOfferedFrom(fetched, month) : [];
+  const offered = offeredThen.length > 0 ? offeredThen : BOND_SERIES;
 
   const spec = series && BOND_SERIES.find((one) => one.code === series);
-  const known = series && month ? rateFor(series, month) : undefined;
+  const known = series && month ? rateFrom(fetched, series, month) : undefined;
 
   return (
     <div className="flex flex-col gap-7">
@@ -106,8 +112,8 @@ const BondFields = () => {
           label: [
             one.code,
             tenorLabel(one.tenorMonths),
-            month && rateFor(one.code, month) !== undefined
-              ? formatPercent(rateFor(one.code, month)!)
+            month && rateFrom(fetched, one.code, month) !== undefined
+              ? formatPercent(rateFrom(fetched, one.code, month)!)
               : undefined,
             one.familyOnly ? i18n.t('bonds.family_only') : undefined,
           ]
@@ -153,6 +159,12 @@ export default function BondsCreate() {
   const id = useAppSelector((state) => state.preferences.bondsDrawerId);
   const bond = useLiveQuery(() => db.bonds.get(id ?? ''), [id]);
 
+  // Whatever the backend has read since this bundle was built. Nothing here handles a failure
+  // because there is nothing to handle: no answer means no extra months, and every lookup falls
+  // back to the catalogue the app ships with.
+  const { data: offers } = useListBondOffersQuery();
+  const fetched = useMemo(() => fetchedRates(offers), [offers]);
+
   const initialValues = useMemo(() => {
     if (id === NEW_ENTITY_ID) return { month: recentMonths(1, new Date())[0] };
     if (!bond) return undefined;
@@ -175,10 +187,12 @@ export default function BondsCreate() {
       code: values.series,
       month: values.month,
       quantity: values.quantity,
-      ratePercent: values.ratePercent,
+      ratePercent: values.ratePercent ?? rateFrom(fetched, values.series, values.month),
     });
 
-    if (!draft) return;
+    // No rate anywhere and none given: say so on the field that would carry it, rather than closing
+    // over a holding with no value.
+    if (!draft) return { ratePercent: i18n.t('errors.field-required') };
 
     const saved = id === NEW_ENTITY_ID ? await addDBBond(draft) : await updateDBBond(id, draft);
     if (!saved) return;
@@ -198,7 +212,7 @@ export default function BondsCreate() {
         </SheetHeader>
         <div className="flex flex-col gap-1.5 p-4">
           <Form initialValues={initialValues} schema={formSchema} onSubmit={handleSubmit}>
-            <BondFields />
+            <BondFields fetched={fetched} />
           </Form>
         </div>
       </SheetContent>

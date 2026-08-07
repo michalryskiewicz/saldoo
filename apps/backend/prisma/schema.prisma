@@ -43,3 +43,29 @@ model ExchangeRate {
   // cache must not be able to hold two of them.
   @@unique([fromCurrency, toCurrency, effectiveDate])
 }
+
+// The retail bond offer, as published. Public data about somebody else's product — the same kind
+// of thing as an NBP rate, and the same rebuildable cache: deleting these rows costs a few requests
+// to the Ministry's own pages.
+//
+// It is not a substitute for the catalogue the app ships with. That one keeps working offline and
+// keeps working if this table is empty; these rows are what stops somebody having to add a line to
+// it by hand every month.
+model BondOffer {
+  id String @id @default(uuid())
+
+  // The series code (EDO, COI, ROR …) and the month it was on sale, as YYYY-MM.
+  series String
+  month  String
+
+  ratePercent   Float
+  marginPercent Float?
+  nominal       Float?
+
+  /// Where it was read from, so a wrong figure can be traced to a page rather than argued about.
+  source    String
+  checkedAt DateTime
+
+  // One issue per series per month is a single published fact, so the cache must not hold two.
+  @@unique([series, month])
+}
