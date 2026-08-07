@@ -125,11 +125,20 @@ test('the wealth page draws what is held against what is owed', async ({ browser
   await app.open('/dashboard/wealth');
 
   // Both sides are named on the axis, or the bars are two lengths of nothing in particular.
-  // Scoped to the axis: Recharts keeps a hidden span of the same text for measuring, so asking the
-  // page finds the label twice and neither answer is about what is drawn.
+  //
+  // Scoped to the axis, because Recharts keeps a hidden span of the same text for measuring — and
+  // compared without whitespace, because it breaks a two-word tick into separate `tspan`s when the
+  // label is tight. Where that break falls depends on the font metrics of the machine drawing it:
+  // "Jesteś winien" stayed on one line here and arrived as "Jesteświnien" on CI.
+  const withoutSpaces = (text: string) => text.replace(/\s/gu, '');
   const axis = device.page.locator('.recharts-yAxis');
-  await expect(axis).toContainText(pl.holdings.held);
-  await expect(axis).toContainText(pl.holdings.owed);
+
+  await expect
+    .poll(async () => withoutSpaces((await axis.textContent()) ?? ''))
+    .toContain(withoutSpaces(pl.holdings.held));
+  await expect
+    .poll(async () => withoutSpaces((await axis.textContent()) ?? ''))
+    .toContain(withoutSpaces(pl.holdings.owed));
 
   // 640 000 + 18 400 held, 410 000 owed.
   const total = device.page.locator('[data-slot="net-worth-total"]');
