@@ -18,6 +18,14 @@ export type BondSeriesPoint = {
    * of its own, and adding it twice would be the same money counted twice.
    */
   interest: number;
+  /**
+   * What the holdings themselves are worth on that day — the line the chart draws.
+   *
+   * Not `capital + interest`: interest a paying bond sent to somebody's account is money it earned
+   * and is not part of what the bond is worth. The two lines answer different questions and this
+   * is the one net worth agrees with.
+   */
+  worth: number;
   /** True once the month is past today's: the same arithmetic, about a day that has not come. */
   projected: boolean;
 };
@@ -31,20 +39,34 @@ export type BondSeriesOptions = {
 const round = (amount: number) => Number(amount.toFixed(2));
 
 /**
- * Splits holdings into the ones this chart can add up and a count of the ones it cannot.
+ * The currency this chart is drawn in, and how many holdings that leaves out.
  *
- * **A projection cannot be converted.** Today's holdings could be, at today's rate — but a point
- * five years out would need an exchange rate five years out, and there is no honest way to have
- * one. So a holding in another currency is left out and counted, and the chart says how many it
- * left out rather than quietly folding złoty and euro into one number.
+ * **Drawn in the bonds' own currency, never converted.** A point ten years out would need an
+ * exchange rate ten years out, and there is no honest way to have one. Converting only the history
+ * and not the projection would put a kink in the line at today for a reason that has nothing to do
+ * with the bonds.
+ *
+ * It used to filter by the *display* currency instead, which meant somebody reading their figures
+ * in euro with a shelf full of złoty bonds got no chart at all — and no note either, because the
+ * note lived inside the card that never rendered. Where holdings are split across currencies the
+ * larger pile is drawn and the rest is counted out loud.
  */
-export const holdingsInCurrency = (
-  bonds: DBBondHolding[],
-  currency: Currency
-): { included: DBBondHolding[]; excluded: number } => {
+export const holdingsToChart = (
+  bonds: DBBondHolding[]
+): { currency: Currency | undefined; included: DBBondHolding[]; excluded: number } => {
+  if (bonds.length === 0) return { currency: undefined, included: [], excluded: 0 };
+
+  const capitalByCurrency = new Map<Currency, number>();
+
+  for (const bond of bonds) {
+    const capital = bond.quantity * bond.nominal;
+    capitalByCurrency.set(bond.currency, (capitalByCurrency.get(bond.currency) ?? 0) + capital);
+  }
+
+  const [currency] = [...capitalByCurrency.entries()].sort((a, b) => b[1] - a[1])[0];
   const included = bonds.filter((bond) => bond.currency === currency);
 
-  return { included, excluded: bonds.length - included.length };
+  return { currency, included, excluded: bonds.length - included.length };
 };
 
 const earliestPurchase = (bonds: DBBondHolding[]): Date =>
@@ -96,6 +118,7 @@ export const bondSeries = (
       on: month,
       capital: round(values.reduce((total, value) => total + value.capital, 0)),
       interest: round(values.reduce((total, value) => total + value.accrued + value.paidOut, 0)),
+      worth: round(values.reduce((total, value) => total + value.value, 0)),
       projected: month > currentMonth,
     };
   });

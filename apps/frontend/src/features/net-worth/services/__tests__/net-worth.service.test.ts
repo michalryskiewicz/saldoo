@@ -56,44 +56,27 @@ describe('stalestValuation', () => {
   });
 });
 
+/**
+ * Bonds arrive here as amounts, already priced by `bond-accrual` and already converted into the
+ * currency the positions are in. What each one is *worth* is that service's question and is tested
+ * there; what is left here is that a holding whose value is computed still lands on the held side.
+ */
 describe('bonds in net worth', () => {
-  const edo = {
-    id: 'b1',
-    description: 'EDO0335',
-    quantity: 100,
-    nominal: 100,
-    boughtOn: new Date(2025, 2, 10),
-    ratePercent: 6.55,
-    interest: 'compounds',
-    period: 'yearly',
-    currency: 'PLN',
-  } as unknown as import('@/database/bonds.ts').DBBondHolding;
-
-  /**
-   * A bond is held, so it counts — but at what it is *worth today*, computed, rather than at what
-   * was paid for it. That is the whole difference between this and typing a number in.
-   */
-  it('counts what a bond is worth today, not what it cost', () => {
-    const totals = netWorthWithBonds([], [edo], new Date(2026, 2, 10));
+  it('adds what the bonds are worth to what is held', () => {
+    const totals = netWorthWithBonds([], [10655]);
 
     expect(totals.held).toBe(10655);
     expect(totals.net).toBe(10655);
   });
 
   it('adds them to what was entered by hand', () => {
-    const totals = netWorthWithBonds([held('Konto', 5000)], [edo], new Date(2026, 2, 10));
-
-    expect(totals.held).toBe(15655);
+    expect(netWorthWithBonds([held('Konto', 5000)], [10655]).held).toBe(15655);
   });
 
-  /**
-   * A bond that pays its interest out is worth its nominal and no more. The interest is in the
-   * account it was paid into, and that account is a position of its own — counting the bond as
-   * grown as well would be the same złoty twice.
-   */
-  it('does not grow a bond that pays its interest out', () => {
-    const coi = { ...edo, interest: 'pays out' as const };
+  it('leaves what is owed alone: a bond is never a liability', () => {
+    const totals = netWorthWithBonds([owed('Kredyt', 400000)], [10655]);
 
-    expect(netWorthWithBonds([], [coi], new Date(2027, 2, 10)).held).toBe(10000);
+    expect(totals.owed).toBe(400000);
+    expect(totals.net).toBe(-389345);
   });
 });

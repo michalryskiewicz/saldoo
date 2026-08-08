@@ -1,6 +1,4 @@
 import type { DBPosition } from '@/database/positions.ts';
-import type { DBBondHolding } from '@/database/bonds.ts';
-import { bondValueOn } from '@/features/net-worth/services/bond-accrual.service.ts';
 
 export type NetWorth = {
   /** Everything held. */
@@ -53,18 +51,18 @@ export const stalestValuation = (positions: DBPosition[]): Date | undefined =>
  *
  * That is the whole difference between a bond and a hand-valued position: a bond's value follows
  * from the day it was bought and the rate announced for the period, so nobody has to remember to
- * update it. A bond that pays its interest out is worth its nominal and no more — the interest is
- * sitting in the account it was paid into, and that account is a position of its own.
+ * update it. A bond that pays its interest out is worth its nominal plus the days since it last
+ * paid — the rest is sitting in the account it was paid into, and that account is a position of
+ * its own.
+ *
+ * **Bonds arrive already valued and already converted**, as plain amounts in the currency the
+ * positions are in. They used to arrive as holdings and be valued here, which quietly added a
+ * złoty bond to a euro total: conversion in this app happens before the arithmetic, and a bond can
+ * only be converted once something has priced it. See `valueBondsOn`.
  */
-export const netWorthWithBonds = (
-  positions: DBPosition[],
-  bonds: DBBondHolding[],
-  on: Date
-): NetWorth => {
+export const netWorthWithBonds = (positions: DBPosition[], bondValues: number[]): NetWorth => {
   const stated = netWorth(positions);
-  const computed = round(
-    bonds.reduce((total, bond) => total + bondValueOn(bond, on).value, 0)
-  );
+  const computed = round(bondValues.reduce((total, value) => total + value, 0));
 
   return {
     held: round(stated.held + computed),

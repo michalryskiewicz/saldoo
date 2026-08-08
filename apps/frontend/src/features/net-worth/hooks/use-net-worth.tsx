@@ -7,6 +7,7 @@ import { getEarliestAndLatestDate, toISODate } from '@/lib/dates.ts';
 import { DEFAULT_SETTINGS } from '@/database/settings.service.ts';
 import { netWorthWithBonds, stalestValuation } from '@/features/net-worth/services/net-worth.service.ts';
 import { netWorthBreakdown } from '@/features/net-worth/services/net-worth-breakdown.service.ts';
+import { valueBondsOn } from '@/features/net-worth/services/bond-accrual.service.ts';
 
 /**
  * What is held and what is owed, in one currency.
@@ -20,31 +21,44 @@ export const useNetWorth = () => {
   const positions = useLiveQuery(() => db.positions.toArray(), []) || [];
   const bonds = useLiveQuery(() => db.bonds.toArray(), []) || [];
 
+  const today = new Date();
+
+  // The window has to reach today even on an account whose only holdings are bonds: those are
+  // priced for today, and without today's rate there is nothing to convert them at.
   const { earliest } = getEarliestAndLatestDate(positions, 'valuedOn', 'iso-date');
   const { data: exchangeRates } = useListExchangeRatesQuery(
-    { fromDate: earliest as string, toDate: toISODate(new Date()) },
-    { skip: !earliest }
+    { fromDate: (earliest as string) ?? toISODate(today), toDate: toISODate(today) },
+    { skip: !positions.length && !bonds.length }
   );
 
-  const inOneCurrency = settings?.currency
-    ? convertDataToDesiredCurrency({
-        data: positions,
-        exchangeRates,
-        desiredCurrency: settings.currency,
-        amountKey: 'value',
-        dateKey: 'valuedOn',
-      })
-    : positions;
+  const inOneCurrency = <T,>(data: T[], dateKey: string): T[] =>
+    settings?.currency
+      ? (convertDataToDesiredCurrency({
+          data: data as never,
+          exchangeRates,
+          desiredCurrency: settings.currency,
+          amountKey: 'value',
+          dateKey,
+        }) as T[])
+      : data;
+
+  const convertedPositions = inOneCurrency(positions, 'valuedOn');
+
+  // Valued first, converted second, added last. A bond's worth follows from its own currency's
+  // nominal and rate, so it cannot be converted until something has priced it — and it has to be
+  // converted before it joins a total printed in another currency, which is what used to be
+  // missing: a złoty bond went into a euro net worth at its face figure.
+  const bondValues = inOneCurrency(valueBondsOn(bonds, today), 'valuedOn').map(
+    (bond) => bond.value
+  );
 
   return {
     currency: settings?.currency ?? DEFAULT_SETTINGS.currency,
-    positions: inOneCurrency,
+    positions: convertedPositions,
     bonds,
-    // Bonds at what they are worth today, worked out rather than stated — nobody has to remember
-    // to update one.
-    totals: netWorthWithBonds(inOneCurrency, bonds, new Date()),
-    valuedOn: stalestValuation(inOneCurrency),
+    totals: netWorthWithBonds(convertedPositions, bondValues),
+    valuedOn: stalestValuation(convertedPositions),
     // What the two sides are made of, for anything drawing the whole picture rather than the figure.
-    breakdown: netWorthBreakdown(inOneCurrency, bonds, new Date()),
+    breakdown: netWorthBreakdown(convertedPositions, bondValues),
   };
 };

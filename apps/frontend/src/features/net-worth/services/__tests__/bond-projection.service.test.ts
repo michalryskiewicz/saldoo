@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DBBondHolding } from '@/database/bonds.ts';
-import { bondSeries, holdingsInCurrency } from '../bond-projection.service.ts';
+import { bondSeries, holdingsToChart } from '../bond-projection.service.ts';
 
 const bought = (fields: Partial<DBBondHolding> = {}): DBBondHolding =>
   ({
@@ -18,21 +18,39 @@ const bought = (fields: Partial<DBBondHolding> = {}): DBBondHolding =>
 
 const TODAY = new Date(2026, 5, 15);
 
-describe('holdingsInCurrency', () => {
+describe('holdingsToChart', () => {
   /**
-   * A projection cannot be converted. Today's holdings could be, at today's rate — but a figure
-   * five years out would need an exchange rate five years out, and inventing one would put a
-   * confident number about somebody's money on the screen. So the odd-currency holding is left
-   * out and counted, and the chart says how many it left out.
+   * The bonds' own currency, not the one the rest of the app is printed in. This used to filter by
+   * the display currency, so somebody reading their figures in euro with a shelf full of złoty
+   * bonds got no chart at all — and no explanation, because the note about what was left out lived
+   * inside the card that never rendered.
    */
-  it('keeps what is in the display currency and counts what it left out', () => {
-    const { included, excluded } = holdingsInCurrency(
-      [bought(), bought({ id: 'b2', currency: 'EUR' }), bought({ id: 'b3' })],
-      'PLN'
-    );
+  it('draws in the currency the bonds are actually in', () => {
+    const { currency, included } = holdingsToChart([bought(), bought({ id: 'b2' })]);
 
-    expect(included.map((holding) => holding.id)).toEqual(['b1', 'b3']);
+    expect(currency).toBe('PLN');
+    expect(included.map((holding) => holding.id)).toEqual(['b1', 'b2']);
+  });
+
+  /**
+   * A projection cannot be converted: a point ten years out would need an exchange rate ten years
+   * out. So the larger pile is drawn in its own currency and the rest is counted out loud rather
+   * than folded in at a rate nobody can know.
+   */
+  it('draws the larger pile and counts what that leaves out', () => {
+    const { currency, included, excluded } = holdingsToChart([
+      bought({ id: 'b1', currency: 'EUR', quantity: 5 }),
+      bought({ id: 'b2', quantity: 100 }),
+      bought({ id: 'b3', quantity: 20 }),
+    ]);
+
+    expect(currency).toBe('PLN');
+    expect(included.map((holding) => holding.id)).toEqual(['b2', 'b3']);
     expect(excluded).toBe(1);
+  });
+
+  it('has no currency to draw in when nothing is held', () => {
+    expect(holdingsToChart([])).toEqual({ currency: undefined, included: [], excluded: 0 });
   });
 });
 
@@ -50,10 +68,14 @@ describe('bondSeries', () => {
     expect(series).toHaveLength(15 + 120 + 1);
   });
 
-  it('carries capital from the first month and no interest yet', () => {
+  it('carries capital from the first month, and the days it has already earned', () => {
     const [first] = bondSeries([bought()], { today: TODAY, years: 10 });
 
-    expect(first).toEqual({ on: new Date(2025, 2, 1), capital: 10000, interest: 0, projected: false });
+    expect(first.on).toEqual(new Date(2025, 2, 1));
+    expect(first.capital).toBe(10000);
+    // Bought on the 10th and valued at the end of the month: 21 of the year's 365 days, of 655.
+    expect(first.interest).toBeCloseTo(37.68, 2);
+    expect(first.projected).toBe(false);
   });
 
   /**
@@ -68,16 +90,22 @@ describe('bondSeries', () => {
     expect(series[past.length].projected).toBe(true);
   });
 
-  it('grows the interest at each period end and holds it flat between them', () => {
+  /**
+   * The shape the chart is drawn for: a line that climbs every month on its own. It used to be a
+   * staircase — flat for eleven months, one step at the anniversary — which is not what these bonds
+   * do and gave somebody a year of looking at a chart that had not moved.
+   */
+  it('climbs every month rather than standing still between anniversaries', () => {
     const series = bondSeries([bought()], { today: TODAY, years: 10 });
     const at = (year: number, month: number) =>
       series.find((point) => point.on.getFullYear() === year && point.on.getMonth() === month)!;
 
-    // Bought in March 2025, so the first year is not up until March 2026.
-    expect(at(2026, 1).interest).toBe(0);
-    expect(at(2026, 2).interest).toBe(655);
-    expect(at(2026, 3).interest).toBe(655);
-    expect(at(2027, 2).interest).toBe(1352.9);
+    // A month short of the first anniversary: 355 of the year's 365 days of the 655.
+    expect(at(2026, 1).interest).toBeCloseTo(637.05, 2);
+
+    const firstYear = [at(2025, 5), at(2025, 8), at(2025, 11), at(2026, 1)].map((p) => p.interest);
+    expect(firstYear).toEqual([...firstYear].sort((a, b) => a - b));
+    expect(new Set(firstYear).size).toBe(firstYear.length);
   });
 
   /**
@@ -92,7 +120,9 @@ describe('bondSeries', () => {
     )!;
 
     expect(afterTwoYears.capital).toBe(10000);
-    expect(afterTwoYears.interest).toBe(1310);
+    // Two years paid into the account, plus the 21 days of the third that nobody has been paid yet
+    // — 366 of them in that year, because 2028 is a leap year.
+    expect(afterTwoYears.interest).toBeCloseTo(1347.58, 2);
   });
 
   it('adds several holdings together at every point, including one bought later', () => {
@@ -103,10 +133,12 @@ describe('bondSeries', () => {
     const at = (year: number, month: number) =>
       series.find((point) => point.on.getFullYear() === year && point.on.getMonth() === month)!;
 
-    // Before the second purchase only the first is held.
+    // Before the second purchase only the first is held. The step in the capital line is the
+    // purchase itself, which is the one thing on this chart that is not gradual.
     expect(at(2025, 11).capital).toBe(10000);
     expect(at(2026, 0).capital).toBe(15000);
-    // March 2026: the first bond's year is up, the second's is not.
-    expect(at(2026, 2).interest).toBe(655);
+    // End of March 2026: the first bond's year closed on the 10th and has earned 21 days on top of
+    // its 655; the second has been accruing on 5 000 since 10 January, 80 days of its first year.
+    expect(at(2026, 2).interest).toBeCloseTo(695.15 + 71.78, 1);
   });
 });

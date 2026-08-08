@@ -13,11 +13,21 @@ const amountOf = (text: string) =>
  * the nominal, whether the interest compounds, how often, and the rate — comes from the catalogue,
  * so a test that had to type any of them would be testing a form this app no longer has.
  */
-const addBond = async (page: Page, { series, quantity }: { series: string; quantity: string }) => {
+const addBond = async (
+  page: Page,
+  { series, quantity, monthsAgo = 0 }: { series: string; quantity: string; monthsAgo?: number }
+) => {
   await page.getByRole('button', { name: pl.bonds.create, exact: true }).click();
 
   const sheet = page.getByRole('dialog', { name: pl.bonds.create_title });
   await expect(sheet).toBeVisible();
+
+  if (monthsAgo > 0) {
+    // Newest first, so the nth option back is n months ago. By position rather than by label: the
+    // label is a month name that would have to be built here from the same helper the app uses.
+    await sheet.getByRole('combobox', { name: pl.bonds.month }).click();
+    await page.getByRole('option').nth(monthsAgo).click();
+  }
 
   await sheet.getByRole('combobox', { name: pl.bonds.series }).click();
   await page.getByRole('option', { name: new RegExp(`^${series}`) }).click();
@@ -87,11 +97,11 @@ test('the bond chart plots the projection, not just what is held today', async (
 
   await expect(device.page.getByText(pl.bonds.chart_title)).toBeVisible();
 
-  // Both bands are named, because "what it earned" is only readable if it is told apart from "what
-  // was put in".
+  // Both lines are named, because the earnings are the distance between them: what was put in, and
+  // what it is worth. The first only steps when somebody buys; the second climbs every day.
   const legend = device.page.locator('.recharts-legend-wrapper');
   await expect(legend).toContainText(pl.bonds.capital);
-  await expect(legend).toContainText(pl.bonds.interest_earned);
+  await expect(legend).toContainText(pl.bonds.worth);
 
   // The future half is marked as a guess on the chart itself. Exact, or this also matches the word
   // inside the card's description — which would leave it passing with no band drawn at all.
@@ -159,6 +169,40 @@ test('a bond bought years ago is priced from that month\'s offer', async ({ brow
 
   // Named for the month it is redeemed: a ten-year bought in March 2019 is EDO0329.
   await expect(device.page.getByText('EDO0329')).toBeVisible();
+
+  expect(device.problems()).toEqual([]);
+
+  await device.close();
+});
+
+/**
+ * The thing somebody actually looks at the table for: that the holding has earned something.
+ *
+ * It used to read 0,00 zł for anybody less than a year into a bond that capitalises annually —
+ * eleven months of a screen that had not moved, while their own account showed interest building
+ * up. Interest accrues daily; a figure that waits for the anniversary is not conservative, it is
+ * wrong.
+ */
+test('a bond bought before this month has earned something to show for it', async ({
+  browser,
+  baseURL,
+}) => {
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  await app.open('/dashboard/wealth');
+  await addBond(device.page, { series: 'EDO', quantity: '100', monthsAgo: 2 });
+
+  const total = device.page.locator('[data-slot="summary-figure"]').first();
+
+  // Not an exact figure: the rate comes from the catalogue and the days depend on which month it
+  // is run in. What is asserted is that a bond two months old is worth more than it cost.
+  await expect.poll(async () => amountOf((await total.textContent()) ?? '')).toBeGreaterThan(0);
 
   expect(device.problems()).toEqual([]);
 

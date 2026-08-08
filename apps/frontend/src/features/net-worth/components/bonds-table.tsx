@@ -13,6 +13,7 @@ import { db } from '@/database';
 import { deleteDBBond, type DBBondHolding } from '@/database/bonds.ts';
 import { setBondsDrawerId } from '@/store/preferences.slice.ts';
 import { bondValueOn } from '@/features/net-worth/services/bond-accrual.service.ts';
+import { InfoTooltip } from '@/components/info-tooltip.tsx';
 
 type BondRow = DBBondHolding & {
   totalLabel?: string;
@@ -92,7 +93,12 @@ const columns: ColumnDef<BondRow>[] = [
     id: 'earned',
     // Named for where the money went rather than for one word covering both: interest that joined
     // the capital and interest that was paid out are not the same thing to anybody.
-    header: i18n.t('bonds.accrued'),
+    header: () => (
+      <span className="inline-flex items-center gap-1">
+        {i18n.t('bonds.accrued')}
+        <InfoTooltip text={i18n.t('bonds.accrued_tooltip')} />
+      </span>
+    ),
     accessorFn: (row) => row.earned,
     cell: ({ row }) => (
       <Cell.Money

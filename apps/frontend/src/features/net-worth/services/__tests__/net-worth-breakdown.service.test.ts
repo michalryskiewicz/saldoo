@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import type { DBPosition } from '@/database/positions.ts';
-import type { DBBondHolding } from '@/database/bonds.ts';
 import { netWorthBreakdown, OTHER_SEGMENT } from '../net-worth-breakdown.service.ts';
 
 const position = (description: string, value: number, kind: DBPosition['kind'] = 'asset') =>
@@ -14,27 +13,11 @@ const position = (description: string, value: number, kind: DBPosition['kind'] =
     createdAt: new Date(2026, 7, 1),
   }) as DBPosition;
 
-const bond = (quantity: number) =>
-  ({
-    id: `b${quantity}`,
-    description: 'EDO0836',
-    quantity,
-    nominal: 100,
-    boughtOn: new Date(2026, 7, 1),
-    ratePercent: 5.35,
-    interest: 'compounds',
-    period: 'yearly',
-    currency: 'PLN',
-  }) as DBBondHolding;
-
-const TODAY = new Date(2026, 7, 20);
-
 describe('netWorthBreakdown', () => {
   it('puts what is held on one side and what is owed on the other', () => {
     const { held, owed, totals } = netWorthBreakdown(
       [position('Konto', 12000), position('Kredyt', 250000, 'liability')],
-      [],
-      TODAY
+      []
     );
 
     expect(held.map((one) => one.label)).toEqual(['Konto']);
@@ -47,7 +30,7 @@ describe('netWorthBreakdown', () => {
    * position is too uncomfortable to print. Most of a mortgage's life is exactly this.
    */
   it('lets the balance be negative', () => {
-    const { totals } = netWorthBreakdown([position('Kredyt', 400000, 'liability')], [], TODAY);
+    const { totals } = netWorthBreakdown([position('Kredyt', 400000, 'liability')], []);
 
     expect(totals.net).toBe(-400000);
   });
@@ -55,10 +38,11 @@ describe('netWorthBreakdown', () => {
   /**
    * Bonds arrive as one segment rather than one per holding: the table underneath already lists
    * them, and a chart answering "what is this made of" should not spend seven colours on the part
-   * that has its own screen.
+   * that has its own screen. They come in already priced and already converted — what each is
+   * worth is `bond-accrual`'s question.
    */
-  it('folds every bond into a single segment, at what they are worth today', () => {
-    const { held } = netWorthBreakdown([position('Konto', 1000)], [bond(10), bond(5)], TODAY);
+  it('folds every bond into a single segment', () => {
+    const { held } = netWorthBreakdown([position('Konto', 1000)], [1000, 500]);
 
     const bonds = held.find((one) => one.key === 'bonds');
 
@@ -66,7 +50,7 @@ describe('netWorthBreakdown', () => {
   });
 
   it('leaves the bonds segment out entirely when none are held', () => {
-    const { held } = netWorthBreakdown([position('Konto', 1000)], [], TODAY);
+    const { held } = netWorthBreakdown([position('Konto', 1000)], []);
 
     expect(held.some((one) => one.key === 'bonds')).toBe(false);
   });
@@ -74,8 +58,7 @@ describe('netWorthBreakdown', () => {
   it('orders each side by size, so the largest thing is read first', () => {
     const { held } = netWorthBreakdown(
       [position('Małe', 100), position('Duże', 9000), position('Średnie', 3000)],
-      [],
-      TODAY
+      []
     );
 
     expect(held.map((one) => one.label)).toEqual(['Duże', 'Średnie', 'Małe']);
@@ -89,7 +72,7 @@ describe('netWorthBreakdown', () => {
   it('gathers the tail into one segment rather than growing a rainbow', () => {
     const many = Array.from({ length: 9 }, (_, index) => position(`P${index}`, 100 - index));
 
-    const { held, totals } = netWorthBreakdown(many, [], TODAY);
+    const { held, totals } = netWorthBreakdown(many, []);
 
     expect(held).toHaveLength(6);
     expect(held.at(-1)!.key).toBe(OTHER_SEGMENT);
@@ -97,7 +80,7 @@ describe('netWorthBreakdown', () => {
   });
 
   it('is empty on both sides when nothing is held or owed', () => {
-    expect(netWorthBreakdown([], [], TODAY)).toEqual({
+    expect(netWorthBreakdown([], [])).toEqual({
       held: [],
       owed: [],
       totals: { held: 0, owed: 0, net: 0 },

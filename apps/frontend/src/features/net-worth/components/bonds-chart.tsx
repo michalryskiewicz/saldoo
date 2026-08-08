@@ -1,4 +1,4 @@
-import { Area, AreaChart, CartesianGrid, ReferenceArea, ReferenceLine, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Line, LineChart, ReferenceArea, ReferenceLine, XAxis, YAxis } from 'recharts';
 import {
   Card,
   CardContent,
@@ -19,18 +19,18 @@ import { useBondSeries } from '@/features/net-worth/hooks/use-bond-series.tsx';
 import i18n from '@/i18n.ts';
 
 /**
- * Interest is a profit, so it wears the profit series colour the rest of the app uses for one.
- * Capital means nothing in particular — it is the money that was put in — so it takes a chart ramp
- * colour rather than a token that says something.
+ * What the bonds are worth wears the profit series colour: the distance between it and the capital
+ * line *is* the profit. Capital means nothing in particular — it is the money that was put in — so
+ * it takes a chart ramp colour rather than a token that says something.
  */
 const chartConfig = {
+  worth: {
+    label: i18n.t('bonds.worth'),
+    color: 'var(--series-profit)',
+  },
   capital: {
     label: i18n.t('bonds.capital'),
     color: 'var(--chart-3)',
-  },
-  interest: {
-    label: i18n.t('bonds.interest_earned'),
-    color: 'var(--series-profit)',
   },
 } satisfies ChartConfig;
 
@@ -63,7 +63,7 @@ export const BondsChart = () => {
         <ChartContainer config={chartConfig} className="aspect-auto h-[280px] w-full">
           {/* Room on the right for the last year's label: without it the axis ends on a half-drawn
               "20" and the chart looks like it stops mid-decade. */}
-          <AreaChart accessibilityLayer data={rows} margin={{ top: 20, right: 24 }}>
+          <LineChart accessibilityLayer data={rows} margin={{ top: 20, right: 24 }}>
             <CartesianGrid vertical={false} />
             <YAxis
               tickLine={true}
@@ -125,27 +125,28 @@ export const BondsChart = () => {
               }
             />
 
-            {/* Stacked, and capital first: the interest is what sits on top of the money that was
-                put in, which is the thing being looked for. */}
-            <Area
+            {/* Two lines rather than a stack, because they answer different questions and one of
+                them is a staircase. What was put in only ever moves when somebody buys — hence
+                `stepAfter`, which draws that as the jump it is. What it is worth climbs day by day
+                on its own, so it is drawn smooth, and the gap between the two is the earnings. */}
+            <Line
               dataKey="capital"
               type="stepAfter"
-              stackId="worth"
               stroke="var(--color-capital)"
-              fill="var(--color-capital)"
-              fillOpacity={0.5}
+              strokeWidth={2}
+              strokeDasharray="4 4"
+              dot={false}
             />
-            <Area
-              dataKey="interest"
-              type="stepAfter"
-              stackId="worth"
-              stroke="var(--color-interest)"
-              fill="var(--color-interest)"
-              fillOpacity={0.5}
+            <Line
+              dataKey="worth"
+              type="monotone"
+              stroke="var(--color-worth)"
+              strokeWidth={2}
+              dot={false}
             />
 
             <ChartLegend content={<ChartLegendContent />} />
-          </AreaChart>
+          </LineChart>
         </ChartContainer>
       </CardContent>
     </Card>

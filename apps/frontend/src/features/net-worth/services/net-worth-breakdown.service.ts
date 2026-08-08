@@ -1,6 +1,4 @@
 import type { DBPosition } from '@/database/positions.ts';
-import type { DBBondHolding } from '@/database/bonds.ts';
-import { bondValueOn } from '@/features/net-worth/services/bond-accrual.service.ts';
 import { netWorthWithBonds, type NetWorth } from '@/features/net-worth/services/net-worth.service.ts';
 import i18n from '@/i18n.ts';
 
@@ -70,16 +68,13 @@ const ofKind = (positions: DBPosition[], kind: DBPosition['kind']): Segment[] =>
  */
 export const netWorthBreakdown = (
   positions: DBPosition[],
-  bonds: DBBondHolding[],
-  today: Date
+  bondValues: number[]
 ): NetWorthBreakdown => {
-  const bondsWorth = round(
-    bonds.reduce((total, bond) => total + bondValueOn(bond, today).value, 0)
-  );
+  const bondsWorth = round(bondValues.reduce((total, value) => total + value, 0));
 
   const assets = [
     ...ofKind(positions, 'asset'),
-    ...(bonds.length
+    ...(bondValues.length
       ? [{ key: 'bonds', label: i18n.t('bonds.title'), value: bondsWorth }]
       : []),
   ];
@@ -87,6 +82,6 @@ export const netWorthBreakdown = (
   return {
     held: largestFirst(assets),
     owed: largestFirst(ofKind(positions, 'liability')),
-    totals: netWorthWithBonds(positions, bonds, today),
+    totals: netWorthWithBonds(positions, bondValues),
   };
 };
