@@ -14,6 +14,10 @@ import {
 } from '@/components/ui/sheet.tsx';
 import { NEW_ENTITY_ID } from '@/constant.ts';
 import i18n from '@/i18n.ts';
+import {
+  AssignmentFields,
+  UNASSIGNED,
+} from '@/features/net-worth/components/assignment-fields.tsx';
 import { db } from '@/database';
 import { useAppSelector } from '@/store/store.ts';
 import { setBondsDrawerId } from '@/store/preferences.slice.ts';
@@ -43,6 +47,9 @@ const SERIES_CODES = BOND_SERIES.map((series) => series.code) as [BondSeriesCode
 const formSchema = z.object({
   month: z.string({ error: i18n.t('errors.field-required') }),
   wrapper: z.enum(['none', 'IKE', 'IKZE']),
+  /** Edited as one goal and a share; stored as the list the record carries. */
+  assignedGoalId: z.string().optional(),
+  assignedShare: z.number().optional(),
   series: z.enum(SERIES_CODES, { error: i18n.t('errors.field-required') }),
   quantity: z.number({ error: i18n.t('errors.field-required') }).positive(),
   // Required, but not by the schema: whether a rate has to be asked for depends on what the backend
@@ -127,6 +134,8 @@ const BondFields = ({ fetched }: { fetched: FetchedRates }) => {
 
       {/* Asked rather than guessed: nothing on a holding says whether it sits in a retirement
           wrapper, and the tax on it is the difference between two very different figures. */}
+      <AssignmentFields />
+
       <Field.Segmented
         name="wrapper"
         label={i18n.t('bonds.wrapper')}
@@ -168,6 +177,19 @@ const BondFields = ({ fetched }: { fetched: FetchedRates }) => {
   );
 };
 
+
+/** The list the record carries, from the one goal and share the form edits. */
+const assignmentsFrom = (goalId?: string, share?: number) =>
+  goalId && goalId !== UNASSIGNED
+    ? [{ goalId, share: Math.min(100, Math.max(0, share ?? 100)) }]
+    : [];
+
+/** And back again, for the form to open on what is already there. */
+const assignmentIn = (assignments?: { goalId: string; share: number }[]) => ({
+  assignedGoalId: assignments?.[0]?.goalId ?? UNASSIGNED,
+  assignedShare: assignments?.[0]?.share ?? 100,
+});
+
 export default function BondsCreate() {
   const dispatch = useDispatch();
   const id = useAppSelector((state) => state.preferences.bondsDrawerId);
@@ -181,7 +203,11 @@ export default function BondsCreate() {
 
   const initialValues = useMemo(() => {
     if (id === NEW_ENTITY_ID)
-      return { month: recentMonths(1, new Date())[0], wrapper: 'none' as const };
+      return {
+        month: recentMonths(1, new Date())[0],
+        wrapper: 'none' as const,
+        ...assignmentIn(),
+      };
     if (!bond) return undefined;
 
     // Read back out of the published name, so editing shows the month and series it was chosen by.
@@ -193,6 +219,7 @@ export default function BondsCreate() {
       quantity: bond.quantity,
       ratePercent: bond.ratePercent,
       wrapper: bond.wrapper ?? ('none' as const),
+      ...assignmentIn(bond.assignments),
     };
   }, [id, bond]);
 
@@ -206,8 +233,11 @@ export default function BondsCreate() {
       ratePercent: values.ratePercent ?? rateFrom(fetched, values.series, values.month),
     });
 
-    // The catalogue knows the series, never where somebody keeps it.
-    if (draft) draft.wrapper = values.wrapper;
+    // The catalogue knows the series, never where somebody keeps it or what it is for.
+    if (draft) {
+      draft.wrapper = values.wrapper;
+      draft.assignments = assignmentsFrom(values.assignedGoalId, values.assignedShare);
+    }
 
     // No rate anywhere and none given: say so on the field that would carry it, rather than closing
     // over a holding with no value.

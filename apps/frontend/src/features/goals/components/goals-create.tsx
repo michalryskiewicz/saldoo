@@ -40,6 +40,7 @@ const formSchema = z
     rollsYearly: z.enum(['yes', 'no']),
     keepsItsMoney: z.enum(['yes', 'no']),
     strategyPart: z.string({ error: i18n.t('errors.field-required') }),
+    funding: z.enum(['contributions', 'holdings']),
   })
   // Each kind needs what the other has no use for, so the requirement is stated per kind rather
   // than on the field: required everywhere would refuse every form, required nowhere would accept
@@ -146,6 +147,7 @@ export default function GoalsCreate() {
       keepsItsMoney: 'no' as const,
       coverageMonths: '3' as const,
       strategyPart: budgetingPartsOptions[0]?.value,
+      funding: 'contributions' as const,
     };
 
     if (!replacing) return blank;
@@ -161,6 +163,7 @@ export default function GoalsCreate() {
       deadline: draft.deadline,
       rollsYearly: 'yes' as const,
       strategyPart: draft.strategyPart ?? blank.strategyPart,
+      funding: blank.funding,
     };
   }, [budgetingPartsOptions, replacing, profits]);
 
@@ -171,6 +174,7 @@ export default function GoalsCreate() {
     const saved = await addDBGoal({
       description: isFund ? i18n.t('goal.emergency_fund') : (values.description as string),
       strategyPart: values.strategyPart as STRATEGY_PART,
+      funding: values.funding,
       // A fund is kept by definition: it is not spent on anything, it is what stands between the
       // person and having to.
       keepsItsMoney: isFund || values.keepsItsMoney === 'yes',
@@ -252,6 +256,18 @@ export default function GoalsCreate() {
                   label={i18n.t('forms.strategy-part')}
                   helperText={i18n.t('goal.strategy-part-helper')}
                   options={budgetingPartsOptions}
+                />
+
+                {/* One or the other, never both: a declaration and the account the money landed in
+                    are the same złoty seen twice. */}
+                <Field.Segmented
+                  name="funding"
+                  label={i18n.t('goal.funding')}
+                  helperText={i18n.t('goal.funding-helper')}
+                  options={[
+                    { label: i18n.t('goal.funding_contributions'), value: 'contributions' },
+                    { label: i18n.t('goal.funding_holdings'), value: 'holdings' },
+                  ]}
                 />
               </FormSection>
 

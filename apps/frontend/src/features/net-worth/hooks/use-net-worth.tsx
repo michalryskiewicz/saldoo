@@ -8,6 +8,7 @@ import { DEFAULT_SETTINGS } from '@/database/settings.service.ts';
 import { netWorthWithBonds, stalestValuation } from '@/features/net-worth/services/net-worth.service.ts';
 import { netWorthBreakdown } from '@/features/net-worth/services/net-worth-breakdown.service.ts';
 import { valueBondsOn } from '@/features/net-worth/services/bond-accrual.service.ts';
+import type { BackableHolding } from '@/features/goals/services/goal-backing.service.ts';
 
 /**
  * What is held and what is owed, in one currency.
@@ -48,14 +49,35 @@ export const useNetWorth = () => {
   // nominal and rate, so it cannot be converted until something has priced it — and it has to be
   // converted before it joins a total printed in another currency, which is what used to be
   // missing: a złoty bond went into a euro net worth at its face figure.
-  const bondValues = inOneCurrency(valueBondsOn(bonds, today), 'valuedOn').map(
-    (bond) => bond.value
-  );
+  const valuedBonds = inOneCurrency(valueBondsOn(bonds, today), 'valuedOn');
+  const bondValues = valuedBonds.map((bond) => bond.value);
+
+  // Everything held, in one currency and one shape, for anything that asks what stands behind a
+  // goal. Positions keep their own valuation date; a bond is priced for today and converted at
+  // today's rate, which is why the two can only be joined after both have been through the
+  // converter and never before.
+  const holdings: BackableHolding[] = [
+    ...convertedPositions
+      .filter((position) => position.kind === 'asset')
+      .map((position) => ({
+        id: position.id,
+        description: position.description,
+        value: position.value,
+        assignments: position.assignments,
+      })),
+    ...valuedBonds.map((valued, index) => ({
+      id: valued.id,
+      description: bonds[index]?.description ?? valued.id,
+      value: valued.value,
+      assignments: bonds[index]?.assignments,
+    })),
+  ];
 
   return {
     currency: settings?.currency ?? DEFAULT_SETTINGS.currency,
     positions: convertedPositions,
     bonds,
+    holdings,
     totals: netWorthWithBonds(convertedPositions, bondValues),
     valuedOn: stalestValuation(convertedPositions),
     // What the two sides are made of, for anything drawing the whole picture rather than the figure.

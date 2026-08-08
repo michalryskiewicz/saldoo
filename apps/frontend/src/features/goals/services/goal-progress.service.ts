@@ -8,6 +8,12 @@ import {
   lifetimeOfSeries,
   requiredMonthlyContribution,
 } from '@/lib/goals.ts';
+import {
+  type BackableHolding,
+  type Backing,
+  backedValue,
+  backingOf,
+} from '@/features/goals/services/goal-backing.service.ts';
 
 export type GoalProgress = {
   goal: DBGoal;
@@ -33,6 +39,8 @@ export type GoalProgress = {
   completesOn?: Date;
   /** Everything this series has ever held, for a goal that rolls. */
   lifetime?: number;
+  /** What stands behind it, for a goal that reads its holdings instead of its declarations. */
+  backing: Backing[];
 };
 
 type ProgressInput = {
@@ -41,6 +49,8 @@ type ProgressInput = {
   closedWindows: DBClosedWindow[];
   /** What the emergency fund's target is computed from. */
   expenses: DBExpense[];
+  /** Everything held, already in one currency, for the goals that read their holdings. */
+  holdings?: BackableHolding[];
   today: Date;
 };
 
@@ -64,10 +74,18 @@ export const goalProgress = ({
   contributions,
   closedWindows,
   expenses,
+  holdings = [],
   today,
 }: ProgressInput): GoalProgress[] =>
   goals.map((goal) => {
-    const saved = savedTowards(goal.id, contributions);
+    // One or the other, never the sum. A goal whose money sits in an account that is itself
+    // assigned to it would otherwise count the same złoty twice — once as a declaration somebody
+    // typed and once as the holding it landed in.
+    const backing = goal.funding === 'holdings' ? backingOf(goal.id, holdings) : [];
+    const saved =
+      goal.funding === 'holdings'
+        ? backedValue(goal.id, holdings)
+        : savedTowards(goal.id, contributions);
     const target = isEmergencyFund(goal)
       ? emergencyFundTarget(goal.coverageMonths!, today.getMonth(), expenses)
       : (goal.target ?? 0);
@@ -90,6 +108,7 @@ export const goalProgress = ({
             saved
           )
         : undefined,
+      backing,
     };
   });
 

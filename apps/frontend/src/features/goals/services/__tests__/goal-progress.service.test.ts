@@ -130,3 +130,60 @@ describe('totalPutAside', () => {
     expect(total).toBe(2000);
   });
 });
+
+/**
+ * A goal that reads what is actually held against it, rather than what somebody remembered to
+ * declare. This is what makes "you have 4.2 months of cover" a fact instead of a diary entry.
+ */
+describe('a goal backed by holdings', () => {
+  const held = [
+    { id: 'konto', description: 'Konto', value: 8000, assignments: [{ goalId: 'g1', share: 100 }] },
+    { id: 'edo', description: 'EDO0836', value: 5000, assignments: [{ goalId: 'g1', share: 40 }] },
+  ];
+
+  it('reads its progress out of the holdings pointed at it', () => {
+    const [row] = goalProgress({
+      goals: [goal({ funding: 'holdings' })],
+      contributions: [],
+      closedWindows: [],
+      expenses: [],
+      holdings: held,
+      today: APRIL_2026,
+    });
+
+    expect(row.saved).toBe(10000);
+    expect(row.backing.map((one) => one.description)).toEqual(['Konto', 'EDO0836']);
+  });
+
+  /**
+   * Never both. A declaration and the account the money landed in are the same złoty seen twice,
+   * and adding them is how a card comes to read double.
+   */
+  it('ignores declarations once it is backed by holdings', () => {
+    const [row] = goalProgress({
+      goals: [goal({ funding: 'holdings' })],
+      contributions: [gave('g1', 3000)],
+      closedWindows: [],
+      expenses: [],
+      holdings: held,
+      today: APRIL_2026,
+    });
+
+    expect(row.saved).toBe(10000);
+  });
+
+  /** And the other way round: a goal nobody moved to holdings keeps counting what was declared. */
+  it('leaves a contribution-tracked goal reading its contributions', () => {
+    const [row] = goalProgress({
+      goals: [goal({})],
+      contributions: [gave('g1', 3000)],
+      closedWindows: [],
+      expenses: [],
+      holdings: held,
+      today: APRIL_2026,
+    });
+
+    expect(row.saved).toBe(3000);
+    expect(row.backing).toEqual([]);
+  });
+});

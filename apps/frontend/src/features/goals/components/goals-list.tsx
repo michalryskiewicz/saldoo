@@ -75,8 +75,31 @@ export function GoalsList() {
                 color: 'bg-muted-foreground',
               },
             ].filter((detail) => Boolean(detail)) as { label: string; value: string; color: string }[]}
+            // Named rather than only summed: "4,2 months of cover" invites the question *out of
+            // what*, and a card that cannot answer it asks to be taken on faith.
+            status={
+              row.backing.length ? (
+                <span data-slot="goal-backing">
+                  {i18n.t('goal.backed_by')}{' '}
+                  {row.backing
+                    .map((one) =>
+                      one.share === 100
+                        ? one.description
+                        : `${one.description} (${one.share}%)`
+                    )
+                    .join(' · ')}
+                </span>
+              ) : undefined
+            }
+            statusColor="text-muted-foreground"
+            // A goal that reads its holdings is not moved by declaring anything at it, so it is not
+            // offered the button that would.
             actionLabel={
-              isEmergencyFund(row.goal) ? i18n.t('goal.top_up') : i18n.t('goal.put_aside')
+              row.goal.funding === 'holdings'
+                ? undefined
+                : isEmergencyFund(row.goal)
+                  ? i18n.t('goal.top_up')
+                  : i18n.t('goal.put_aside')
             }
             // Every card's button says the same word, so the goal's name goes into the accessible
             // name: listed out of context, "Odłóż" three times is three identical buttons.

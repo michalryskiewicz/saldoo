@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import type { GoalAssignment } from '@/database/goals.ts';
 import { toast } from 'sonner';
 import i18n from '@/i18n.ts';
 import { documentSession } from '@/database/document/document.container.ts';
@@ -51,6 +52,8 @@ export type DBBondHolding = {
    * ordinary holding — which is what those were.
    */
   wrapper?: TaxWrapper;
+  /** What this is for. Empty or missing means it is not spoken for — see `GoalAssignment`. */
+  assignments?: GoalAssignment[];
 };
 
 export type BondDraft = Omit<DBBondHolding, 'id' | 'createdAt' | 'updatedAt'>;

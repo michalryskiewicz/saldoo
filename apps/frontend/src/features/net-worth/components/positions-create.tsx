@@ -13,6 +13,10 @@ import {
 } from '@/components/ui/sheet.tsx';
 import { NEW_ENTITY_ID } from '@/constant.ts';
 import i18n from '@/i18n.ts';
+import {
+  AssignmentFields,
+  UNASSIGNED,
+} from '@/features/net-worth/components/assignment-fields.tsx';
 import { db } from '@/database';
 import { useAppSelector } from '@/store/store.ts';
 import { setPositionsDrawerId } from '@/store/preferences.slice.ts';
@@ -27,9 +31,25 @@ const formSchema = z.object({
   value: z.number({ error: i18n.t('errors.field-required') }),
   currency: z.string({ error: i18n.t('errors.field-required') }),
   valuedOn: z.date({ error: i18n.t('errors.field-required') }),
+  /** Edited as one goal and a share; stored as the list the record carries. */
+  assignedGoalId: z.string().optional(),
+  assignedShare: z.number().optional(),
 });
 
 type PositionCreateType = z.infer<typeof formSchema>;
+
+
+/** The list the record carries, from the one goal and share the form edits. */
+const assignmentsFrom = (goalId?: string, share?: number) =>
+  goalId && goalId !== UNASSIGNED
+    ? [{ goalId, share: Math.min(100, Math.max(0, share ?? 100)) }]
+    : [];
+
+/** And back again, for the form to open on what is already there. */
+const assignmentIn = (assignments?: { goalId: string; share: number }[]) => ({
+  assignedGoalId: assignments?.[0]?.goalId ?? UNASSIGNED,
+  assignedShare: assignments?.[0]?.share ?? 100,
+});
 
 export default function PositionsCreate() {
   const dispatch = useDispatch();
@@ -38,18 +58,28 @@ export default function PositionsCreate() {
 
   // Today per opening rather than in module defaults: a `new Date()` there is evaluated once on
   // first import, so a tab left open across midnight would go on offering yesterday.
-  const initialValues = useMemo(
-    () =>
-      id === NEW_ENTITY_ID
-        ? { kind: 'asset' as const, currency: 'PLN', valuedOn: new Date() }
-        : (position ?? { kind: 'asset' as const, currency: 'PLN', valuedOn: new Date() }),
-    [id, position]
-  );
+  const initialValues = useMemo(() => {
+    const blank = {
+      kind: 'asset' as const,
+      currency: 'PLN',
+      valuedOn: new Date(),
+      ...assignmentIn(),
+    };
+
+    if (id === NEW_ENTITY_ID) return blank;
+
+    return position ? { ...position, ...assignmentIn(position.assignments) } : blank;
+  }, [id, position]);
 
   const handleSubmit = async (values: PositionCreateType) => {
     if (!id) return;
 
-    const draft = { ...values, kind: values.kind as PositionKind } as never;
+    const { assignedGoalId, assignedShare, ...rest } = values;
+    const draft = {
+      ...rest,
+      kind: values.kind as PositionKind,
+      assignments: assignmentsFrom(assignedGoalId, assignedShare),
+    } as never;
     const saved =
       id === NEW_ENTITY_ID ? await addDBPosition(draft) : await updateDBPosition(id, draft);
 
@@ -86,6 +116,8 @@ export default function PositionsCreate() {
 
               {/* The date is not decoration: it is what makes the figure honest about its age. */}
               <Field.Date name="valuedOn" label={i18n.t('holdings.valued_on')} fullWidth />
+
+              <AssignmentFields />
 
               <Button type="submit">{i18n.t('submit')}</Button>
             </div>

@@ -10,6 +10,7 @@ import { applyDBRollovers, isEmergencyFund } from '@/database/goals.ts';
 import { rolloversDue } from '@/features/goals/services/rollover.service.ts';
 import { confirmedPortion } from '@/features/goals/services/goal-months.service.ts';
 import { DEFAULT_SETTINGS } from '@/database/settings.service.ts';
+import { useNetWorth } from '@/features/net-worth/hooks/use-net-worth.tsx';
 
 /**
  * Everything the goals screen draws, in one currency.
@@ -24,6 +25,10 @@ import { DEFAULT_SETTINGS } from '@/database/settings.service.ts';
  */
 export const useGoals = () => {
   const { settings } = useSettings();
+
+  // What stands behind a goal, already in one currency — the net worth screen owns that join and
+  // there is no second way to do it that could disagree with it.
+  const { holdings } = useNetWorth();
 
   const goals = useLiveQuery(() => db.goals.toArray(), []) || [];
   const contributions = useLiveQuery(() => db.contributions.toArray(), []) || [];
@@ -93,6 +98,7 @@ export const useGoals = () => {
     currency: currency ?? DEFAULT_SETTINGS.currency,
     hasEmergencyFund: goals.some(isEmergencyFund),
     progress: goalProgress({
+      holdings,
       goals: convertedGoals,
       contributions: convertedContributions,
       closedWindows,

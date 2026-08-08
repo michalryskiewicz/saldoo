@@ -13,7 +13,8 @@ interface MetricCardProps {
   value: string;
   limit: string;
   percentage: number;
-  status?: string;
+  /** A sentence, or anything that says what this card means for the rest of the app. */
+  status?: React.ReactNode;
   statusColor?: string;
   progressColor: string;
   details?: Array<{ label: string; value: string; color: string }>;
@@ -119,7 +120,10 @@ export function MetricCard({
         </h5>
 
         <div className="mt-2 flex items-baseline gap-1">
-          <div className="text-[1.2rem] font-medium leading-none text-foreground tabular-nums">
+          <div
+            data-slot="metric-value"
+            className="text-[1.2rem] font-medium leading-none text-foreground tabular-nums"
+          >
             {value}
           </div>
           <div className="text-xs leading-none text-muted-foreground tabular-nums">/ {limit}</div>

@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import type { GoalAssignment } from '@/database/goals.ts';
 import { toast } from 'sonner';
 import type { Currency } from '@/constant.ts';
 import i18n from '@/i18n.ts';
@@ -32,6 +33,8 @@ export type DBPosition = {
   currency: Currency;
   /** The day the person last said what it was worth. */
   valuedOn: Date;
+  /** What this is for. Empty or missing means it is not spoken for — see `GoalAssignment`. */
+  assignments?: GoalAssignment[];
 };
 
 export type PositionDraft = Omit<DBPosition, 'id' | 'createdAt' | 'updatedAt'>;
