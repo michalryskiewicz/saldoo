@@ -18,7 +18,11 @@ import {
 } from '@/components/ui/chart.tsx';
 import { formatMoneyValue } from '@/lib/formats.ts';
 import { ChartTooltipRow } from '@/components/stats/chart-tooltip-row.tsx';
-import { useBondSeries } from '@/features/net-worth/hooks/use-bond-series.tsx';
+import {
+  DEFAULT_HORIZON_YEARS,
+  useBondSeries,
+} from '@/features/net-worth/hooks/use-bond-series.tsx';
+import { cn } from '@/lib/utils.ts';
 import i18n from '@/i18n.ts';
 
 /**
@@ -41,16 +45,26 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-type SwitchProps = { pressed: boolean; onClick: () => void; children: string };
+type SegmentProps = { pressed: boolean; onClick: () => void; children: string };
 
-/** A pressed-state button rather than a checkbox: it changes what is drawn, it does not collect a value. */
-const ChartSwitch = ({ pressed, onClick, children }: SwitchProps) => (
+/**
+ * One half of a two-way choice, drawn as a segment rather than as a loose button.
+ *
+ * Three separate buttons in a row read as three unrelated commands — and two of these are one
+ * question with two answers. Sitting them in a single bordered track says "pick one" without a
+ * word of label.
+ */
+const Segment = ({ pressed, onClick, children }: SegmentProps) => (
   <Button
     type="button"
     size="sm"
-    variant={pressed ? 'secondary' : 'ghost'}
+    variant="ghost"
     aria-pressed={pressed}
     onClick={onClick}
+    className={cn(
+      'h-7 rounded-sm px-3 text-xs font-normal',
+      pressed && 'bg-background text-foreground shadow-xs'
+    )}
   >
     {children}
   </Button>
@@ -66,16 +80,34 @@ const ChartSwitch = ({ pressed, onClick, children }: SwitchProps) => (
  * period only.
  */
 export const BondsChart = () => {
-  const { rows, currency, excluded, projectionFrom } = useBondSeries();
   const [afterTax, setAfterTax] = useState(false);
-  const [withProjection, setWithProjection] = useState(true);
+  const [years, setYears] = useState(DEFAULT_HORIZON_YEARS);
+  const {
+    rows,
+    currency,
+    excluded,
+    projectionFrom,
+    wrappers,
+    yearsToLastMaturity,
+    maturities,
+  } = useBondSeries(years);
 
   if (rows.length === 0) return null;
 
-  // Labels are `YYYY-MM`, so "before the first projected month" is a string comparison and needs no
-  // second date library on the render path.
-  const visible =
-    withProjection || !projectionFrom ? rows : rows.filter((row) => row.label < projectionFrom);
+  const horizon = Math.min(years, yearsToLastMaturity);
+  const lastDrawn = rows.at(-1)!.label.slice(0, 4);
+
+  // Only the redemptions that fall inside what is drawn: a marker for a date off the right-hand
+  // edge is a line nobody can see and a label the axis has no room for.
+  const marked = maturities.filter((one) => one.label <= rows.at(-1)!.label);
+
+  // Every treatment actually in play, counted. "After tax" on its own says nothing about *which*
+  // tax, and the three here work on different principles rather than at different rates.
+  const treatments = [
+    wrappers.none > 0 && i18n.t('bonds.tax_ordinary', { count: wrappers.none }),
+    wrappers.IKE > 0 && i18n.t('bonds.tax_ike', { count: wrappers.IKE }),
+    wrappers.IKZE > 0 && i18n.t('bonds.tax_ikze', { count: wrappers.IKZE }),
+  ].filter(Boolean);
 
   return (
     <Card className="py-0">
@@ -87,27 +119,54 @@ export const BondsChart = () => {
             {excluded > 0 && ` ${i18n.t('bonds.chart_other_currency', { excluded })}`}
           </CardDescription>
 
-          <div className="flex flex-wrap gap-2 pt-1">
-            <ChartSwitch pressed={!afterTax} onClick={() => setAfterTax(false)}>
-              {i18n.t('bonds.gross')}
-            </ChartSwitch>
-            <ChartSwitch pressed={afterTax} onClick={() => setAfterTax(true)}>
-              {i18n.t('bonds.after_tax')}
-            </ChartSwitch>
-            <ChartSwitch
-              pressed={withProjection}
-              onClick={() => setWithProjection((shown) => !shown)}
+          <div className="flex flex-wrap items-center gap-4 pt-2">
+            <div
+              role="group"
+              aria-label={i18n.t('bonds.tax_view')}
+              className="bg-muted inline-flex gap-1 rounded-md p-1"
             >
-              {i18n.t('bonds.show_projection')}
-            </ChartSwitch>
+              <Segment pressed={!afterTax} onClick={() => setAfterTax(false)}>
+                {i18n.t('bonds.gross')}
+              </Segment>
+              <Segment pressed={afterTax} onClick={() => setAfterTax(true)}>
+                {i18n.t('bonds.after_tax')}
+              </Segment>
+            </div>
+
+            {/* A native range, so it is keyboard-steerable and needs no dependency. Nought means
+                "only what has happened", which is the projection switch this replaces. */}
+            <label className="text-muted-foreground flex items-center gap-2 text-xs">
+              {i18n.t('bonds.horizon')}
+              <input
+                type="range"
+                min={0}
+                max={Math.max(1, yearsToLastMaturity)}
+                step={1}
+                value={horizon}
+                onChange={(event) => setYears(Number(event.target.value))}
+                className="accent-primary w-32"
+                aria-valuetext={i18n.t('bonds.horizon_years', { count: horizon })}
+              />
+              <span className="text-foreground tabular-nums">
+                {horizon === 0
+                  ? i18n.t('bonds.horizon_none')
+                  : i18n.t('bonds.horizon_to', {
+                      count: horizon,
+                      year: lastDrawn,
+                    })}
+              </span>
+            </label>
           </div>
+
+          {/* Which tax, on how many holdings — "after tax" alone leaves the reader guessing. */}
+          <p className="text-muted-foreground text-xs">{treatments.join(' · ')}</p>
         </div>
       </CardHeader>
       <CardContent className="px-2 sm:p-6">
         <ChartContainer config={chartConfig} className="aspect-auto h-[280px] w-full">
           {/* Room on the right for the last year's label: without it the axis ends on a half-drawn
               "20" and the chart looks like it stops mid-decade. */}
-          <LineChart accessibilityLayer data={visible} margin={{ top: 20, right: 24 }}>
+          <LineChart accessibilityLayer data={rows} margin={{ top: 20, right: 24 }}>
             <CartesianGrid vertical={false} />
             <YAxis
               tickLine={true}
@@ -126,11 +185,26 @@ export const BondsChart = () => {
               tickFormatter={(value: string) => value.slice(0, 4)}
             />
 
-            {projectionFrom && withProjection && (
+            {marked.map((one) => (
+              <ReferenceLine
+                key={`${one.label}-${one.name}`}
+                x={one.label}
+                stroke="var(--muted-foreground)"
+                strokeDasharray="2 4"
+                label={{
+                  value: one.name,
+                  position: 'insideTopRight',
+                  fill: 'var(--muted-foreground)',
+                  fontSize: 11,
+                }}
+              />
+            ))}
+
+            {projectionFrom && horizon > 0 && (
               <>
                 <ReferenceArea
                   x1={projectionFrom}
-                  x2={visible.at(-1)!.label}
+                  x2={rows.at(-1)!.label}
                   fill="var(--muted-foreground)"
                   fillOpacity={0.08}
                   // At the start of the band, beside the dashed line, because that is where the

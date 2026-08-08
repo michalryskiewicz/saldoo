@@ -67,8 +67,9 @@ test('treasury bonds are worth what the arithmetic says, and land in net worth',
   await addBond(device.page, { series: 'EDO', quantity: '100' });
 
   // Named by the app, from the month and the series: a ten-year bought this month is redeemed ten
-  // years from this month, and that is what the Ministry calls it.
-  await expect(device.page.getByText(/^EDO\d{4}$/)).toBeVisible();
+  // years from this month, and that is what the Ministry calls it. Read off the row rather than off
+  // the page — the chart marks the same name against its redemption on the axis.
+  await expect(device.page.getByRole('cell', { name: /^EDO\d{4}$/ })).toBeVisible();
 
   await app.openOverview();
   const tile = device.page.locator('[data-slot="net-worth"]');
@@ -176,7 +177,7 @@ test('a bond bought years ago is priced from that month\'s offer', async ({ brow
   await expect(sheet).toBeHidden();
 
   // Named for the month it is redeemed: a ten-year bought in March 2019 is EDO0329.
-  await expect(device.page.getByText('EDO0329')).toBeVisible();
+  await expect(device.page.getByRole('cell', { name: 'EDO0329', exact: true })).toBeVisible();
 
   expect(device.problems()).toEqual([]);
 
@@ -276,7 +277,7 @@ test('złoty bonds are drawn and counted for somebody reading in euro', async ({
  * between the headline and the money — and a projection drawn beside history is only honest while
  * somebody can take it away and see what is left.
  */
-test('the chart switches between gross and after tax, and drops the projection on request', async ({
+test('the chart switches between gross and after tax, and the horizon winds back to today', async ({
   browser,
   baseURL,
 }) => {
@@ -301,12 +302,14 @@ test('the chart switches between gross and after tax, and drops the projection o
   // Ten years of compounding, so the axis has to open well past what was paid in.
   await expect.poll(topOfAxis).toBeGreaterThanOrEqual(16000);
 
-  // Taking the projection away leaves two months of history, which needs no such range.
-  await card.getByRole('button', { name: pl.bonds.show_projection }).click();
+  // Pulling the horizon back to nought leaves only what has happened, which needs no such range —
+  // and takes the shaded guess with it. That slider is the projection switch, generalised.
+  const horizon = card.getByRole('slider');
+  await horizon.fill('0');
   await expect.poll(topOfAxis).toBeLessThan(16000);
   await expect(device.page.getByText(pl.bonds.projection, { exact: true })).toBeHidden();
 
-  await card.getByRole('button', { name: pl.bonds.show_projection }).click();
+  await horizon.fill('10');
 
   // After tax is lower than gross, and the switch says which is being drawn.
   const gross = await topOfAxis();

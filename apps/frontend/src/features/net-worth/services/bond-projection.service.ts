@@ -3,6 +3,7 @@ import type { DBBondHolding } from '@/database/bonds.ts';
 import type { Currency } from '@/constant.ts';
 import { bondValueOn } from '@/features/net-worth/services/bond-accrual.service.ts';
 import { afterTax } from '@/features/net-worth/services/bond-tax.service.ts';
+import { maturityOf } from '@/features/net-worth/services/bond-maturity.service.ts';
 
 /** One month of the chart: what was paid in, what it has earned, and whether it has happened yet. */
 export type BondSeriesPoint = {
@@ -115,7 +116,18 @@ export const bondSeries = (
     // A bond bought later in the story is not held here yet, and `bondValueOn` answers about a
     // holding rather than about whether it exists.
     const held = bonds.filter((bond) => new Date(bond.boughtOn) <= on);
-    const values = held.map((bond) => bondValueOn(bond, on));
+
+    // Valued at the redemption day once it is past: a bond that has been paid back does not go on
+    // compounding, and drawing it as if it did turned a ten-year holding into a curve that ran off
+    // the end of the chart. It leaves the series rather than dropping to zero on that day — the
+    // money is still the person's, it is simply in an account now and not in a bond.
+    const valuedOnDay = (bond: DBBondHolding) => {
+      const maturity = maturityOf(bond);
+
+      return maturity && on > maturity ? maturity : on;
+    };
+
+    const values = held.map((bond) => bondValueOn(bond, valuedOnDay(bond)));
 
     return {
       on: month,
@@ -123,7 +135,10 @@ export const bondSeries = (
       interest: round(values.reduce((total, value) => total + value.accrued + value.paidOut, 0)),
       worth: round(values.reduce((total, value) => total + value.value, 0)),
       net: round(
-        held.reduce((total, bond) => total + afterTax(bondValueOn(bond, on), bond.wrapper), 0)
+        held.reduce(
+          (total, bond) => total + afterTax(bondValueOn(bond, valuedOnDay(bond)), bond.wrapper),
+          0
+        )
       ),
       projected: month > currentMonth,
     };

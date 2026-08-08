@@ -244,7 +244,8 @@ export const RATES: Record<BondSeriesCode, SeriesRates> = {
 /** `YYYY-MM`, the form a month is chosen and stored in. */
 export type OfferMonth = string;
 
-const monthStart = (month: OfferMonth): Date => parse(month, 'yyyy-MM', new Date());
+/** The first day of an offer month, which is what every date in here is measured from. */
+export const monthStart = (month: OfferMonth): Date => parse(month, 'yyyy-MM', new Date());
 
 export const seriesByCode = (code: BondSeriesCode): BondSeriesSpec =>
   BOND_SERIES.find((series) => series.code === code)!;

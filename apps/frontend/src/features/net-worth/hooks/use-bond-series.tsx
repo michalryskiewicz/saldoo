@@ -2,13 +2,15 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/database';
 import { useSettings } from '@/features/settings/use-settings.ts';
 import { DEFAULT_SETTINGS } from '@/database/settings.service.ts';
+import { differenceInCalendarMonths } from 'date-fns';
 import {
   bondSeries,
   holdingsToChart,
 } from '@/features/net-worth/services/bond-projection.service.ts';
+import { lastMaturity, maturityOf } from '@/features/net-worth/services/bond-maturity.service.ts';
 
-/** Ten years, which is how long an EDO runs and the longest anything retail here does. */
-const HORIZON_YEARS = 10;
+/** Where the horizon control starts: far enough to be useful, short enough to read. */
+export const DEFAULT_HORIZON_YEARS = 10;
 
 export type BondChartRow = {
   /** `YYYY-MM`, so the axis can tick once a year without a second date library. */
@@ -22,17 +24,28 @@ export type BondChartRow = {
 };
 
 /**
- * The bond chart's data, in one currency.
+ * The bond chart's data, in one currency, out to a horizon the reader chooses.
  *
- * The horizon is fixed rather than asked for: a bond bought today is a ten-year decision, and
- * offering a control for it would be offering a choice nobody has a reason to make differently.
+ * The horizon used to be fixed at ten years on the argument that nobody would want it otherwise.
+ * They do: the question a holder actually asks is *when does this come back and what is it worth
+ * then*, and answering it means being able to reach the redemption of the longest thing held and
+ * to pull the whole guess away again to see only what is known.
  */
-export const useBondSeries = () => {
+export const useBondSeries = (years: number = DEFAULT_HORIZON_YEARS) => {
   const { settings } = useSettings();
   const bonds = useLiveQuery(() => db.bonds.toArray(), []) || [];
 
   const { currency, included, excluded } = holdingsToChart(bonds);
-  const series = bondSeries(included, { today: new Date(), years: HORIZON_YEARS });
+  const today = new Date();
+
+  const last = lastMaturity(included);
+  const yearsToLastMaturity = last
+    ? Math.max(0, Math.ceil(differenceInCalendarMonths(last, today) / 12))
+    : 0;
+
+  // Capped at the furthest redemption: past it every holding has been paid back and the chart would
+  // be drawing a flat line about money that is no longer in a bond.
+  const series = bondSeries(included, { today, years: Math.min(years, yearsToLastMaturity) });
 
   const rows: BondChartRow[] = series.map(({ on, capital, interest, worth, net }) => ({
     label: `${on.getFullYear()}-${String(on.getMonth() + 1).padStart(2, '0')}`,
@@ -48,8 +61,25 @@ export const useBondSeries = () => {
     // of the app happens to be printed in.
     currency: currency ?? settings?.currency ?? DEFAULT_SETTINGS.currency,
     excluded,
-    /** Whether any holding sits in a wrapper, which is what makes the net line worth a switch. */
-    hasWrappers: included.some((bond) => bond.wrapper && bond.wrapper !== 'none'),
+    /** How the holdings split across tax treatments, so the chart can say what it is applying. */
+    wrappers: {
+      none: included.filter((bond) => !bond.wrapper || bond.wrapper === 'none').length,
+      IKE: included.filter((bond) => bond.wrapper === 'IKE').length,
+      IKZE: included.filter((bond) => bond.wrapper === 'IKZE').length,
+    },
+    /**
+     * Years from today to the furthest redemption, so the control offers exactly the span that has
+     * something in it rather than an arbitrary decade.
+     */
+    yearsToLastMaturity,
+    /** Every redemption inside the drawn span, as chart labels, so they can be marked on the axis. */
+    maturities: included
+      .map((bond) => ({ bond, on: maturityOf(bond) }))
+      .filter((one): one is { bond: (typeof included)[number]; on: Date } => Boolean(one.on))
+      .map(({ bond, on }) => ({
+        label: `${on.getFullYear()}-${String(on.getMonth() + 1).padStart(2, '0')}`,
+        name: bond.description,
+      })),
     /** Where the drawn history stops and the same arithmetic starts describing a day that has not come. */
     projectionFrom: rows[series.findIndex((point) => point.projected)]?.label,
   };
