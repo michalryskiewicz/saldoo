@@ -13,6 +13,7 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart.tsx';
 import { formatMoney, formatMoneyValue } from '@/lib/formats.ts';
+import { ChartTooltipRow } from '@/components/stats/chart-tooltip-row.tsx';
 import { useNetWorth } from '@/features/net-worth/hooks/use-net-worth.tsx';
 import { formatValuationAge } from '@/features/net-worth/services/valuation-age.service.ts';
 import type { Segment } from '@/features/net-worth/services/net-worth-breakdown.service.ts';
@@ -100,15 +101,15 @@ export const NetWorthChart = () => {
             <ChartTooltip
               content={
                 <ChartTooltipContent
-                  formatter={(value, name) => (
-                    <div className="flex w-full justify-between gap-3">
-                      <span className="text-muted-foreground">
-                        {chartConfig[name as keyof typeof chartConfig]?.label ?? name}
-                      </span>
-                      <span className="font-mono font-medium">
-                        {formatMoneyValue(value, currency)}
-                      </span>
-                    </div>
+                  formatter={(value, name, item) => (
+                    <ChartTooltipRow
+                      color={
+                        (item as { color?: string; payload?: { fill?: string } })?.color ??
+                        (item as { payload?: { fill?: string } })?.payload?.fill
+                      }
+                      label={String(chartConfig[name as keyof typeof chartConfig]?.label ?? name)}
+                      value={formatMoneyValue(value, currency)}
+                    />
                   )}
                 />
               }

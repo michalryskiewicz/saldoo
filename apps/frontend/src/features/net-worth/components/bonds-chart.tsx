@@ -15,6 +15,7 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart.tsx';
 import { formatMoneyValue } from '@/lib/formats.ts';
+import { ChartTooltipRow } from '@/components/stats/chart-tooltip-row.tsx';
 import { useBondSeries } from '@/features/net-worth/hooks/use-bond-series.tsx';
 import i18n from '@/i18n.ts';
 
@@ -111,15 +112,12 @@ export const BondsChart = () => {
               content={
                 <ChartTooltipContent
                   labelFormatter={(label: string) => label}
-                  formatter={(value, name) => (
-                    <div className="flex w-full justify-between gap-3">
-                      <span className="text-muted-foreground">
-                        {chartConfig[name as keyof typeof chartConfig]?.label ?? name}
-                      </span>
-                      <span className="font-mono font-medium">
-                        {formatMoneyValue(value, currency)}
-                      </span>
-                    </div>
+                  formatter={(value, name, item) => (
+                    <ChartTooltipRow
+                      color={(item as { color?: string })?.color}
+                      label={String(chartConfig[name as keyof typeof chartConfig]?.label ?? name)}
+                      value={formatMoneyValue(value, currency)}
+                    />
                   )}
                 />
               }
