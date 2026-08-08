@@ -208,3 +208,47 @@ test('a bond bought before this month has earned something to show for it', asyn
 
   await device.close();
 });
+
+/**
+ * Somebody reading their figures in euro, holding złoty bonds — which is every Polish retail bond
+ * there is, since the series are sold in złoty and nothing else.
+ *
+ * This is the case that had no test and no chart. The chart filtered its holdings by the *display*
+ * currency, so an account set to euro was left with nothing to draw and returned null — the note
+ * explaining what had been left out lived inside the card that never rendered, so the screen simply
+ * had a gap in it. The same mismatch put the bond into net worth at its face figure, adding złoty
+ * to a euro total.
+ */
+test('złoty bonds are drawn and counted for somebody reading in euro', async ({
+  browser,
+  baseURL,
+}) => {
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  await app.openAccount();
+  await app.chooseCurrency('EUR');
+  await app.submitAccountSettings();
+
+  await app.open('/dashboard/wealth');
+  await addBond(device.page, { series: 'EDO', quantity: '100' });
+
+  // Drawn in the bonds' own currency rather than not drawn at all.
+  await expect(device.page.getByText(pl.bonds.chart_title)).toBeVisible();
+  const legend = device.page.locator('.recharts-legend-wrapper');
+  await expect(legend).toContainText(pl.bonds.worth);
+
+  // And converted before it joins the total: 10 000 zł at the stubbed 4.5 is 2 222,22 €, not 10 000.
+  await app.openOverview();
+  const tile = device.page.locator('[data-slot="net-worth"]');
+  await expect.poll(async () => amountOf((await tile.textContent()) ?? '')).toBe(2222.22);
+
+  expect(device.problems()).toEqual([]);
+
+  await device.close();
+});
