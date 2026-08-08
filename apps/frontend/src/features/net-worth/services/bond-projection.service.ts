@@ -2,6 +2,7 @@ import { addMonths, differenceInCalendarMonths, endOfMonth, startOfMonth } from 
 import type { DBBondHolding } from '@/database/bonds.ts';
 import type { Currency } from '@/constant.ts';
 import { bondValueOn } from '@/features/net-worth/services/bond-accrual.service.ts';
+import { afterTax } from '@/features/net-worth/services/bond-tax.service.ts';
 
 /** One month of the chart: what was paid in, what it has earned, and whether it has happened yet. */
 export type BondSeriesPoint = {
@@ -26,6 +27,8 @@ export type BondSeriesPoint = {
    * is the one net worth agrees with.
    */
   worth: number;
+  /** What would be left of `worth` after tax, holding by holding — see `bond-tax.service`. */
+  net: number;
   /** True once the month is past today's: the same arithmetic, about a day that has not come. */
   projected: boolean;
 };
@@ -119,6 +122,9 @@ export const bondSeries = (
       capital: round(values.reduce((total, value) => total + value.capital, 0)),
       interest: round(values.reduce((total, value) => total + value.accrued + value.paidOut, 0)),
       worth: round(values.reduce((total, value) => total + value.value, 0)),
+      net: round(
+        held.reduce((total, bond) => total + afterTax(bondValueOn(bond, on), bond.wrapper), 0)
+      ),
       projected: month > currentMonth,
     };
   });

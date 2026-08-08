@@ -17,6 +17,8 @@ export type BondChartRow = {
   interest: number;
   /** What the holdings are worth on that day — the line that climbs on its own. */
   worth: number;
+  /** The same day, after the tax each holding's wrapper would charge on the way out. */
+  net: number;
 };
 
 /**
@@ -32,11 +34,12 @@ export const useBondSeries = () => {
   const { currency, included, excluded } = holdingsToChart(bonds);
   const series = bondSeries(included, { today: new Date(), years: HORIZON_YEARS });
 
-  const rows: BondChartRow[] = series.map(({ on, capital, interest, worth }) => ({
+  const rows: BondChartRow[] = series.map(({ on, capital, interest, worth, net }) => ({
     label: `${on.getFullYear()}-${String(on.getMonth() + 1).padStart(2, '0')}`,
     capital,
     interest,
     worth,
+    net,
   }));
 
   return {
@@ -45,6 +48,8 @@ export const useBondSeries = () => {
     // of the app happens to be printed in.
     currency: currency ?? settings?.currency ?? DEFAULT_SETTINGS.currency,
     excluded,
+    /** Whether any holding sits in a wrapper, which is what makes the net line worth a switch. */
+    hasWrappers: included.some((bond) => bond.wrapper && bond.wrapper !== 'none'),
     /** Where the drawn history stops and the same arithmetic starts describing a day that has not come. */
     projectionFrom: rows[series.findIndex((point) => point.projected)]?.label,
   };

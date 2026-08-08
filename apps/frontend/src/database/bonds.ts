@@ -5,6 +5,7 @@ import { documentSession } from '@/database/document/document.container.ts';
 import { outbox } from '@/database/document/outbox.container.ts';
 import { setLastUpdated } from '@/database/meta.ts';
 import type { Currency } from '@/constant.ts';
+import type { TaxWrapper } from '@/features/net-worth/services/bond-tax.service.ts';
 
 /** Whether the interest joins the capital or leaves for the person's account. */
 export type BondInterest = 'compounds' | 'pays out';
@@ -45,6 +46,11 @@ export type DBBondHolding = {
   interest: BondInterest;
   period: BondPeriod;
   currency: Currency;
+  /**
+   * Where it sits for tax. Absent on everything bought before the app asked, and read as an
+   * ordinary holding — which is what those were.
+   */
+  wrapper?: TaxWrapper;
 };
 
 export type BondDraft = Omit<DBBondHolding, 'id' | 'createdAt' | 'updatedAt'>;

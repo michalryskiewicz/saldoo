@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { CartesianGrid, Line, LineChart, ReferenceArea, ReferenceLine, XAxis, YAxis } from 'recharts';
+import { Button } from '@/components/ui/button.tsx';
 import {
   Card,
   CardContent,
@@ -29,11 +31,30 @@ const chartConfig = {
     label: i18n.t('bonds.worth'),
     color: 'var(--series-profit)',
   },
+  net: {
+    label: i18n.t('bonds.after_tax'),
+    color: 'var(--series-profit)',
+  },
   capital: {
     label: i18n.t('bonds.capital'),
     color: 'var(--chart-3)',
   },
 } satisfies ChartConfig;
+
+type SwitchProps = { pressed: boolean; onClick: () => void; children: string };
+
+/** A pressed-state button rather than a checkbox: it changes what is drawn, it does not collect a value. */
+const ChartSwitch = ({ pressed, onClick, children }: SwitchProps) => (
+  <Button
+    type="button"
+    size="sm"
+    variant={pressed ? 'secondary' : 'ghost'}
+    aria-pressed={pressed}
+    onClick={onClick}
+  >
+    {children}
+  </Button>
+);
 
 /**
  * What the holdings are made of, month by month, and what the same arithmetic says about the years
@@ -46,8 +67,15 @@ const chartConfig = {
  */
 export const BondsChart = () => {
   const { rows, currency, excluded, projectionFrom } = useBondSeries();
+  const [afterTax, setAfterTax] = useState(false);
+  const [withProjection, setWithProjection] = useState(true);
 
   if (rows.length === 0) return null;
+
+  // Labels are `YYYY-MM`, so "before the first projected month" is a string comparison and needs no
+  // second date library on the render path.
+  const visible =
+    withProjection || !projectionFrom ? rows : rows.filter((row) => row.label < projectionFrom);
 
   return (
     <Card className="py-0">
@@ -58,13 +86,28 @@ export const BondsChart = () => {
             {i18n.t('bonds.chart_description')}
             {excluded > 0 && ` ${i18n.t('bonds.chart_other_currency', { excluded })}`}
           </CardDescription>
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            <ChartSwitch pressed={!afterTax} onClick={() => setAfterTax(false)}>
+              {i18n.t('bonds.gross')}
+            </ChartSwitch>
+            <ChartSwitch pressed={afterTax} onClick={() => setAfterTax(true)}>
+              {i18n.t('bonds.after_tax')}
+            </ChartSwitch>
+            <ChartSwitch
+              pressed={withProjection}
+              onClick={() => setWithProjection((shown) => !shown)}
+            >
+              {i18n.t('bonds.show_projection')}
+            </ChartSwitch>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="px-2 sm:p-6">
         <ChartContainer config={chartConfig} className="aspect-auto h-[280px] w-full">
           {/* Room on the right for the last year's label: without it the axis ends on a half-drawn
               "20" and the chart looks like it stops mid-decade. */}
-          <LineChart accessibilityLayer data={rows} margin={{ top: 20, right: 24 }}>
+          <LineChart accessibilityLayer data={visible} margin={{ top: 20, right: 24 }}>
             <CartesianGrid vertical={false} />
             <YAxis
               tickLine={true}
@@ -83,11 +126,11 @@ export const BondsChart = () => {
               tickFormatter={(value: string) => value.slice(0, 4)}
             />
 
-            {projectionFrom && (
+            {projectionFrom && withProjection && (
               <>
                 <ReferenceArea
                   x1={projectionFrom}
-                  x2={rows.at(-1)!.label}
+                  x2={visible.at(-1)!.label}
                   fill="var(--muted-foreground)"
                   fillOpacity={0.08}
                   // At the start of the band, beside the dashed line, because that is where the
@@ -136,9 +179,12 @@ export const BondsChart = () => {
               dot={false}
             />
             <Line
-              dataKey="worth"
+              // One line, switched: what it is worth, or what would be left of it after the tax each
+              // holding's wrapper charges on the way out. Two lines at once would put the answer to
+              // "how much of this is mine" on a chart that is already carrying a decade.
+              dataKey={afterTax ? 'net' : 'worth'}
               type="monotone"
-              stroke="var(--color-worth)"
+              stroke={afterTax ? 'var(--color-net)' : 'var(--color-worth)'}
               strokeWidth={2}
               dot={false}
             />

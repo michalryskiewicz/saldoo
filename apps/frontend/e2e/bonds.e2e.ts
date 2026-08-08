@@ -15,7 +15,12 @@ const amountOf = (text: string) =>
  */
 const addBond = async (
   page: Page,
-  { series, quantity, monthsAgo = 0 }: { series: string; quantity: string; monthsAgo?: number }
+  {
+    series,
+    quantity,
+    monthsAgo = 0,
+    wrapper,
+  }: { series: string; quantity: string; monthsAgo?: number; wrapper?: 'IKE' | 'IKZE' }
 ) => {
   await page.getByRole('button', { name: pl.bonds.create, exact: true }).click();
 
@@ -32,6 +37,9 @@ const addBond = async (
   await sheet.getByRole('combobox', { name: pl.bonds.series }).click();
   await page.getByRole('option', { name: new RegExp(`^${series}`) }).click();
   await sheet.getByLabel(pl.bonds.quantity, { exact: true }).fill(quantity);
+
+  if (wrapper) await sheet.getByRole('radio', { name: wrapper, exact: true }).click();
+
   await sheet.getByRole('button', { name: pl.submit, exact: true }).click();
 
   await expect(sheet).toBeHidden();
@@ -244,9 +252,103 @@ test('złoty bonds are drawn and counted for somebody reading in euro', async ({
   await expect(legend).toContainText(pl.bonds.worth);
 
   // And converted before it joins the total: 10 000 zł at the stubbed 4.5 is 2 222,22 €, not 10 000.
+  //
+  // Given room, because the tile legitimately starts at the unconverted figure: conversion is a
+  // no-op until the rates arrive, and under a full parallel run that round trip outlasts the
+  // default poll. That the app prints złoty under a euro sign in the meantime is a real gap, and
+  // one it has everywhere rather than only here.
   await app.openOverview();
   const tile = device.page.locator('[data-slot="net-worth"]');
-  await expect.poll(async () => amountOf((await tile.textContent()) ?? '')).toBe(2222.22);
+  await expect
+    .poll(async () => amountOf((await tile.textContent()) ?? ''), { timeout: 15_000 })
+    .toBe(2222.22);
+
+  expect(device.problems()).toEqual([]);
+
+  await device.close();
+});
+
+/**
+ * The two things the chart is asked at a glance: how much of this is actually mine, and what is
+ * known against what is guessed.
+ *
+ * Tax is not a footnote on a ten-year holding — 19% of the interest is most of the difference
+ * between the headline and the money — and a projection drawn beside history is only honest while
+ * somebody can take it away and see what is left.
+ */
+test('the chart switches between gross and after tax, and drops the projection on request', async ({
+  browser,
+  baseURL,
+}) => {
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  await app.open('/dashboard/wealth');
+  await addBond(device.page, { series: 'EDO', quantity: '100', monthsAgo: 2 });
+
+  const card = device.page
+    .locator('[data-slot="card"]')
+    .filter({ hasText: pl.bonds.chart_title });
+
+  const ticks = card.locator('.recharts-yAxis .recharts-cartesian-axis-tick-value');
+  const topOfAxis = async () => Math.max(...(await ticks.allTextContents()).map(amountOf));
+
+  // Ten years of compounding, so the axis has to open well past what was paid in.
+  await expect.poll(topOfAxis).toBeGreaterThanOrEqual(16000);
+
+  // Taking the projection away leaves two months of history, which needs no such range.
+  await card.getByRole('button', { name: pl.bonds.show_projection }).click();
+  await expect.poll(topOfAxis).toBeLessThan(16000);
+  await expect(device.page.getByText(pl.bonds.projection, { exact: true })).toBeHidden();
+
+  await card.getByRole('button', { name: pl.bonds.show_projection }).click();
+
+  // After tax is lower than gross, and the switch says which is being drawn.
+  const gross = await topOfAxis();
+  await card.getByRole('button', { name: pl.bonds.after_tax }).click();
+  await expect(card.getByRole('button', { name: pl.bonds.after_tax })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+  await expect(card.locator('.recharts-legend-wrapper')).toContainText(pl.bonds.after_tax);
+
+  expect(await topOfAxis()).toBeLessThanOrEqual(gross);
+
+  expect(device.problems()).toEqual([]);
+
+  await device.close();
+});
+
+/** An IKE holding pays no tax, so the two switches draw the same line — which is the whole point. */
+test('an IKE holding reads the same gross and after tax', async ({ browser, baseURL }) => {
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  await app.open('/dashboard/wealth');
+  await addBond(device.page, { series: 'EDO', quantity: '100', monthsAgo: 2, wrapper: 'IKE' });
+
+  const card = device.page
+    .locator('[data-slot="card"]')
+    .filter({ hasText: pl.bonds.chart_title });
+  const ticks = card.locator('.recharts-yAxis .recharts-cartesian-axis-tick-value');
+  const topOfAxis = async () => Math.max(...(await ticks.allTextContents()).map(amountOf));
+
+  await expect.poll(topOfAxis).toBeGreaterThan(0);
+  const gross = await topOfAxis();
+
+  await card.getByRole('button', { name: pl.bonds.after_tax }).click();
+
+  expect(await topOfAxis()).toBe(gross);
 
   expect(device.problems()).toEqual([]);
 

@@ -42,6 +42,7 @@ const SERIES_CODES = BOND_SERIES.map((series) => series.code) as [BondSeriesCode
 
 const formSchema = z.object({
   month: z.string({ error: i18n.t('errors.field-required') }),
+  wrapper: z.enum(['none', 'IKE', 'IKZE']),
   series: z.enum(SERIES_CODES, { error: i18n.t('errors.field-required') }),
   quantity: z.number({ error: i18n.t('errors.field-required') }).positive(),
   // Required, but not by the schema: whether a rate has to be asked for depends on what the backend
@@ -124,6 +125,19 @@ const BondFields = ({ fetched }: { fetched: FetchedRates }) => {
 
       <Field.Text name="quantity" type="number" label={i18n.t('bonds.quantity')} />
 
+      {/* Asked rather than guessed: nothing on a holding says whether it sits in a retirement
+          wrapper, and the tax on it is the difference between two very different figures. */}
+      <Field.Segmented
+        name="wrapper"
+        label={i18n.t('bonds.wrapper')}
+        helperText={i18n.t('bonds.wrapper_helper')}
+        options={[
+          { label: i18n.t('bonds.wrapper_none'), value: 'none' },
+          { label: 'IKE', value: 'IKE' },
+          { label: 'IKZE', value: 'IKZE' },
+        ]}
+      />
+
       {/* Only where the catalogue cannot answer. Everywhere else the rate is a fact the app
           already holds, and asking for it again is asking somebody to check the app's homework. */}
       {series && month && known === undefined && (
@@ -166,7 +180,8 @@ export default function BondsCreate() {
   const fetched = useMemo(() => fetchedRates(offers), [offers]);
 
   const initialValues = useMemo(() => {
-    if (id === NEW_ENTITY_ID) return { month: recentMonths(1, new Date())[0] };
+    if (id === NEW_ENTITY_ID)
+      return { month: recentMonths(1, new Date())[0], wrapper: 'none' as const };
     if (!bond) return undefined;
 
     // Read back out of the published name, so editing shows the month and series it was chosen by.
@@ -177,6 +192,7 @@ export default function BondsCreate() {
       series: choice?.code,
       quantity: bond.quantity,
       ratePercent: bond.ratePercent,
+      wrapper: bond.wrapper ?? ('none' as const),
     };
   }, [id, bond]);
 
@@ -189,6 +205,9 @@ export default function BondsCreate() {
       quantity: values.quantity,
       ratePercent: values.ratePercent ?? rateFrom(fetched, values.series, values.month),
     });
+
+    // The catalogue knows the series, never where somebody keeps it.
+    if (draft) draft.wrapper = values.wrapper;
 
     // No rate anywhere and none given: say so on the field that would carry it, rather than closing
     // over a holding with no value.
