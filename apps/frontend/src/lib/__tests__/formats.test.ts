@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDueDate, formatMoney, formatMoneyValue, formatRecurrence } from '../formats.ts';
+import { formatDueDate, formatMoney, formatMoneyValue, formatRecurrence , formatAxisMoney } from '../formats.ts';
 import { FREQUENCY } from '@/constant.ts';
 
 describe('formatMoney', () => {
@@ -132,5 +132,22 @@ describe('formatDueDate', () => {
 
   it('names the year when the date does not', () => {
     expect(formatDueDate(new Date(2027, 0, 4), new Date(2026, 0, 1))).toBe('4 sty 2027');
+  });
+});
+
+describe('formatAxisMoney', () => {
+  /**
+   * An axis is glanced at, not read. Grosze on a five-figure tick are characters nobody is looking
+   * for, and they widen every label enough to crowd the plot they describe.
+   */
+  it('drops the fraction an axis has no use for', () => {
+    // Written with the separator Intl actually emits — a no-break space, both between the groups
+    // and before the currency. A plain space here fails against a string that looks identical in
+    // every diff and every terminal.
+    expect(formatAxisMoney(26000, 'PLN', 'pl')).toBe('26\u00a0000\u00a0zł');
+  });
+
+  it('rounds rather than truncating, so a tick never reads lower than it sits', () => {
+    expect(formatAxisMoney(19999.6, 'PLN', 'pl')).toBe('20\u00a0000\u00a0zł');
   });
 });

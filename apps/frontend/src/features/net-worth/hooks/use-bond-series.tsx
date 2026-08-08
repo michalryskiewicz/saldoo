@@ -72,14 +72,24 @@ export const useBondSeries = (years: number = DEFAULT_HORIZON_YEARS) => {
      * something in it rather than an arbitrary decade.
      */
     yearsToLastMaturity,
-    /** Every redemption inside the drawn span, as chart labels, so they can be marked on the axis. */
-    maturities: included
-      .map((bond) => ({ bond, on: maturityOf(bond) }))
-      .filter((one): one is { bond: (typeof included)[number]; on: Date } => Boolean(one.on))
-      .map(({ bond, on }) => ({
-        label: `${on.getFullYear()}-${String(on.getMonth() + 1).padStart(2, '0')}`,
-        name: bond.description,
-      })),
+    /**
+     * Every redemption inside the drawn span, one entry per month.
+     *
+     * Gathered by month rather than by holding: two bonds coming back in the same one drew two
+     * markers on the same pixel and printed their names into each other — "EDO0136EDO0836" — which
+     * is how a helpful label becomes a smudge.
+     */
+    maturities: [
+      ...included
+        .map((bond) => ({ bond, on: maturityOf(bond) }))
+        .filter((one): one is { bond: (typeof included)[number]; on: Date } => Boolean(one.on))
+        .reduce((byMonth, { bond, on }) => {
+          const label = `${on.getFullYear()}-${String(on.getMonth() + 1).padStart(2, '0')}`;
+          const names = byMonth.get(label) ?? [];
+
+          return byMonth.set(label, [...names, bond.description]);
+        }, new Map<string, string[]>()),
+    ].map(([label, names]) => ({ label, name: names.join(' · ') })),
     /** Where the drawn history stops and the same arithmetic starts describing a day that has not come. */
     projectionFrom: rows[series.findIndex((point) => point.projected)]?.label,
   };

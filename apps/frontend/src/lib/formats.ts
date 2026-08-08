@@ -190,6 +190,24 @@ export const formatNumber = (value: number | string) => {
  * and the currency comes from settings that may not have loaded yet. Without a currency there is
  * no honest symbol to show, so the bare number is what is left.
  */
+/**
+ * Money for an axis: whole units, no grosze.
+ *
+ * An axis is read by glancing at it, and "26 000,00 zł" spends five of its characters on a
+ * fraction nobody is looking for at that scale — while making the labels wide enough to crowd the
+ * plot they are supposed to describe. The tooltip is where exact figures belong.
+ */
+export const formatAxisMoney = (
+  amount: number,
+  currency: string,
+  locale: string = i18n.language
+): string =>
+  new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
+
 export const formatMoneyValue = (value: unknown, currency: string | undefined): string => {
   const amount = Number(Array.isArray(value) ? value[0] : value);
 

@@ -16,7 +16,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart.tsx';
-import { formatMoneyValue } from '@/lib/formats.ts';
+import { formatAxisMoney, formatMoneyValue } from '@/lib/formats.ts';
 import { ChartTooltipRow } from '@/components/stats/chart-tooltip-row.tsx';
 import {
   DEFAULT_HORIZON_YEARS,
@@ -168,11 +168,15 @@ export const BondsChart = () => {
               "20" and the chart looks like it stops mid-decade. */}
           <LineChart accessibilityLayer data={rows} margin={{ top: 20, right: 24 }}>
             <CartesianGrid vertical={false} />
+            {/* Whole złoty on the ticks, and a tenth of the range kept free above the highest
+                point: the value line used to run along the very top edge, through the labels that
+                sit there. Exact figures are the tooltip's job. */}
             <YAxis
-              tickLine={true}
+              tickLine={false}
               axisLine={false}
-              tickFormatter={(value) => formatMoneyValue(value, currency)}
-              width={90}
+              tickFormatter={(value: number) => formatAxisMoney(value, currency)}
+              domain={[0, (max: number) => Math.ceil((max * 1.12) / 1000) * 1000]}
+              width={78}
             />
             {/* One tick a year. Every month labelled would be a hundred and thirty overlapping
                 labels, and the month is not the question a ten-year chart answers. */}
@@ -191,11 +195,13 @@ export const BondsChart = () => {
                 x={one.label}
                 stroke="var(--muted-foreground)"
                 strokeDasharray="2 4"
+                // At the foot of the plot, where there is nothing to collide with. Along the top
+                // they shared a line with the projection's own label and with the value curve.
                 label={{
                   value: one.name,
-                  position: 'insideTopRight',
+                  position: 'insideBottomRight',
                   fill: 'var(--muted-foreground)',
-                  fontSize: 11,
+                  fontSize: 10,
                 }}
               />
             ))}
