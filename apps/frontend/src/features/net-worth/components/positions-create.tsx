@@ -19,7 +19,7 @@ import {
 } from '@/features/net-worth/components/assignment-fields.tsx';
 import { db } from '@/database';
 import { useAppSelector } from '@/store/store.ts';
-import { setPositionsDrawerId } from '@/store/preferences.slice.ts';
+import { setPositionFromGoalId, setPositionsDrawerId } from '@/store/preferences.slice.ts';
 import { addDBPosition, updateDBPosition, type PositionKind } from '@/database/positions.ts';
 import { checkIfOpen } from '@/lib/helpers.ts';
 
@@ -56,6 +56,20 @@ export default function PositionsCreate() {
   const id = useAppSelector((state) => state.preferences.positionsDrawerId);
   const position = useLiveQuery(() => db.positions.get(id ?? ''), [id]);
 
+  // The goal this was opened from, when it was opened from one.
+  const fromGoalId = useAppSelector((state) => state.preferences.positionFromGoalId);
+  const goal = useLiveQuery(() => db.goals.get(fromGoalId ?? ''), [fromGoalId]);
+  const putAside = useLiveQuery(
+    async () =>
+      fromGoalId
+        ? (await db.contributions.where('goalId').equals(fromGoalId).toArray()).reduce(
+            (total, contribution) => total + contribution.amount,
+            0
+          )
+        : 0,
+    [fromGoalId]
+  );
+
   // Today per opening rather than in module defaults: a `new Date()` there is evaluated once on
   // first import, so a tab left open across midnight would go on offering yesterday.
   const initialValues = useMemo(() => {
@@ -66,10 +80,26 @@ export default function PositionsCreate() {
       ...assignmentIn(),
     };
 
-    if (id === NEW_ENTITY_ID) return blank;
+    if (id !== NEW_ENTITY_ID) {
+      return position ? { ...position, ...assignmentIn(position.assignments) } : blank;
+    }
 
-    return position ? { ...position, ...assignmentIn(position.assignments) } : blank;
-  }, [id, position]);
+    // Opened from a goal: its name and what has gone in, as a starting point and nothing more.
+    // The value stays editable on purpose — what was declared and what the holding is worth are
+    // different numbers, and for anything invested they differ by the returns. Filling it in
+    // silently would be the app making that guess on somebody's behalf.
+    if (goal) {
+      return { ...blank, description: goal.description, currency: goal.currency, value: putAside };
+    }
+
+    return blank;
+  }, [id, position, goal, putAside]);
+
+  const close = () => {
+    dispatch(setPositionsDrawerId(''));
+    // Or the next holding somebody adds by hand arrives wearing this goal's name.
+    dispatch(setPositionFromGoalId(''));
+  };
 
   const handleSubmit = async (values: PositionCreateType) => {
     if (!id) return;
@@ -85,21 +115,27 @@ export default function PositionsCreate() {
 
     if (!saved) return;
 
-    dispatch(setPositionsDrawerId(''));
+    close();
   };
 
   return (
-    <Sheet
-      open={checkIfOpen(id, position)}
-      onOpenChange={(open) => !open && dispatch(setPositionsDrawerId(''))}
-    >
+    <Sheet open={checkIfOpen(id, position)} onOpenChange={(open) => !open && close()}>
       <SheetContent className="xl:w-[440px] sm:w-[400px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{i18n.t('holdings.create_title')}</SheetTitle>
           <SheetDescription>{i18n.t('holdings.create_description')}</SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-1.5 p-4">
-          <Form initialValues={initialValues} schema={formSchema} onSubmit={handleSubmit}>
+          {/* Keyed on the goal it was opened from, because `initialValues` are read once when the
+              form mounts. Opened from a goal, the drawer is up before Dexie has answered, and
+              without a remount the fields it was meant to arrive prefilled with stay empty for as
+              long as it is open. */}
+          <Form
+            key={goal?.id ?? id}
+            initialValues={initialValues}
+            schema={formSchema}
+            onSubmit={handleSubmit}
+          >
             <div className="flex flex-col gap-7">
               <Field.Text name="description" label={i18n.t('holdings.what')} />
 

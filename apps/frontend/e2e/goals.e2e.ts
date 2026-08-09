@@ -84,7 +84,9 @@ test('the emergency fund has a computed target and stays out of the total', asyn
   await app.openGoals();
 
   // Three months of a monthly 1 000 with the 10% the fund carries, worked out rather than typed.
-  await expect(device.page.getByText('3300,00 zł')).toBeVisible();
+  // Read off the card's own target: the figure is quoted again in the sentence underneath, and
+  // this test is about what the fund is aiming at, not about how many places it is said.
+  await expect(device.page.locator('[data-slot="metric-limit"]')).toContainText('3300,00 zł');
 
   await app.putAside(pl.goal.emergency_fund, 500);
 

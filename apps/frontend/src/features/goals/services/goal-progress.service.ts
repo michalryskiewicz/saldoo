@@ -14,6 +14,14 @@ import {
   backedValue,
   backingOf,
 } from '@/features/goals/services/goal-backing.service.ts';
+import {
+  coverageInMonths,
+  monthlyClaim,
+} from '@/features/goals/services/monthly-claim.service.ts';
+import {
+  deadlineOffer,
+  type DeadlineOffer,
+} from '@/features/goals/services/deadline-offer.service.ts';
 
 export type GoalProgress = {
   goal: DBGoal;
@@ -41,6 +49,22 @@ export type GoalProgress = {
   lifetime?: number;
   /** What stands behind it, for a goal that reads its holdings instead of its declarations. */
   backing: Backing[];
+  /**
+   * What this goal costs the month it is in — the same figure the overview takes off what is free.
+   *
+   * Here so the card can say the consequence out loud rather than leaving somebody to work out for
+   * themselves why the number at the top of the overview went down.
+   */
+  takesFromFree: number;
+  /** How many months of living the fund would buy today. Absent on every other goal. */
+  coverageNow?: number;
+  /**
+   * A later date, when the goal has outgrown what this person actually manages.
+   *
+   * Offered rather than demanded: the app moves the date and never raises the figure — the only
+   * failure in this system is abandoning a goal, not being late with one (#93 pt. 11).
+   */
+  offer?: DeadlineOffer;
 };
 
 type ProgressInput = {
@@ -109,6 +133,11 @@ export const goalProgress = ({
           )
         : undefined,
       backing,
+      takesFromFree: monthlyClaim({ goal, contributions, today }).takesFromFree,
+      coverageNow: isEmergencyFund(goal)
+        ? coverageInMonths({ saved, target, coverageMonths: goal.coverageMonths! })
+        : undefined,
+      offer: deadlineOffer(goal, contributions, today),
     };
   });
 

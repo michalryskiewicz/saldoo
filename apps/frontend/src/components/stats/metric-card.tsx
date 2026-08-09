@@ -7,6 +7,7 @@ import type { LucideProps } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/stats/empty-state.tsx';
+import { cn } from '@/lib/utils.ts';
 
 interface MetricCardProps {
   title: string;
@@ -114,7 +115,10 @@ export function MetricCard({
 
   return (
     <Card className="relative overflow-hidden w-full">
-      <CardContent className="p-4 py-0">
+      {/* Room for the action, which is laid over the bottom of the card rather than in the flow.
+          Without it the last thing in the content sits underneath the button — visible, and not
+          clickable, because the button takes the pointer. */}
+      <CardContent className={cn('p-4 py-0', actionLabel && 'pb-10')}>
         <h5 className="text-xs font-normal leading-none tracking-wide text-muted-foreground dark:text-foreground/80 uppercase">
           {title}
         </h5>
@@ -126,7 +130,12 @@ export function MetricCard({
           >
             {value}
           </div>
-          <div className="text-xs leading-none text-muted-foreground tabular-nums">/ {limit}</div>
+          <div
+            data-slot="metric-limit"
+            className="text-xs leading-none text-muted-foreground tabular-nums"
+          >
+            / {limit}
+          </div>
         </div>
 
         <div className="mt-3">
@@ -138,6 +147,7 @@ export function MetricCard({
                 {details.map((detail, index) => (
                   <div
                     key={index}
+                    data-slot="metric-detail"
                     className="flex w-full items-center text-xs leading-none text-muted-foreground dark:text-foreground/70"
                   >
                     <div className={`mr-[6px] h-2 w-2 rounded-full ${detail.color}`} />

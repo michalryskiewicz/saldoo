@@ -2,6 +2,7 @@ import { ChartAreaInteractive } from '@/features/overview/components/expenses-to
 import { ExpensesByCategoryChart } from '@/features/overview/components/categories-in-expenses-chart.tsx';
 
 import { BudgetingStrategyCards } from '@/features/overview/components/budgeting-strategy-cards.tsx';
+import { FreeThisMonthCard } from '@/features/overview/components/free-this-month-card.tsx';
 import { FinancialSafetyNetCard } from '@/features/overview/components/financial-safety-net-card.tsx';
 import { NetWorthCard } from '@/features/net-worth/components/net-worth-card.tsx';
 import MonthlySpendingChart from '@/features/overview/components/monthly-spending-chart.tsx';
@@ -27,6 +28,10 @@ export default function Page() {
       {/* No action of its own: everything here is read, and every figure on it is authored on
           another screen. */}
       <PageHeader title={i18n.t('dashboard')} description={i18n.t('dashboard_subtitle')} />
+
+      {/* First, because it is the only figure here somebody can act on today: everything below it
+          describes a month that has already happened. */}
+      <FreeThisMonthCard />
 
       <BudgetingStrategyCards />
 
