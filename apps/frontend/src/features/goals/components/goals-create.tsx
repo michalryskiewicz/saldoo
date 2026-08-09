@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/sheet.tsx';
 import { NEW_ENTITY_ID, type STRATEGY_PART } from '@/constant.ts';
 import i18n from '@/i18n.ts';
+import { defaultStrategyPart } from '@/features/goals/services/default-strategy-part.service.ts';
 import { useCategories } from '@/features/hooks/use-categories.tsx';
 import { useAppSelector } from '@/store/store.ts';
 import { setGoalsDrawerId } from '@/store/preferences.slice.ts';
@@ -146,7 +147,7 @@ export default function GoalsCreate() {
       rollsYearly: 'no' as const,
       keepsItsMoney: 'no' as const,
       coverageMonths: '3' as const,
-      strategyPart: budgetingPartsOptions[0]?.value,
+      strategyPart: defaultStrategyPart(budgetingPartsOptions),
       funding: 'contributions' as const,
     };
 
