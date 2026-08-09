@@ -102,6 +102,42 @@ describe('convertMoney', () => {
     ).toBe(100);
   });
 
+  describe('on a day no rate was published for', () => {
+    // A rate is published on business days. The days it is not published on are ordinary days
+    // on which money still moves: a bond is priced on a Sunday and a duty falls on a Saturday.
+    const acrossAWeekend: ListExchangeRatesResponseDTO = {
+      EUR: { '2026-08-07': 4.5, '2026-08-08': null, '2026-08-09': null },
+      USD: { '2026-08-07': 4.0, '2026-08-08': null, '2026-08-09': null },
+      PLN: { '2026-08-07': 1, '2026-08-08': null, '2026-08-09': null },
+    };
+
+    it('reads the last rate published before it', () => {
+      expect(
+        convertMoney({
+          amount: 45,
+          fromCurrency: 'PLN',
+          toCurrency: 'EUR',
+          exchangeRates: acrossAWeekend,
+          effectiveDate: new Date('2026-08-09'),
+        })
+      ).toBeCloseTo(10);
+    });
+
+    it('reads the latest published rate for a day still to come', () => {
+      // A duty falls next month and a projection reaches years out. Nobody holds a rate for
+      // either, and the latest one published is the only rate anybody has.
+      expect(
+        convertMoney({
+          amount: 45,
+          fromCurrency: 'PLN',
+          toCurrency: 'EUR',
+          exchangeRates: acrossAWeekend,
+          effectiveDate: new Date('2026-12-15'),
+        })
+      ).toBeCloseTo(10);
+    });
+  });
+
   it('handles string effectiveDate', () => {
     expect(
       convertMoney({
@@ -152,5 +188,22 @@ describe('convertDataToDesiredCurrency', () => {
 
     expect(converted).toHaveLength(2);
     expect(converted.map((row) => row.currency)).toEqual(['PLN', 'PLN']);
+  });
+
+  it('leaves a record in its own currency when there is no rate to convert it at', () => {
+    // The figure and the sign over it have to be the same money. Stamping the desired currency on
+    // an amount that was never converted is the one outcome worse than not converting: a złoty
+    // figure reading as euro is wrong by a factor of four and says nothing about being wrong.
+    const beforeAnyRateWasPublished = [{ id: 'e1', expense: 100, currency: 'PLN', on: new Date('2019-01-01') }];
+
+    expect(
+      convertDataToDesiredCurrency({
+        data: beforeAnyRateWasPublished,
+        exchangeRates: rates,
+        desiredCurrency: 'EUR',
+        amountKey: 'expense',
+        dateKey: 'on',
+      })
+    ).toEqual(beforeAnyRateWasPublished);
   });
 });
