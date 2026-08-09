@@ -5,6 +5,24 @@
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Saldoo</title>
+
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- iOS reads none of the manifest's icons for the home-screen tile, and does not accept an
+         SVG for it either. This link is the tile. -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Saldoo" />
+
+    <!-- Both spellings on purpose. The manifest's `display: standalone` is what modern iOS obeys;
+         the Apple-prefixed name is what older iOS obeys, and being wrong about which one a phone
+         needs costs a trip back to a human holding it. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+
+    <!-- The strip above the app in standalone mode. Matched to the page behind the header rather
+         than to the mark's tile, so the top of the screen is not a second colour nothing else uses. -->
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#030712" media="(prefers-color-scheme: dark)" />
   </head>
   <body>
     <div id="root"></div>

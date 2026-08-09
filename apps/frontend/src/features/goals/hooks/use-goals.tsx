@@ -35,10 +35,15 @@ export const useGoals = () => {
   const closedWindows = useLiveQuery(() => db.closedWindows.toArray(), []) || [];
   const expenses = useLiveQuery(() => db.expenses.toArray(), []) || [];
 
+  // The window has to reach today whether or not anything has been put aside: a target is converted
+  // at today's rate and is on the screen from the moment the goal is made. Asked instead for the
+  // window the *contributions* fall in, an account that had put nothing aside asked for no window at
+  // all, and every target on it printed its złoty figure under a euro sign.
   const { earliest } = getEarliestAndLatestDate(contributions, 'contributedAt', 'iso-date');
+  const todayISO = toISODate(new Date());
   const { data: exchangeRates } = useListExchangeRatesQuery(
-    { fromDate: earliest as string, toDate: toISODate(new Date()) },
-    { skip: !earliest }
+    { fromDate: (earliest as string) ?? todayISO, toDate: todayISO },
+    { skip: !goals.length && !contributions.length && !expenses.length }
   );
 
   const currency = settings?.currency;

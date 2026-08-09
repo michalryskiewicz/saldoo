@@ -19,19 +19,22 @@ export const useListExpenses = () => {
   // ===========================================================================
   // Local State
   // ===========================================================================
-  const { earliest, latest } = getEarliestAndLatestDate(allExpenses, 'execution', 'iso-date');
+  const { earliest } = getEarliestAndLatestDate(allExpenses, 'execution', 'iso-date');
 
   // ===========================================================================
   // RTK Query
   // ===========================================================================
   const { settings } = useSettings();
+  // Gated on there being anything to convert, rather than on the *expenses* having a date: the
+  // incomes on this screen go through the converter too, so an account with incomes and no expenses
+  // yet asked for no rates at all and printed them in złoty under whichever sign it reads in.
   const { data: exchanges } = useListExchangeRatesQuery(
     {
-      fromDate: earliest as string,
+      fromDate: (earliest as string) ?? toISODate(new Date()),
       toDate: toISODate(new Date()),
     },
     {
-      skip: !earliest && !latest,
+      skip: !allExpenses.length && !allProfits.length,
     }
   );
 

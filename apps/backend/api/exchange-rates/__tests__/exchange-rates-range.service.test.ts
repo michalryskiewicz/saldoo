@@ -141,6 +141,51 @@ describe('ExchangeRatesRangeService', () => {
     expect(result['2024-03-04']).toBe(4);
   });
 
+  describe('when the window opens on a day NBP publishes nothing for', () => {
+    it('carries in the last rate published before the window', async () => {
+      // A weekend is where this bit: asked for Saturday to Sunday, the service could only fill a
+      // gap from an earlier day inside the window, and there is no earlier day inside a window
+      // that opens on the gap. Every figure came back null and the frontend printed złoty under
+      // a euro sign. Friday's rate stood all weekend and has to be reachable from outside.
+      mockedFindMany.mockResolvedValue([
+        { effectiveDate: new Date('2026-08-07'), mid: 4.5 },
+      ]);
+
+      const result = await service.getExchangeRatesForDateRangeUsingNBPRange(
+        CURRENCY.EUR,
+        CURRENCY.PLN,
+        new Date('2026-08-08'),
+        new Date('2026-08-09'),
+      );
+
+      expect(result['2026-08-08']).toBe(4.5);
+      expect(result['2026-08-09']).toBe(4.5);
+    });
+
+    it('carries the last known rate into a window that has not happened yet', async () => {
+      // The duties screen looks forward, so its window routinely holds no day NBP has published a
+      // rate for. The latest rate anybody has is the only rate there is for next month, and a duty
+      // shown without it is a złoty figure under a euro sign.
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-08-09T12:00:00Z'));
+      mockedFindMany.mockResolvedValue([
+        { effectiveDate: new Date('2026-08-07'), mid: 4.5 },
+      ]);
+
+      const result = await service.getExchangeRatesForDateRangeUsingNBPRange(
+        CURRENCY.EUR,
+        CURRENCY.PLN,
+        new Date('2026-09-01'),
+        new Date('2026-09-30'),
+      );
+
+      expect(result['2026-09-01']).toBe(4.5);
+      expect(result['2026-09-30']).toBe(4.5);
+
+      vi.useRealTimers();
+    });
+  });
+
   it('returns null entries when no rate can be resolved', async () => {
     mockedFindMany.mockResolvedValue([]);
     fetchMock.mockResolvedValue({ json: async () => ({ rates: [] }) });
