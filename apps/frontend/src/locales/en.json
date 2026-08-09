@@ -188,6 +188,8 @@
   "settled_expense": "Assigned expense",
   "money_in": "In",
   "money_out": "Out",
+  "money_omitted_one": "{{count}} payment left out — no rate",
+  "money_omitted_other": "{{count}} payments left out — no rate",
   "assignment": "Filed as",
   "execution": "Due",
   "due_date": "Due",

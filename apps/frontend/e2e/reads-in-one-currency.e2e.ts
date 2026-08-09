@@ -1,0 +1,101 @@
+import { expect, test } from '@playwright/test';
+import { createFakeDrive } from './support/fake-drive.ts';
+import { openDevice } from './support/device.ts';
+import { SaldooApp } from './support/app.ts';
+import { PASSPHRASE } from './support/fixtures.ts';
+import { ingStatement } from './support/bank-statement.ts';
+
+/**
+ * Records kept in złoty, read in euro.
+ *
+ * The ordinary state of an account that was set up in one country and is being read from another,
+ * and the state every one of these screens got wrong: the figure was the złoty figure and the sign
+ * over it said euro. Four times the money, silently.
+ *
+ * A rate is only ever asked for from a screen that asks for one, which is what makes these worth
+ * running against the real screens rather than the converter — the converter was never the thing
+ * that failed. Two of these screens never asked at all.
+ */
+
+test('a goal entered in złoty reads in euro before a single contribution', async ({
+  browser,
+  baseURL,
+}) => {
+  // No contribution on purpose. The rates were fetched over the window the *contributions* fall
+  // in, so an account that had put nothing aside yet asked for no window at all and converted
+  // nothing — the one screen where doing nothing was enough to break it.
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  await app.addGoal({ description: 'Wakacje', target: 8000, deadlineDayOfMonth: 15 });
+
+  await app.openAccount();
+  await app.chooseCurrency('EUR');
+  await app.submitAccountSettings();
+  await app.expectSavedNotice();
+
+  await app.openGoals();
+
+  const holiday = device.page.locator('[data-slot="card"]').filter({ hasText: 'Wakacje' });
+  await expect(holiday).toBeVisible();
+
+  // The stub prices a euro at 4.5 złoty, so 8000 zł is 1777,78 €. Twice on the card — the target
+  // and what is left of it — and both readings have to agree, which is the point of counting them.
+  await expect(holiday.getByText('1777,78 €')).toHaveCount(2);
+
+  // Beside it on purpose: the figure moving is not the whole claim. 8000,00 € is the bug written
+  // out — the złoty number wearing the euro sign — and it is what the screen printed.
+  await expect(holiday.getByText('8000,00 €')).toBeHidden();
+
+  expect(device.problems()).toEqual([]);
+
+  await device.close();
+});
+
+/** Every row złoty, the account reading euro. */
+const STATEMENT = [
+  { date: '2026-07-02', title: 'Czynsz - wspólnota mieszkaniowa', amount: -2500 },
+  { date: '2026-07-03', title: 'BIEDRONKA 1234 WARSZAWA', amount: -213.47 },
+  { date: '2026-07-09', title: 'Przelew przychodzacy - wynagrodzenie', amount: 12500 },
+];
+
+test('a statement keeps its own money in the rows and totals in one currency', async ({
+  browser,
+  baseURL,
+}) => {
+  // The screen fetched no rates whatsoever, and its total added every row up regardless of what it
+  // was written in, signing the result with whichever currency reached row one.
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  await app.importTransactions(ingStatement(STATEMENT));
+
+  await app.openAccount();
+  await app.chooseCurrency('EUR');
+  await app.submitAccountSettings();
+  await app.expectSavedNotice();
+
+  await app.openTransactions();
+
+  // The bank wrote złoty and the rows still say so — a statement read back in another currency is
+  // no longer the statement.
+  await expect(device.page.getByText('-2500,00 zł')).toBeVisible();
+
+  // The figure underneath is the one that has to be a single currency to be a total at all.
+  await expect(device.page.getByText('2777,78 €')).toBeVisible();
+  await expect(device.page.getByText('-603,00 €')).toBeVisible();
+
+  expect(device.problems()).toEqual([]);
+
+  await device.close();
+});
