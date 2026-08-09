@@ -782,6 +782,8 @@ export class SaldooApp {
     description?: string;
     target?: number;
     deadlineDayOfMonth?: number;
+    /** Left out, the form's own default stands — which is contributions. */
+    funding?: 'contributions' | 'holdings';
     emergencyFund?: { coverageMonths: 3 | 6 | 12; monthlyPace: number };
   }): Promise<void> {
     await this.openGoals();
@@ -801,6 +803,15 @@ export class SaldooApp {
     } else {
       await sheet.getByLabel(label('description'), { exact: true }).fill(spec.description as string);
       await sheet.getByLabel(label('goal.target'), { exact: true }).fill(String(spec.target));
+
+      // Before the deadline, not after: picking a date leaves the calendar's own dialog over the
+      // drawer, and every later click waits on an overlay that is not going anywhere.
+      if (spec.funding) {
+        await sheet
+          .getByRole('radio', { name: label(`goal.funding_${spec.funding}`), exact: true })
+          .click();
+      }
+
       await sheet.getByLabel(label('goal.deadline'), { exact: true }).click();
       await this.page
         .getByRole('gridcell')

@@ -8,7 +8,7 @@ import { DEFAULT_SETTINGS } from '@/database/settings.service.ts';
 import { netWorthWithBonds, stalestValuation } from '@/features/net-worth/services/net-worth.service.ts';
 import { netWorthBreakdown } from '@/features/net-worth/services/net-worth-breakdown.service.ts';
 import { valueBondsOn } from '@/features/net-worth/services/bond-accrual.service.ts';
-import type { BackableHolding } from '@/features/goals/services/goal-backing.service.ts';
+import { freeValue, type BackableHolding } from '@/features/goals/services/goal-backing.service.ts';
 
 /**
  * What is held and what is owed, in one currency.
@@ -79,6 +79,10 @@ export const useNetWorth = () => {
     bonds,
     holdings,
     totals: netWorthWithBonds(convertedPositions, bondValues),
+    // How much of what is held has not been promised to anything, and nothing at all until
+    // something has been. Read off the same holdings the goals read, so the two can never disagree
+    // about which złoty is spoken for.
+    unassigned: freeValue(holdings),
     valuedOn: stalestValuation(convertedPositions),
     // What the two sides are made of, for anything drawing the whole picture rather than the figure.
     breakdown: netWorthBreakdown(convertedPositions, bondValues),

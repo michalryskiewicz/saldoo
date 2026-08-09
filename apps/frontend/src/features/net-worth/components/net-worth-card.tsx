@@ -8,7 +8,7 @@ import { useNetWorth } from '@/features/net-worth/hooks/use-net-worth.tsx';
 import { formatValuationAge } from '@/features/net-worth/services/valuation-age.service.ts';
 
 export function NetWorthCard() {
-  const { totals, currency, valuedOn, positions, bonds } = useNetWorth();
+  const { totals, currency, valuedOn, positions, bonds, unassigned } = useNetWorth();
 
   return (
     <Card className="h-full">
@@ -33,6 +33,12 @@ export function NetWorthCard() {
               <span>
                 {i18n.t('holdings.owed')}: {formatMoney(totals.owed, currency)}
               </span>
+              {/* The third fact of the same kind: how much of what is held nobody has promised. */}
+              {unassigned !== undefined && (
+                <span data-slot="unassigned">
+                  {i18n.t('holdings.free')}: {formatMoney(unassigned, currency)}
+                </span>
+              )}
             </div>
           </div>
         ) : (

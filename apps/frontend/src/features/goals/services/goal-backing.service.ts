@@ -76,3 +76,13 @@ export const unassignedValue = (holdings: BackableHolding[]): number =>
       0
     )
   );
+
+/**
+ * What is free, or nothing at all — for a tile that stays quiet until it has something to add.
+ *
+ * On an account where nobody has assigned anything, what is free *is* what is held. Printing both
+ * beside each other says one fact twice, and a line that repeats its neighbour teaches the reader
+ * that the line carries no information. From the first assignment onwards, it carries one.
+ */
+export const freeValue = (holdings: BackableHolding[]): number | undefined =>
+  holdings.some((holding) => assignedShare(holding) > 0) ? unassignedValue(holdings) : undefined;

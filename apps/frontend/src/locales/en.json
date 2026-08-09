@@ -185,6 +185,7 @@
     "net_worth": "Net worth",
     "held": "Held",
     "owed": "Owed",
+    "free": "Free",
     "as_of": "Oldest valuation: {{date}}",
     "never_valued": "No positions",
     "other_segment": "Everything else",

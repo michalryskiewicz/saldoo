@@ -194,6 +194,7 @@
     "net_worth": "Majątek netto",
     "held": "Masz",
     "owed": "Jesteś winien",
+    "free": "Wolne",
     "as_of": "Najstarsza wycena: {{date}}",
     "never_valued": "Brak pozycji",
     "other_segment": "Pozostałe",

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { BackableHolding } from '../goal-backing.service.ts';
-import { assignedShare, backedValue, backingOf, unassignedValue } from '../goal-backing.service.ts';
+import {
+  assignedShare,
+  backedValue,
+  backingOf,
+  freeValue,
+  unassignedValue,
+} from '../goal-backing.service.ts';
 
 const holding = (
   id: string,
@@ -134,5 +140,36 @@ describe('unassignedValue', () => {
     ];
 
     expect(unassignedValue(held)).toBe(0);
+  });
+});
+
+describe('freeValue', () => {
+  /**
+   * The figure worth saying, or nothing at all.
+   *
+   * On an account where nobody has assigned anything, what is free *is* what is held — and printing
+   * both beside each other on one tile says the same fact twice, which teaches the reader that the
+   * line carries no information. It has something to say from the first assignment onwards.
+   */
+  it('is the unassigned amount once anything has been assigned', () => {
+    const held = [
+      holding('konto', 10000, [{ goalId: 'fund', share: 60 }]),
+      holding('skarbonka', 2000),
+    ];
+
+    expect(freeValue(held)).toBe(6000);
+  });
+
+  it('is nothing at all while no holding has been pointed at a goal', () => {
+    expect(freeValue([holding('konto', 10000), holding('skarbonka', 2000)])).toBeUndefined();
+  });
+
+  it('is nothing at all on an account holding nothing', () => {
+    expect(freeValue([])).toBeUndefined();
+  });
+
+  /** A share of nought is not an assignment, and the tile stays quiet for it. */
+  it('does not count a holding assigned nought per cent as pointed anywhere', () => {
+    expect(freeValue([holding('konto', 10000, [{ goalId: 'fund', share: 0 }])])).toBeUndefined();
   });
 });
