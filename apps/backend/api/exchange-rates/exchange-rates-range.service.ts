@@ -4,6 +4,15 @@ import Cache from '../../utils/cache.ts';
 import { formatDateISO, getDatesInRange } from '../../utils';
 import { type Currency, CURRENCY } from '../../utils/types.ts';
 import { singleton } from 'tsyringe';
+import { subDays } from 'date-fns';
+
+/**
+ * How far before a window to look for the rate that stood when it opened.
+ *
+ * Ten days clears the longest run NBP publishes nothing for — the holidays around Christmas and
+ * New Year — and every ordinary weekend with room to spare.
+ */
+const ANCHOR_LOOKBACK_DAYS = 10;
 
 @singleton()
 export class ExchangeRatesRangeService {
@@ -17,12 +26,30 @@ export class ExchangeRatesRangeService {
   ): Promise<Record<string, number | null>> {
     const requestedDates = getDatesInRange(fromDate, toDate);
 
-    const todayISO = formatDateISO(new Date());
-    const includeToday = !requestedDates.includes(todayISO);
+    const today = new Date();
+    const todayISO = formatDateISO(today);
 
-    const dates = includeToday
-      ? [...requestedDates, todayISO]
-      : requestedDates.slice();
+    // A gap is filled from a day before it, so a window that opens on a gap could not be filled at
+    // all — and two days in seven are a gap. Reaching back past the window is what makes its first
+    // day fillable. Anchored before the earlier of the window and today, because a window of duties
+    // still to fall lies wholly in the future: no day of it has a rate, and reaching back inside it
+    // finds nothing either.
+    const anchorFrom = subDays(
+      new Date(
+        Math.min(new Date(requestedDates[0] ?? todayISO).getTime(), today.getTime()),
+      ),
+      ANCHOR_LOOKBACK_DAYS,
+    );
+
+    // Sorted, because the fill below reads "the last rate published before this one" as "earlier in
+    // this array" — an ordering three spreads happen to produce and nothing else enforces.
+    const dates = [
+      ...new Set([
+        ...getDatesInRange(anchorFrom, today),
+        ...requestedDates,
+        todayISO,
+      ]),
+    ].sort();
 
     const results: { date: string; rate: number | null }[] = dates.map((d) => ({
       date: d,
@@ -38,7 +65,11 @@ export class ExchangeRatesRangeService {
     const needToPLN = toCurrency !== CURRENCY.PLN;
 
     const fromDateISO = dates[0];
-    const toDateISO = dates[dates.length - 1];
+
+    // Never past today: NBP has no rate for a day that has not happened, and asking it for one
+    // answers 404 for the whole range — losing the days it could have answered for.
+    const lastDate = dates[dates.length - 1];
+    const toDateISO = lastDate > todayISO ? todayISO : lastDate;
 
     const fromMap: Record<string, number | undefined> = {};
     const toMap: Record<string, number | undefined> = {};
