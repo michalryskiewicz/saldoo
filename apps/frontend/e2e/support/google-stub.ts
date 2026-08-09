@@ -66,8 +66,17 @@ window.google.accounts.oauth2 = {
  */
 const FIXED_RATES = { PLN: 1, USD: 4, EUR: 4.5 };
 
-/** A day either side, since a range endpoint is inclusive and callers round differently. */
-const RANGE_MARGIN_DAYS = 1;
+/**
+ * A day past the end, since a range endpoint is inclusive and callers round differently, and ten
+ * before the start to match the anchor the real endpoint reaches back for.
+ *
+ * A rate for **every** day, weekends and holidays included, is what the real endpoint answers with
+ * and so is what this has to answer with: it carries the last published rate forward over the days
+ * NBP says nothing about. Narrowing this to business days would model neither NBP — which this is
+ * not standing in for — nor our own endpoint, and would redden tests over a gap production fills.
+ */
+const RANGE_MARGIN_BEFORE_DAYS = 10;
+const RANGE_MARGIN_AFTER_DAYS = 1;
 const MAX_RANGE_DAYS = 800;
 
 function ratesForRange(fromDate: string, toDate: string) {
@@ -78,8 +87,8 @@ function ratesForRange(fromDate: string, toDate: string) {
   }
 
   const days: string[] = [];
-  const cursor = new Date(start.getTime() - RANGE_MARGIN_DAYS * 86_400_000);
-  const last = end.getTime() + RANGE_MARGIN_DAYS * 86_400_000;
+  const cursor = new Date(start.getTime() - RANGE_MARGIN_BEFORE_DAYS * 86_400_000);
+  const last = end.getTime() + RANGE_MARGIN_AFTER_DAYS * 86_400_000;
 
   while (cursor.getTime() <= last && days.length < MAX_RANGE_DAYS) {
     days.push(cursor.toISOString().slice(0, 10));

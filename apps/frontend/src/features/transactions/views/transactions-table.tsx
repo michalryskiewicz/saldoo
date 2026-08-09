@@ -119,7 +119,7 @@ const columns: ColumnDef<TransactionRow>[] = [
 ];
 
 export const TransactionsTable = () => {
-  const { transactions } = useTransactionsData();
+  const { transactions, currency } = useTransactionsData();
   const [query, setQuery] = useState('');
   const [range, setRange] = useState<TransactionRange>('all');
 
@@ -142,8 +142,13 @@ export const TransactionsTable = () => {
           hash: TOTAL,
           transactionDate: '',
           amount: 0,
-          currency: dataToTable[0].currency,
-          summary: summariseTransactions(dataToTable),
+          currency,
+          // The rows' own money is what the rows print; the total adds up what each was worth in
+          // the one currency it can be a total in.
+          summary: summariseTransactions(
+            dataToTable.map((row) => row.preferred ?? row),
+            currency
+          ),
         },
       ]
     : [];

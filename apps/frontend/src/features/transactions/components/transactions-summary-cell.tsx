@@ -15,11 +15,7 @@ type TransactionsSummaryCellProps = {
  * is which from their signs.
  */
 export default function TransactionsSummaryCell({ summary }: TransactionsSummaryCellProps) {
-  const { incoming, outgoing, currency } = summary;
-
-  if (!currency) {
-    return null;
-  }
+  const { incoming, outgoing, currency, omitted } = summary;
 
   const lines = [
     { label: i18n.t('money_in'), amount: incoming, arriving: true },
@@ -38,6 +34,11 @@ export default function TransactionsSummaryCell({ summary }: TransactionsSummary
           </span>
         </p>
       ))}
+      {omitted > 0 && (
+        <p className="text-muted-foreground text-xs whitespace-nowrap">
+          {i18n.t('money_omitted', { count: omitted })}
+        </p>
+      )}
     </div>
   );
 }
