@@ -9,13 +9,25 @@ type ConvertDataToDesiredCurrencyProps<T extends Record<string, unknown>> = {
   dateKey?: keyof T;
 };
 
+/**
+ * What a converted figure was before it was converted.
+ *
+ * Present only where a conversion actually happened, which makes its presence the answer to "is
+ * this the number somebody entered, or one this app worked out?" — a question a table cannot answer
+ * from the figure alone, and the reader cannot check.
+ */
+export type ConvertedFrom = { amount: number; currency: Currency };
+
+/** A record as it comes back from the converter: the same shape, plus how it got here if it moved. */
+export type MaybeConverted<T> = T & { convertedFrom?: ConvertedFrom };
+
 export const convertDataToDesiredCurrency = <T extends Record<string, unknown>>({
   data,
   exchangeRates,
   desiredCurrency,
   amountKey,
   dateKey,
-}: ConvertDataToDesiredCurrencyProps<T>): T[] => {
+}: ConvertDataToDesiredCurrencyProps<T>): MaybeConverted<T>[] => {
   if (!amountKey || !desiredCurrency) {
     return [];
   }
@@ -28,7 +40,7 @@ export const convertDataToDesiredCurrency = <T extends Record<string, unknown>>(
     return data;
   }
 
-  const result: T[] = [];
+  const result: MaybeConverted<T>[] = [];
 
   for (const item of data) {
     if (item.currency === desiredCurrency) {
@@ -55,6 +67,12 @@ export const convertDataToDesiredCurrency = <T extends Record<string, unknown>>(
       ...item,
       currency: desiredCurrency,
       [amountKey]: Math.round((item[amountKey] as number) * rate * 100) / 100,
+      // Travels with the figure so a table can say the number was worked out rather than entered.
+      // Only ever set here — on the one path where a conversion really happened.
+      convertedFrom: {
+        amount: item[amountKey] as number,
+        currency: item.currency as Currency,
+      } satisfies ConvertedFrom,
     });
   }
 

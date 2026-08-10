@@ -1,3 +1,4 @@
+import type { MaybeConverted } from '@/lib/exchange-rate.ts';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useDispatch } from 'react-redux';
@@ -12,7 +13,7 @@ import { deleteDBPosition, type DBPosition } from '@/database/positions.ts';
 import { setPositionsDrawerId } from '@/store/preferences.slice.ts';
 import { useNetWorth } from '@/features/net-worth/hooks/use-net-worth.tsx';
 
-type PositionRow = DBPosition & { totalLabel?: string };
+type PositionRow = MaybeConverted<DBPosition> & { totalLabel?: string };
 
 const PositionActions = ({ id }: { id: string }) => {
   const dispatch = useDispatch();
@@ -83,6 +84,7 @@ const columns: ColumnDef<PositionRow>[] = [
         id={row.original.id}
         price={row.original.value}
         currency={row.original.currency}
+        convertedFrom={row.original.convertedFrom}
       />
     ),
     header: ({ column }) => <Header.Sort column={column} header="holdings.value" />,

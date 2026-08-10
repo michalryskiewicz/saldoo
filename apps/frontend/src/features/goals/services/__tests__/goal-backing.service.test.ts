@@ -5,6 +5,7 @@ import {
   backedValue,
   backingOf,
   freeValue,
+  goalsNowReadingHoldings,
   unassignedValue,
 } from '../goal-backing.service.ts';
 
@@ -171,5 +172,54 @@ describe('freeValue', () => {
   /** A share of nought is not an assignment, and the tile stays quiet for it. */
   it('does not count a holding assigned nought per cent as pointed anywhere', () => {
     expect(freeValue([holding('konto', 10000, [{ goalId: 'fund', share: 0 }])])).toBeUndefined();
+  });
+});
+
+describe('goalsNowReadingHoldings', () => {
+  const goal = (id: string, funding: 'contributions' | 'holdings') => ({ id, funding });
+
+  /**
+   * A goal reads declarations or holdings, never both, because the two are the same złoty seen from
+   * two ends. Pointing an account at a goal is the moment somebody says where the money actually
+   * is, so it is the moment the goal should stop guessing from what was typed in.
+   */
+  it('names a goal that was still reading declarations', () => {
+    expect(
+      goalsNowReadingHoldings([{ goalId: 'ike', share: 100 }], [goal('ike', 'contributions')])
+    ).toEqual(['ike']);
+  });
+
+  it('leaves alone a goal that already reads its holdings', () => {
+    expect(
+      goalsNowReadingHoldings([{ goalId: 'ike', share: 100 }], [goal('ike', 'holdings')])
+    ).toEqual([]);
+  });
+
+  it('names every goal the holding was split between', () => {
+    expect(
+      goalsNowReadingHoldings(
+        [
+          { goalId: 'ike', share: 60 },
+          { goalId: 'wakacje', share: 40 },
+        ],
+        [goal('ike', 'contributions'), goal('wakacje', 'contributions')]
+      )
+    ).toEqual(['ike', 'wakacje']);
+  });
+
+  /** A share of nought points at nothing, so it says nothing about where the money is. */
+  it('ignores an assignment of nought per cent', () => {
+    expect(
+      goalsNowReadingHoldings([{ goalId: 'ike', share: 0 }], [goal('ike', 'contributions')])
+    ).toEqual([]);
+  });
+
+  it('is empty when the holding is assigned to nothing', () => {
+    expect(goalsNowReadingHoldings([], [goal('ike', 'contributions')])).toEqual([]);
+  });
+
+  /** A goal that is not there to be switched is not an error; it is simply not switched. */
+  it('ignores an assignment naming a goal it was not given', () => {
+    expect(goalsNowReadingHoldings([{ goalId: 'gone', share: 100 }], [])).toEqual([]);
   });
 });

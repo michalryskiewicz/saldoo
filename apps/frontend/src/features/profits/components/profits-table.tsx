@@ -1,3 +1,4 @@
+import type { MaybeConverted } from '@/lib/exchange-rate.ts';
 import { DataTable } from '@/components/ui/data-table.tsx';
 import { TableSearch } from '@/components/ui/table-search.tsx';
 import { searchProfits } from '@/features/profits/services/profits-search.service.ts';
@@ -18,7 +19,7 @@ import { useState } from 'react';
  * `totalLabel` rides on the summary row rather than being read from state by the column
  * definitions, which are module-level and know nothing about it.
  */
-export type ProfitRow = DBProfit & { totalLabel?: string };
+export type ProfitRow = MaybeConverted<DBProfit> & { totalLabel?: string };
 
 const columns: ColumnDef<ProfitRow>[] = [
   {
@@ -42,7 +43,14 @@ const columns: ColumnDef<ProfitRow>[] = [
 
       if (id === TOTAL) return null;
 
-      return <Cell.Money id={id} price={profit} currency={currency} />;
+      return (
+        <Cell.Money
+          id={id}
+          price={profit}
+          currency={currency}
+          convertedFrom={row.original.convertedFrom}
+        />
+      );
     },
     header: ({ column }) => (
       <Header.Info column={column} header="profit" tooltip="price_exchanged_automatically" />

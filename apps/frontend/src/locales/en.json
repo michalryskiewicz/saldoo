@@ -370,7 +370,9 @@
     "deleted-tags": "{{count}} tags deleted",
     "update-account-settings": "Account settings updated",
     "upload-transaction": "Transaction added",
-    "update-transactions": "Transactions updated"
+    "update-transactions": "Transactions updated",
+    "goal-reads-holdings_one": "That goal now reads the value of the holding, not the declarations",
+    "goal-reads-holdings_other": "Those goals now read the value of the holding, not the declarations"
   },
   "errors": {
     "create-expense": "Could not add the expense. Please try again later",
@@ -400,7 +402,8 @@
     "min-2-length-required": "Enter at least 2 characters",
     "update-account-settings": "Could not update your account settings. Please try again later",
     "generic": "Something went wrong. Please try again later",
-    "ends-before-it-starts": "The end cannot fall before the first occurrence"
+    "ends-before-it-starts": "The end cannot fall before the first occurrence",
+    "goal-reads-holdings": "Could not switch the goal to read the holding"
   },
   "resolved": "Paid",
   "resolved_via_transaction": "Paid automatically from a transaction",
@@ -528,7 +531,7 @@
   "bank_description": "Choose the bank you want to add transactions from",
   "free_this_month": {
     "title": "Free to the end of the month",
-    "tooltip": "What nothing has a claim on yet: this month's planned income, less what has already left the account, less the bills still to pay, less what the goals were promised. It is not a bank balance — the app does not know one.",
+    "tooltip": "What you can still spend this month without reaching for anything already promised — to a bill or to a goal. Two caveats. The income side comes from the plan and the spending side from actual payments, so a salary that has not arrived yet counts here just as much as the money already in the account. And it is not a bank balance — the app does not know one. Each part of the breakdown below leads to the screen it comes from.",
     "planned_income": "Planned income",
     "spent": "Already out",
     "owed": "Still to pay",
@@ -566,7 +569,8 @@
   },
   "this_month_you_have_left": "Left this month",
   "this_month_you_have_left_tooltip": "This figure shows income against expenses for the month. A negative result means a deficit — you are spending more than you earn",
-  "price_exchanged_automatically": "The amount has been converted automatically into your chosen currency",
+  "price_exchanged_automatically": "Amounts in another currency are converted into yours. Converted ones carry a ≈ — reveal it to see the original amount and its currency.",
+  "converted_from": "Converted from {{amount}}",
   "empty_state": {
     "no_data": "No data",
     "no_data_for_period": "No data for the chosen period",

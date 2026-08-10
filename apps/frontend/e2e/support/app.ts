@@ -781,6 +781,51 @@ export class SaldooApp {
     await expect(dialog).toBeHidden();
   }
 
+  // === Holdings ===
+
+  /**
+   * Adds a holding, optionally pointed at a goal.
+   *
+   * The assignment fields only exist once some goal reads its holdings, so a spec that wants them
+   * has to have made such a goal first — which is the app's rule rather than this helper's.
+   */
+  async addPosition({
+    what,
+    worth,
+    owed = false,
+    forGoal,
+    share,
+  }: {
+    what: string;
+    worth: number;
+    owed?: boolean;
+    forGoal?: string;
+    share?: number;
+  }): Promise<void> {
+    await this.open('/dashboard/wealth');
+    await this.page.getByRole('button', { name: label('holdings.create'), exact: true }).click();
+
+    const sheet = this.page.getByRole('dialog', { name: label('holdings.create_title') });
+    await expect(sheet).toBeVisible();
+
+    await sheet.getByLabel(label('holdings.what'), { exact: true }).fill(what);
+    if (owed) {
+      await sheet.getByRole('radio', { name: label('holdings.liability'), exact: true }).click();
+    }
+    await sheet.getByLabel(label('holdings.value'), { exact: true }).fill(String(worth));
+
+    if (forGoal) {
+      await sheet.getByRole('combobox', { name: label('holdings.assigned_to') }).click();
+      await this.page.getByRole('option', { name: forGoal, exact: true }).click();
+      await sheet
+        .getByLabel(label('holdings.assigned_share'), { exact: true })
+        .fill(String(share ?? 100));
+    }
+
+    await sheet.getByRole('button', { name: label('submit'), exact: true }).click();
+    await expect(sheet).toBeHidden();
+  }
+
   // === Goals ===
 
   async openGoals(): Promise<void> {

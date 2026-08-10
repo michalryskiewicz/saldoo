@@ -195,3 +195,38 @@ export const applyDBRollovers = async (rollovers: Rollover[]): Promise<void> => 
     outbox.markDirty();
   }
 };
+
+/**
+ * Switches goals over to reading what is held against them.
+ *
+ * Called when a holding is pointed at a goal, because that is the moment somebody says where the
+ * money actually is — and a goal reads declarations or holdings, never both. Left as it was, the
+ * goal went on counting what had been typed into it while the holding stood in net worth beside
+ * it: the same złoty twice, with nothing on any screen saying so.
+ *
+ * **The contributions are not touched.** They are what the person did, and a goal switched back
+ * reads them again. This changes which of the two the goal believes, nothing more.
+ *
+ * Announced, unlike a rollover. A year ending is not somebody's action and telling them about it as
+ * though it were is noise; this happens *because* of an action of theirs, and it moves a figure they
+ * are looking at — so it says so once.
+ */
+export const switchDBGoalsToHoldings = async (goalIds: string[]): Promise<void> => {
+  if (!goalIds.length) return;
+
+  try {
+    for (const id of goalIds) {
+      await documentSession.update('goals', id, {
+        funding: 'holdings',
+        updatedAt: new Date(),
+      });
+    }
+
+    await setLastUpdated();
+    outbox.markDirty();
+    toast(i18n.t('success.goal-reads-holdings', { count: goalIds.length }));
+  } catch (e) {
+    console.error(e);
+    toast(i18n.t('errors.goal-reads-holdings'));
+  }
+};

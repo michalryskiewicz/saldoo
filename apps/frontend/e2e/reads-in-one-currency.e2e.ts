@@ -58,6 +58,52 @@ test('a goal entered in złoty reads in euro before a single contribution', asyn
   await device.close();
 });
 
+/**
+ * A converted figure says that it was converted.
+ *
+ * The column heading used to carry the whole claim, and carried it for every row — including rows
+ * already in the currency and rows nothing could convert, neither of which was converted at all.
+ * The mark belongs on the figure that earned it, and it names what it came from: a reader cannot
+ * check a rate they were never shown.
+ */
+test('a converted amount is marked, and says what it was converted from', async ({
+  browser,
+  baseURL,
+}) => {
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  await app.addExpense({ description: 'Prąd', amount: 45, frequency: 'MONTHLY' });
+
+  await app.openAccount();
+  await app.chooseCurrency('EUR');
+  await app.submitAccountSettings();
+  await app.expectSavedNotice();
+
+  await app.openExpenses();
+
+  const row = device.page.getByRole('row').filter({ hasText: 'Prąd' });
+
+  // 45 zł at the stub's 4.5 is 10 €, and the figure carries a mark rather than the heading
+  // claiming it on every row's behalf.
+  await expect(row.getByText('10,00 €').first()).toBeVisible();
+
+  const mark = row.locator('[data-slot="converted"]').first();
+  await expect(mark).toBeVisible();
+  // `\s` rather than a space: Intl separates the amount from the currency with a non-breaking one,
+  // and a literal space would fail on formatting rather than on the mark being wrong.
+  await expect(mark).toHaveAttribute('title', /45,00\s*zł/);
+
+  expect(device.problems()).toEqual([]);
+
+  await device.close();
+});
+
 /** Every row złoty, the account reading euro. */
 const STATEMENT = [
   { date: '2026-07-02', title: 'Czynsz - wspólnota mieszkaniowa', amount: -2500 },

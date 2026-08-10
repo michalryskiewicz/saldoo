@@ -381,7 +381,11 @@
     "deleted-tags": "Pomyślnie usunięto {{count}} tagów",
     "update-account-settings": "Pomyślnie zaktualizowano ustawienia konta",
     "upload-transaction": "Pomyślnie dodano transakcję",
-    "update-transactions": "Pomyślnie zaktualizowano transakcje"
+    "update-transactions": "Pomyślnie zaktualizowano transakcje",
+    "goal-reads-holdings_one": "Cel czyta teraz wartość przypisanego zasobu, nie wpłat",
+    "goal-reads-holdings_few": "Te cele czytają teraz wartość przypisanego zasobu, nie wpłat",
+    "goal-reads-holdings_many": "Te cele czytają teraz wartość przypisanego zasobu, nie wpłat",
+    "goal-reads-holdings_other": "Te cele czytają teraz wartość przypisanego zasobu, nie wpłat"
   },
   "errors": {
     "create-expense": "Nie udało się dodać wydatku. Spróbuj ponownie później",
@@ -411,7 +415,8 @@
     "min-2-length-required": "Wprowadź co namniej 2 znaki",
     "update-account-settings": "Nie udało się zaktualizować ustawień konta. Spróbuj ponownie później",
     "generic": "Coś poszło nie tak. Spróbuj ponownie później",
-    "ends-before-it-starts": "Koniec nie może wypaść przed pierwszym wystąpieniem"
+    "ends-before-it-starts": "Koniec nie może wypaść przed pierwszym wystąpieniem",
+    "goal-reads-holdings": "Nie udało się przestawić celu na wartość zasobu"
   },
   "resolved": "Opłacone",
   "resolved_via_transaction": "Opłacone automatycznie z transakcji",
@@ -539,7 +544,7 @@
   "bank_description": "Poniżej wybierz bank z którego chcesz dodać transakcje",
   "free_this_month": {
     "title": "Wolne do końca miesiąca",
-    "tooltip": "To, czego nic jeszcze nie zajęło: planowany wpływ tego miesiąca minus to, co już wyszło z konta, minus rachunki, które jeszcze zapłacisz, minus to, co obiecane celom. To nie jest saldo konta — aplikacja go nie zna.",
+    "tooltip": "Ile możesz jeszcze wydać w tym miesiącu, nie sięgając po nic, co jest już obiecane — rachunkom albo celom. Dwa zastrzeżenia. Wpływ bierze się z planu, a wydatki z faktycznych transakcji, więc pensja, która jeszcze nie przyszła, liczy się tu tak samo jak ta na koncie. I to nie jest saldo konta — aplikacja go nie zna. Każda pozycja rozbicia niżej prowadzi do ekranu, z którego pochodzi.",
     "planned_income": "Planowany wpływ",
     "spent": "Już wyszło",
     "owed": "Do zapłacenia",
@@ -578,7 +583,8 @@
   },
   "this_month_you_have_left": "W tym miesiącu zostaje Ci",
   "this_month_you_have_left_tooltip": "Wskaźnik prezentuje relację między dochodami a wydatkami w danym miesiącu. Ujemny wynik sygnalizuje deficyt – wydatki są wyższe niż osiągane dochody",
-  "price_exchanged_automatically": "Cena została automatycznie przewalutowana do wybranej waluty",
+  "price_exchanged_automatically": "Kwoty w innej walucie są przeliczane na Twoją. Przeliczone niosą znak ≈ — pokaż go, żeby zobaczyć kwotę pierwotną i jej walutę.",
+  "converted_from": "Przeliczone z {{amount}}",
   "empty_state": {
     "no_data": "Brak danych",
     "no_data_for_period": "Brak danych za wybrany okres",

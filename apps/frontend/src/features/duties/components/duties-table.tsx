@@ -1,3 +1,4 @@
+import type { MaybeConverted } from '@/lib/exchange-rate.ts';
 import { CreditCard, List, PenLine, Square, SquareCheck } from 'lucide-react';
 import { TableSearch } from '@/components/ui/table-search.tsx';
 import { searchDuties } from '@/features/duties/services/duties-search.service.ts';
@@ -49,7 +50,7 @@ const STATUS_TABS = [
  * definitions, which are module-level and know nothing about state. Carrying it as data keeps
  * the columns a constant — rebuilt per render they would reset the table's own sorting.
  */
-export type DutyRow = DBDuty & {
+export type DutyRow = MaybeConverted<DBDuty> & {
   expense: DBExpense;
   price: number;
   currency: Currency;
@@ -95,6 +96,7 @@ const columns: ColumnDef<DutyRow>[] = [
         id={row.original.expense.id}
         price={row.original.price}
         currency={row.original.currency}
+        convertedFrom={row.original.convertedFrom}
       />
     ),
   },

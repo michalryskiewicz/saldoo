@@ -27,9 +27,12 @@ export const AssignmentFields = () => {
   const goals = useLiveQuery(() => db.goals.toArray(), []) || [];
   const goalId = useWatch({ name: 'assignedGoalId' }) as string | undefined;
 
-  const backed = goals.filter((goal) => goal.funding === 'holdings' && !goal.closedAt);
+  // Every open goal, not only those already set to read their holdings. Offering just those was a
+  // closed loop: a goal could not be pointed at until somebody had first changed how it reads its
+  // progress — which is the very thing this act says. So the account a goal's money actually sits
+  // in could not be linked to it at all, and the declaration and the holding both went on counting.
+  const backed = goals.filter((goal) => !goal.closedAt);
 
-  // Nothing to point at yet: a goal has to be set to read its holdings before it can have any.
   if (!backed.length) return null;
 
   return (

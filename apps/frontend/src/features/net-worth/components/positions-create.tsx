@@ -21,6 +21,8 @@ import { db } from '@/database';
 import { useAppSelector } from '@/store/store.ts';
 import { setPositionFromGoalId, setPositionsDrawerId } from '@/store/preferences.slice.ts';
 import { addDBPosition, updateDBPosition, type PositionKind } from '@/database/positions.ts';
+import { switchDBGoalsToHoldings } from '@/database/goals.ts';
+import { goalsNowReadingHoldings } from '@/features/goals/services/goal-backing.service.ts';
 import { checkIfOpen } from '@/lib/helpers.ts';
 
 const formSchema = z.object({
@@ -56,6 +58,9 @@ export default function PositionsCreate() {
   const id = useAppSelector((state) => state.preferences.positionsDrawerId);
   const position = useLiveQuery(() => db.positions.get(id ?? ''), [id]);
 
+  // Every goal, so the save can tell which of them a holding has just been pointed at.
+  const goals = useLiveQuery(() => db.goals.toArray(), []) || [];
+
   // The goal this was opened from, when it was opened from one.
   const fromGoalId = useAppSelector((state) => state.preferences.positionFromGoalId);
   const goal = useLiveQuery(() => db.goals.get(fromGoalId ?? ''), [fromGoalId]);
@@ -88,8 +93,18 @@ export default function PositionsCreate() {
     // The value stays editable on purpose — what was declared and what the holding is worth are
     // different numbers, and for anything invested they differ by the returns. Filling it in
     // silently would be the app making that guess on somebody's behalf.
+    //
+    // Pointed at that goal, and at the whole of it: arriving from a goal's own card is as plain a
+    // statement of what the holding is for as anybody is going to make.
     if (goal) {
-      return { ...blank, description: goal.description, currency: goal.currency, value: putAside };
+      return {
+        ...blank,
+        description: goal.description,
+        currency: goal.currency,
+        value: putAside,
+        assignedGoalId: goal.id,
+        assignedShare: 100,
+      };
     }
 
     return blank;
@@ -105,15 +120,20 @@ export default function PositionsCreate() {
     if (!id) return;
 
     const { assignedGoalId, assignedShare, ...rest } = values;
+    const assignments = assignmentsFrom(assignedGoalId, assignedShare);
     const draft = {
       ...rest,
       kind: values.kind as PositionKind,
-      assignments: assignmentsFrom(assignedGoalId, assignedShare),
+      assignments,
     } as never;
     const saved =
       id === NEW_ENTITY_ID ? await addDBPosition(draft) : await updateDBPosition(id, draft);
 
     if (!saved) return;
+
+    // After the holding is stored, never before: a goal switched over to a holding that failed to
+    // save would read nothing at all.
+    await switchDBGoalsToHoldings(goalsNowReadingHoldings(assignments, goals));
 
     close();
   };

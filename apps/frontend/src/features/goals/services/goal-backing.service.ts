@@ -1,4 +1,4 @@
-import type { GoalAssignment } from '@/database/goals.ts';
+import type { GoalAssignment, GoalFunding } from '@/database/goals.ts';
 
 /**
  * Anything that can stand behind a goal: a hand-valued position, or a bond the app prices itself.
@@ -86,3 +86,28 @@ export const unassignedValue = (holdings: BackableHolding[]): number =>
  */
 export const freeValue = (holdings: BackableHolding[]): number | undefined =>
   holdings.some((holding) => assignedShare(holding) > 0) ? unassignedValue(holdings) : undefined;
+
+/**
+ * Which goals must stop reading declarations, now that a holding has been pointed at them.
+ *
+ * A goal reads what was declared into it or what is held against it, never both, because the two are
+ * the same złoty seen from two ends. Which one was the person's to choose, and nothing connected the
+ * choice to the act: pointing an account at a goal still reading declarations left both running —
+ * the goal counted what had been typed in, and the holding stood in net worth beside it. The same
+ * money, twice, and no screen said so.
+ *
+ * Assigning a holding is the moment somebody says where the money actually is, so it is the moment
+ * the guess stops. The declarations are not touched: they are what the person did, and a goal
+ * switched back reads them again.
+ *
+ * A share of nought points at nothing, and so says nothing about where the money is.
+ */
+export const goalsNowReadingHoldings = (
+  assignments: GoalAssignment[],
+  goals: { id: string; funding?: GoalFunding }[]
+): string[] =>
+  assignments
+    .filter((assignment) => assignment.share > 0)
+    .map((assignment) => goals.find((goal) => goal.id === assignment.goalId))
+    .filter((goal) => goal !== undefined && goal.funding !== 'holdings')
+    .map((goal) => goal!.id);
