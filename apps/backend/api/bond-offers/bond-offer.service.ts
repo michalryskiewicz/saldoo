@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { singleton } from 'tsyringe';
 import prisma from '../../prisma/prisma.ts';
 import { parseIssuePage } from './bond-offer.parser.ts';
 import { issueUrl, SERIES, type BondSeriesCode } from './bond-series.ts';
@@ -34,8 +33,18 @@ const fetchPage: FetchPage = async (url) => {
  * leaves whatever was already recorded untouched and is reported by series. The app ships a
  * catalogue of its own and keeps working when this table is empty, so the worst outcome of a
  * broken source is that the newest month has to be typed in, exactly as before.
+ *
+ * **Deliberately carries no tsyringe decorator.** Its two collaborators are a module singleton and a
+ * function, and neither is a type the container can reflect: with a decorator on the class,
+ * `design:paramtypes` comes out as `["Object", "Object"]` under bun and tsyringe throws
+ * `TypeInfo not known for "Object"` while constructing it — which took the **whole backend** down at
+ * module load, since a controller resolved at import time throws before anything listens. Undecorated,
+ * no parameter metadata is emitted, the container calls the constructor with no arguments, and the
+ * defaults below stand. The seam the tests inject through is untouched.
+ *
+ * Note that vitest's transform does not emit that metadata, so no unit test can see this. It is
+ * verified by the backend starting.
  */
-@singleton()
 export class BondOfferService {
   constructor(
     private readonly db: typeof prisma = prisma,
