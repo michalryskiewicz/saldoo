@@ -198,7 +198,9 @@
     "as_of": "Najstarsza wycena: {{date}}",
     "never_valued": "Brak pozycji",
     "other_segment": "Pozostałe",
-    "breakdown_description": "Stan na dziś, nie historia — pozycje mają jedną wycenę, tę którą wpisałeś ostatnio. Obligacje liczymy same."
+    "breakdown_description": "Stan na dziś, nie historia — pozycje mają jedną wycenę, tę którą wpisałeś ostatnio. Obligacje liczymy same.",
+    "change": "Zmiana",
+    "change_tooltip": "O ile ta pozycja zmieniła się od poprzedniej wyceny. Oba odczyty przeliczone po jednym kursie — z dnia najnowszego — żeby liczba mówiła o zasobie, a nie o ruchu kursu. Pusta, dopóki pozycja była wyceniona tylko raz."
   },
   "goal": {
     "title": "Cele",

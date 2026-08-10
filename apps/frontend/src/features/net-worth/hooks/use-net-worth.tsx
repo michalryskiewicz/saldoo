@@ -8,6 +8,7 @@ import { DEFAULT_SETTINGS } from '@/database/settings.service.ts';
 import { netWorthWithBonds, stalestValuation } from '@/features/net-worth/services/net-worth.service.ts';
 import { netWorthBreakdown } from '@/features/net-worth/services/net-worth-breakdown.service.ts';
 import { valueBondsOn } from '@/features/net-worth/services/bond-accrual.service.ts';
+import { changeSincePrevious } from '@/features/net-worth/services/valuation-history.service.ts';
 import { freeValue, type BackableHolding } from '@/features/goals/services/goal-backing.service.ts';
 
 /**
@@ -21,6 +22,7 @@ export const useNetWorth = () => {
   const { settings } = useSettings();
   const positions = useLiveQuery(() => db.positions.toArray(), []) || [];
   const bonds = useLiveQuery(() => db.bonds.toArray(), []) || [];
+  const valuations = useLiveQuery(() => db.valuations.toArray(), []) || [];
 
   const today = new Date();
 
@@ -43,7 +45,23 @@ export const useNetWorth = () => {
         }) as T[])
       : data;
 
-  const convertedPositions = inOneCurrency(positions, 'valuedOn');
+  // What each holding has done since anybody last valued it, converted at the rate of its latest
+  // reading — the same rate for both figures behind it, so what the reader sees is the holding
+  // moving and never the rate moving underneath it.
+  const changes = convertDataToDesiredCurrency({
+    data: positions
+      .map((position) => changeSincePrevious(position.id, valuations))
+      .filter((change) => change !== undefined),
+    exchangeRates,
+    desiredCurrency: settings?.currency,
+    amountKey: 'amount',
+    dateKey: 'on',
+  });
+
+  const convertedPositions = inOneCurrency(positions, 'valuedOn').map((position) => ({
+    ...position,
+    change: changes.find((change) => change.positionId === position.id),
+  }));
 
   // Valued first, converted second, added last. A bond's worth follows from its own currency's
   // nominal and rate, so it cannot be converted until something has priced it — and it has to be

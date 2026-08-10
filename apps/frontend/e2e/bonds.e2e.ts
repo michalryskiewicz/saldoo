@@ -252,17 +252,21 @@ test('złoty bonds are drawn and counted for somebody reading in euro', async ({
   const legend = device.page.locator('.recharts-legend-wrapper');
   await expect(legend).toContainText(pl.bonds.worth);
 
-  // And converted before it joins the total: 10 000 zł at the stubbed 4.5 is 2 222,22 €, not 10 000.
+  // And converted before it joins the total: 10 000 zł at the stubbed 4.5 is 2 222,22 €.
   //
-  // Given room, because the tile legitimately starts at the unconverted figure: conversion is a
-  // no-op until the rates arrive, and under a full parallel run that round trip outlasts the
-  // default poll. That the app prints złoty under a euro sign in the meantime is a real gap, and
-  // one it has everywhere rather than only here.
+  // Waited on with its currency, not on the digits alone. The tile legitimately begins at the
+  // unconverted figure — conversion is a no-op until the rates land — and it now *says* so, printing
+  // 10 000,00 zł rather than stamping euro over a złoty figure. `amountOf` strips the sign, so it
+  // cannot tell those two apart, and it accepted the wrong one the moment the suite's timing shifted.
+  //
+  // The ceiling is generous because the thing being waited for is a network round trip that has
+  // already fired by the time anything here could listen for it, and it is slow under a full
+  // parallel run. Nothing is masked by the wait: the figure it must settle on is exact.
   await app.openOverview();
   const tile = device.page.locator('[data-slot="net-worth"]');
   await expect
-    .poll(async () => amountOf((await tile.textContent()) ?? ''), { timeout: 15_000 })
-    .toBe(2222.22);
+    .poll(async () => (await tile.textContent())?.trim(), { timeout: 30_000 })
+    .toMatch(/2\s*222,22\s*€/);
 
   expect(device.problems()).toEqual([]);
 

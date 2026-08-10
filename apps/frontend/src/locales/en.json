@@ -189,7 +189,9 @@
     "as_of": "Oldest valuation: {{date}}",
     "never_valued": "No positions",
     "other_segment": "Everything else",
-    "breakdown_description": "As it stands today, not a history — a position carries the one valuation you last gave it. Bonds work themselves out."
+    "breakdown_description": "As it stands today, not a history — a position carries the one valuation you last gave it. Bonds work themselves out.",
+    "change": "Change",
+    "change_tooltip": "How much this holding has moved since it was last valued. Both readings are converted at one rate — the latest reading’s — so the figure is about the holding and not about the rate moving. Empty while a holding has only been valued once."
   },
   "goal": {
     "title": "Goals",

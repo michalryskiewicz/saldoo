@@ -9,6 +9,7 @@ import type { DBSettings } from '@/database/settings.ts';
 import type { DBGoal, DBClosedWindow } from '@/database/goals.ts';
 import type { DBContribution } from '@/database/contributions.ts';
 import type { DBPosition } from '@/database/positions.ts';
+import type { DBValuation } from '@/database/valuations.ts';
 import type { DBBondHolding } from '@/database/bonds.ts';
 
 export class AppDB extends Dexie {
@@ -23,6 +24,7 @@ export class AppDB extends Dexie {
   contributions!: Table<DBContribution, string>;
   closedWindows!: Table<DBClosedWindow, string>;
   positions!: Table<DBPosition, string>;
+  valuations!: Table<DBValuation, string>;
   bonds!: Table<DBBondHolding, string>;
 
   constructor() {
@@ -126,6 +128,33 @@ export class AppDB extends Dexie {
       closedWindows: 'id, createdAt, goalId, seriesId, year',
       positions: 'id, createdAt, updatedAt, description, kind, currency, valuedOn',
       bonds: 'id, createdAt, updatedAt, description, boughtOn, currency',
+    });
+
+    // Version 7 keeps what a holding was worth before. The position itself cannot: it holds one
+    // value and one date, so every re-valuation overwrote the only record of the last one — and a
+    // holding whose worth nobody can compare with anything is a holding nobody can say grew.
+    //
+    // Its own table rather than a list on the position, because the document codec knows about date
+    // fields at the top level of a row and nowhere else: dates nested in an array cross the wire as
+    // `{}` while reading back correctly on the device that wrote them.
+    this.version(7).stores({
+      expenses:
+        'id, createdAt, updatedAt, userId, description, expense, currency, severity, frequency, execution, strategyPart, tagId',
+      profits:
+        'id, createdAt, updatedAt, userId, description, profit, currency, frequency, execution',
+      duties:
+        'id, createdAt, updatedAt, resolved, ignored, frequency, executionDate, expenseId, transactionId, &hash',
+      transactions:
+        'id, createdAt, updatedAt, transactionId, sourceBank, amount, currency, transactionDate, description, &hash, expenseId, strategyPart, tagId, duties',
+      tags: 'id, createdAt, updatedAt, userId, &name',
+      meta: '&key',
+      settings: '&id',
+      goals: 'id, createdAt, updatedAt, description, currency, strategyPart, deadline, year, seriesId, closedAt',
+      contributions: 'id, createdAt, updatedAt, goalId, contributedAt, transactionId',
+      closedWindows: 'id, createdAt, goalId, seriesId, year',
+      positions: 'id, createdAt, updatedAt, description, kind, currency, valuedOn',
+      bonds: 'id, createdAt, updatedAt, description, boughtOn, currency',
+      valuations: 'id, createdAt, positionId, valuedOn, currency',
     });
   }
 }
