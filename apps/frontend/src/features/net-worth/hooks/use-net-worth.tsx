@@ -9,6 +9,7 @@ import { netWorthWithBonds, stalestValuation } from '@/features/net-worth/servic
 import { netWorthBreakdown } from '@/features/net-worth/services/net-worth-breakdown.service.ts';
 import { valueBondsOn } from '@/features/net-worth/services/bond-accrual.service.ts';
 import { changeSincePrevious } from '@/features/net-worth/services/valuation-history.service.ts';
+import { currencyExposure } from '@/features/net-worth/services/currency-exposure.service.ts';
 import { freeValue, type BackableHolding } from '@/features/goals/services/goal-backing.service.ts';
 
 /**
@@ -101,6 +102,13 @@ export const useNetWorth = () => {
     // something has been. Read off the same holdings the goals read, so the two can never disagree
     // about which złoty is spoken for.
     unassigned: freeValue(holdings),
+    // Which currencies the held figure actually sits in — the question one converted number hides.
+    // The bonds are in it because they are the plainest case of it: priced in złoty by definition,
+    // so anybody reading in euro is exposed through them whether they think about it or not.
+    exposure: currencyExposure([
+      ...convertedPositions.filter((position) => position.kind === 'asset'),
+      ...valuedBonds,
+    ]),
     valuedOn: stalestValuation(convertedPositions),
     // What the two sides are made of, for anything drawing the whole picture rather than the figure.
     breakdown: netWorthBreakdown(convertedPositions, bondValues),
