@@ -43,6 +43,16 @@ jobs:
         if: ${{ !cancelled() }}
         run: bun run test
 
+      # Its own step because no test above can stand in for it: a controller is resolved at module
+      # load, and the container failure that stopped the whole backend from booting is invisible to
+      # vitest, whose transform does not emit the decorator metadata bun does. See
+      # `apps/backend/scripts/verify-boot.ts`.
+      - name: Backend boots
+        if: ${{ !cancelled() }}
+        env:
+          DATABASE_URL: file:./data/ci.db
+        run: bun run verify:boot
+
       # No .env on CI. Every root script passes `--env-file=.env`, which Bun
       # tolerates when the file is absent, and every VITE_* read has a fallback,
       # so the build compiles without secrets. It is a compile gate, not a

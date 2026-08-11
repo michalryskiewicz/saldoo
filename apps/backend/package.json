@@ -10,7 +10,8 @@
     "lint:check": "eslint .",
     "lint:fix": "eslint --fix .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest"
+    "test": "vitest",
+    "verify:boot": "prisma generate && bun scripts/verify-boot.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
