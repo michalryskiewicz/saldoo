@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DBPosition } from '@/database/positions.ts';
-import { netWorth, stalestValuation } from '../net-worth.service.ts';
+import { netWorth, netWorthWithBonds, stalestValuation } from '../net-worth.service.ts';
 
 const held = (description: string, value: number): DBPosition =>
   ({
@@ -53,5 +53,30 @@ describe('stalestValuation', () => {
 
   it('has nothing to report when there is nothing to value', () => {
     expect(stalestValuation([])).toBeUndefined();
+  });
+});
+
+/**
+ * Bonds arrive here as amounts, already priced by `bond-accrual` and already converted into the
+ * currency the positions are in. What each one is *worth* is that service's question and is tested
+ * there; what is left here is that a holding whose value is computed still lands on the held side.
+ */
+describe('bonds in net worth', () => {
+  it('adds what the bonds are worth to what is held', () => {
+    const totals = netWorthWithBonds([], [10655]);
+
+    expect(totals.held).toBe(10655);
+    expect(totals.net).toBe(10655);
+  });
+
+  it('adds them to what was entered by hand', () => {
+    expect(netWorthWithBonds([held('Konto', 5000)], [10655]).held).toBe(15655);
+  });
+
+  it('leaves what is owed alone: a bond is never a liability', () => {
+    const totals = netWorthWithBonds([owed('Kredyt', 400000)], [10655]);
+
+    expect(totals.owed).toBe(400000);
+    expect(totals.net).toBe(-389345);
   });
 });

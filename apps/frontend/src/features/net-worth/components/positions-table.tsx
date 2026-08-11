@@ -1,3 +1,5 @@
+import type { MaybeConverted } from '@/lib/exchange-rate.ts';
+import type { ValuationChange } from '@/features/net-worth/services/valuation-history.service.ts';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useDispatch } from 'react-redux';
@@ -12,7 +14,11 @@ import { deleteDBPosition, type DBPosition } from '@/database/positions.ts';
 import { setPositionsDrawerId } from '@/store/preferences.slice.ts';
 import { useNetWorth } from '@/features/net-worth/hooks/use-net-worth.tsx';
 
-type PositionRow = DBPosition & { totalLabel?: string };
+type PositionRow = MaybeConverted<DBPosition> & {
+  totalLabel?: string;
+  /** What it has done since the reading before its latest — absent while it has only one. */
+  change?: ValuationChange;
+};
 
 const PositionActions = ({ id }: { id: string }) => {
   const dispatch = useDispatch();
@@ -52,7 +58,6 @@ const PositionActions = ({ id }: { id: string }) => {
   );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 const columns: ColumnDef<PositionRow>[] = [
   {
     accessorKey: 'description',
@@ -84,9 +89,34 @@ const columns: ColumnDef<PositionRow>[] = [
         id={row.original.id}
         price={row.original.value}
         currency={row.original.currency}
+        convertedFrom={row.original.convertedFrom}
       />
     ),
     header: ({ column }) => <Header.Sort column={column} header="holdings.value" />,
+  },
+  {
+    id: 'change',
+    // What a stored value cannot say on its own: 31 500 is a number, and up 1 500 is what happened.
+    // Empty on a holding valued only once — nought there would claim it had not moved, when the
+    // truth is that there is nothing yet to have moved from.
+    accessorFn: (row) => row.change?.amount ?? 0,
+    cell: ({ row }) => {
+      const { change } = row.original;
+
+      if (row.original.id === TOTAL || !change) return null;
+
+      return (
+        <Cell.Money
+          id={row.original.id}
+          price={change.amount}
+          currency={change.currency}
+          directional
+        />
+      );
+    },
+    header: ({ column }) => (
+      <Header.Info column={column} header="holdings.change" tooltip="holdings.change_tooltip" />
+    ),
   },
   {
     accessorKey: 'valuedOn',

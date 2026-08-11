@@ -206,4 +206,47 @@ describe('convertDataToDesiredCurrency', () => {
       })
     ).toEqual(beforeAnyRateWasPublished);
   });
+
+  describe('what it says about having converted', () => {
+    /**
+     * A converted figure is not the figure anybody entered, and a screen that prints it without
+     * saying so is asking to be trusted about arithmetic the reader cannot check. What it came
+     * from travels with it so the table can say.
+     */
+    it('records what a converted figure came from', () => {
+      const [row] = convertDataToDesiredCurrency({
+        data: [{ id: 'e1', expense: 45, currency: 'PLN' }],
+        exchangeRates: rates,
+        desiredCurrency: 'EUR',
+        amountKey: 'expense',
+      });
+
+      expect(row.expense).toBe(10);
+      expect(row.currency).toBe('EUR');
+      expect(row.convertedFrom).toEqual({ amount: 45, currency: 'PLN' });
+    });
+
+    it('says nothing on a record that was already in the currency', () => {
+      const [row] = convertDataToDesiredCurrency({
+        data: [{ id: 'e2', expense: 20, currency: 'EUR' }],
+        exchangeRates: rates,
+        desiredCurrency: 'EUR',
+        amountKey: 'expense',
+      });
+
+      expect(row.convertedFrom).toBeUndefined();
+    });
+
+    it('says nothing on a record it could not convert', () => {
+      const [row] = convertDataToDesiredCurrency({
+        data: [{ id: 'e1', expense: 45, currency: 'PLN', on: new Date('2019-01-01') }],
+        exchangeRates: rates,
+        desiredCurrency: 'EUR',
+        amountKey: 'expense',
+        dateKey: 'on',
+      });
+
+      expect(row.convertedFrom).toBeUndefined();
+    });
+  });
 });

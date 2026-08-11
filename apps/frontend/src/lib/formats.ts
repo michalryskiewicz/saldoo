@@ -116,6 +116,31 @@ export const formatMonth = (
   return capitalize(new Intl.DateTimeFormat(options.locale, { month: options.type }).format(date));
 };
 
+/**
+ * An interest rate the way the Ministry prints it — "5,35%", two places and a comma.
+ *
+ * Not a template literal around the number: that yields "5.35%" in a Polish interface, which reads
+ * as somebody's typo rather than as a rate.
+ */
+export const formatPercent = (value: number, locale: string = i18n.language) =>
+  `${new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}%`;
+
+/**
+ * A `YYYY-MM` month as somebody says it out loud — "Sierpień 2026".
+ *
+ * Split by hand rather than handed to `new Date(iso)`: a bare `2026-08` is read as UTC midnight, so
+ * anybody west of Greenwich would be offered July.
+ */
+export const formatMonthAndYear = (month: string, locale: string = i18n.language) => {
+  const [year, index] = month.split('-').map(Number);
+
+  return capitalize(
+    new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(
+      new Date(year, index - 1, 1)
+    )
+  );
+};
+
 export const formatDay = (
   dayIndex: DayIndex | number | string,
   options: FormatDayOptions = { type: 'long', locale: 'pl' }
@@ -165,6 +190,24 @@ export const formatNumber = (value: number | string) => {
  * and the currency comes from settings that may not have loaded yet. Without a currency there is
  * no honest symbol to show, so the bare number is what is left.
  */
+/**
+ * Money for an axis: whole units, no grosze.
+ *
+ * An axis is read by glancing at it, and "26 000,00 zł" spends five of its characters on a
+ * fraction nobody is looking for at that scale — while making the labels wide enough to crowd the
+ * plot they are supposed to describe. The tooltip is where exact figures belong.
+ */
+export const formatAxisMoney = (
+  amount: number,
+  currency: string,
+  locale: string = i18n.language
+): string =>
+  new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
+
 export const formatMoneyValue = (value: unknown, currency: string | undefined): string => {
   const amount = Number(Array.isArray(value) ? value[0] : value);
 

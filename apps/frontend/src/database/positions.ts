@@ -1,10 +1,14 @@
 import { v4 as uuidv4 } from 'uuid';
+import type { GoalAssignment } from '@/database/goals.ts';
 import { toast } from 'sonner';
 import type { Currency } from '@/constant.ts';
 import i18n from '@/i18n.ts';
 import { documentSession } from '@/database/document/document.container.ts';
 import { outbox } from '@/database/document/outbox.container.ts';
 import { setLastUpdated } from '@/database/meta.ts';
+import { addDBValuation } from '@/database/valuations.ts';
+import { isNewReading } from '@/features/net-worth/services/valuation-history.service.ts';
+import { db } from '@/database/index.ts';
 
 /** Something held, or something owed. Both are positions; only the sign differs. */
 export type PositionKind = 'asset' | 'liability';
@@ -32,6 +36,8 @@ export type DBPosition = {
   currency: Currency;
   /** The day the person last said what it was worth. */
   valuedOn: Date;
+  /** What this is for. Empty or missing means it is not spoken for — see `GoalAssignment`. */
+  assignments?: GoalAssignment[];
 };
 
 export type PositionDraft = Omit<DBPosition, 'id' | 'createdAt' | 'updatedAt'>;
@@ -39,7 +45,19 @@ export type PositionDraft = Omit<DBPosition, 'id' | 'createdAt' | 'updatedAt'>;
 /** @returns whether the write landed, so a caller can keep its drawer open when it did not. */
 export const addDBPosition = async (draft: PositionDraft): Promise<boolean> => {
   try {
-    await documentSession.put('positions', { id: uuidv4(), createdAt: new Date(), ...draft });
+    const id = uuidv4();
+
+    await documentSession.put('positions', { id, createdAt: new Date(), ...draft });
+
+    // The first reading, filed at once. A holding whose history begins at its *second* valuation has
+    // nothing for that one to be compared against, so this is the save that cannot be skipped.
+    await addDBValuation({
+      positionId: id,
+      value: draft.value,
+      currency: draft.currency,
+      valuedOn: draft.valuedOn,
+    });
+
     await setLastUpdated();
     outbox.markDirty();
     toast(i18n.t('success.create-position'));
@@ -56,7 +74,21 @@ export const addDBPosition = async (draft: PositionDraft): Promise<boolean> => {
 /** @returns whether the write landed. */
 export const updateDBPosition = async (id: string, draft: PositionDraft): Promise<boolean> => {
   try {
+    // Read before the write, or there is nothing left to compare the new figure with: the position
+    // holds one value and this update is about to replace it.
+    const stored = await db.positions.get(id);
+
     await documentSession.update('positions', id, { ...draft, updatedAt: new Date() });
+
+    if (isNewReading(draft, stored)) {
+      await addDBValuation({
+        positionId: id,
+        value: draft.value,
+        currency: draft.currency,
+        valuedOn: draft.valuedOn,
+      });
+    }
+
     await setLastUpdated();
     outbox.markDirty();
     toast(i18n.t('success.update-position'));

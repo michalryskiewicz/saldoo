@@ -44,13 +44,60 @@ test('a goal entered in złoty reads in euro before a single contribution', asyn
   const holiday = device.page.locator('[data-slot="card"]').filter({ hasText: 'Wakacje' });
   await expect(holiday).toBeVisible();
 
-  // The stub prices a euro at 4.5 złoty, so 8000 zł is 1777,78 €. Twice on the card — the target
-  // and what is left of it — and both readings have to agree, which is the point of counting them.
-  await expect(holiday.getByText('1777,78 €')).toHaveCount(2);
+  // The stub prices a euro at 4.5 złoty, so 8000 zł is 1777,78 €. Asserted as present rather than
+  // counted: how many times the card repeats the figure is its layout's business, and changes the
+  // day a line is added to it. Whether the figure was converted at all is this test's business.
+  await expect(holiday.getByText('1777,78 €').first()).toBeVisible();
 
   // Beside it on purpose: the figure moving is not the whole claim. 8000,00 € is the bug written
   // out — the złoty number wearing the euro sign — and it is what the screen printed.
   await expect(holiday.getByText('8000,00 €')).toBeHidden();
+
+  expect(device.problems()).toEqual([]);
+
+  await device.close();
+});
+
+/**
+ * A converted figure says that it was converted.
+ *
+ * The column heading used to carry the whole claim, and carried it for every row — including rows
+ * already in the currency and rows nothing could convert, neither of which was converted at all.
+ * The mark belongs on the figure that earned it, and it names what it came from: a reader cannot
+ * check a rate they were never shown.
+ */
+test('a converted amount is marked, and says what it was converted from', async ({
+  browser,
+  baseURL,
+}) => {
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  await app.addExpense({ description: 'Prąd', amount: 45, frequency: 'MONTHLY' });
+
+  await app.openAccount();
+  await app.chooseCurrency('EUR');
+  await app.submitAccountSettings();
+  await app.expectSavedNotice();
+
+  await app.openExpenses();
+
+  const row = device.page.getByRole('row').filter({ hasText: 'Prąd' });
+
+  // 45 zł at the stub's 4.5 is 10 €, and the figure carries a mark rather than the heading
+  // claiming it on every row's behalf.
+  await expect(row.getByText('10,00 €').first()).toBeVisible();
+
+  const mark = row.locator('[data-slot="converted"]').first();
+  await expect(mark).toBeVisible();
+  // `\s` rather than a space: Intl separates the amount from the currency with a non-breaking one,
+  // and a literal space would fail on formatting rather than on the mark being wrong.
+  await expect(mark).toHaveAttribute('title', /45,00\s*zł/);
 
   expect(device.problems()).toEqual([]);
 

@@ -45,3 +45,28 @@ export const stalestValuation = (positions: DBPosition[]): Date | undefined =>
       (oldest, day) => (!oldest || day < oldest ? day : oldest),
       undefined
     );
+
+/**
+ * Net worth with treasury bonds counted at what they are **worth today**, not at what they cost.
+ *
+ * That is the whole difference between a bond and a hand-valued position: a bond's value follows
+ * from the day it was bought and the rate announced for the period, so nobody has to remember to
+ * update it. A bond that pays its interest out is worth its nominal plus the days since it last
+ * paid — the rest is sitting in the account it was paid into, and that account is a position of
+ * its own.
+ *
+ * **Bonds arrive already valued and already converted**, as plain amounts in the currency the
+ * positions are in. They used to arrive as holdings and be valued here, which quietly added a
+ * złoty bond to a euro total: conversion in this app happens before the arithmetic, and a bond can
+ * only be converted once something has priced it. See `valueBondsOn`.
+ */
+export const netWorthWithBonds = (positions: DBPosition[], bondValues: number[]): NetWorth => {
+  const stated = netWorth(positions);
+  const computed = round(bondValues.reduce((total, value) => total + value, 0));
+
+  return {
+    held: round(stated.held + computed),
+    owed: stated.owed,
+    net: round(stated.held + computed - stated.owed),
+  };
+};

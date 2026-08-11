@@ -15,12 +15,19 @@ import {
 import { useListTags } from '@/database/hooks/use-list-tags.tsx';
 import { spendingByDayOfMonth } from '@/lib/monthly-spending.ts';
 import { expenseAmountForMonth } from '@/lib/expense-amount.ts';
+import { useGoalRecords } from '@/features/goals/hooks/use-goal-records.tsx';
+import { freeThisMonth } from '@/features/overview/services/free-this-month.service.ts';
+import { savingCapacity } from '@/features/overview/services/saving-capacity.service.ts';
 
 export const useOverviewData = () => {
   // ===========================================================================
   // Hooks
   // ===========================================================================
   const { settings, isLoading: areSettingsLoading } = useSettings();
+
+  // Already in the preferred currency and valued at the rate of the day each contribution was
+  // made, which is not the window the tiles below fetch.
+  const { goals, contributions } = useGoalRecords();
 
   // ===========================================================================
   // Database
@@ -135,6 +142,8 @@ export const useOverviewData = () => {
     transactions: transactionsInSelectedCurrency,
     duties: dutiesWithExpenseInSelectedCurrency,
     profits: profitsInSelectedCurrency,
+    goals,
+    contributions,
   });
 
   const savings = chartData.find((c) => c.month === monthIndex);
@@ -153,8 +162,27 @@ export const useOverviewData = () => {
 
   const monthlySpending = spendingByDayOfMonth(transactionsInSelectedCurrency, new Date());
 
+  const today = new Date();
+
+  const free = freeThisMonth({
+    plannedIncome: savings?.totalProfits || 0,
+    transactions: transactionsInSelectedCurrency,
+    duties: dutiesWithExpenseInSelectedCurrency,
+    goals,
+    contributions,
+    today,
+  });
+
+  const capacity = savingCapacity({
+    transactions: transactionsInSelectedCurrency,
+    contributions,
+    today,
+  });
+
   return {
     currency: preferredCurrency,
+    freeThisMonth: free,
+    capacity,
     savings: (savings?.totalProfits || 0) - (savings?.totalExpense || 0),
     totalExpense: savings?.totalExpense || 0,
     totalProfits: savings?.totalProfits || 0,

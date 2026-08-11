@@ -171,6 +171,34 @@ describe('record codec', () => {
     expect(back.kind).toBe('asset');
   });
 
+  /**
+   * The reason a valuation is its own record rather than a list on the position: the codec knows
+   * about date fields at the top level of a row and nowhere else, so dates nested inside an array
+   * would cross the wire as `{}` — and would read back correctly on the device that wrote them,
+   * which is what makes that failure so quiet.
+   */
+  it('keeps a valuation across a replication hop', () => {
+    const valuation = {
+      id: 'v1',
+      createdAt: new Date('2026-08-10T09:00:00.000Z'),
+      positionId: 'p1',
+      value: 31000,
+      currency: 'PLN',
+      valuedOn: new Date('2026-07-01T00:00:00.000Z'),
+    };
+
+    const back = decodeRecord(
+      'valuations',
+      overTheWire(valuation, (r) => encodeRecord('valuations', r)) as Record<string, unknown>
+    ) as typeof valuation;
+
+    expect(back.valuedOn).toBeInstanceOf(Date);
+    expect(back.valuedOn.getTime()).toBe(valuation.valuedOn.getTime());
+    expect(back.createdAt).toBeInstanceOf(Date);
+    expect(back.value).toBe(31000);
+    expect(back.positionId).toBe('p1');
+  });
+
   it('keeps the non-date fields byte for byte', () => {
     const wire = overTheWire(expense, (r) => encodeRecord('expenses', r));
     const back = decodeRecord('expenses', wire as Record<string, unknown>) as DBExpense;

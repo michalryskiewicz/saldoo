@@ -1,3 +1,4 @@
+import type { MaybeConverted } from '@/lib/exchange-rate.ts';
 import type { ColumnDef } from '@tanstack/react-table';
 import { formatRecurrence } from '@/lib/formats.ts';
 import { DataTable } from '@/components/ui/data-table.tsx';
@@ -26,7 +27,7 @@ import { survivesIncomeLoss } from '@/lib/safety-net.ts';
  * income needs the incomes to be resolved at all, and a module-level `accessorFn` has no way to
  * reach them.
  */
-export type ExpenseRow = DBExpense & {
+export type ExpenseRow = MaybeConverted<DBExpense> & {
   tag?: DBTag;
   totalLabel?: string;
   yearlyCost?: number;
@@ -62,7 +63,14 @@ export const columns: ColumnDef<ExpenseRow>[] = [
       // of instead of printing a nought and calling it the price.
       if (shareLabel) return <Cell.Text id={id} name={shareLabel} />;
 
-      return <Cell.Money id={id} price={expense} currency={currency} />;
+      return (
+        <Cell.Money
+          id={id}
+          price={expense}
+          currency={currency}
+          convertedFrom={row.original.convertedFrom}
+        />
+      );
     },
     header: ({ column }) => (
       <Header.Info column={column} header="expense" tooltip="price_exchanged_automatically" />

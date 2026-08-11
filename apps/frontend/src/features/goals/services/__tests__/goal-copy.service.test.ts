@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatMonthAndYear } from '../goal-copy.service.ts';
+import { formatCoverage, formatMonthAndYear } from '../goal-copy.service.ts';
 
 describe('formatMonthAndYear', () => {
   /**
@@ -13,5 +13,19 @@ describe('formatMonthAndYear', () => {
 
   it('carries the year, because the same month comes round again', () => {
     expect(formatMonthAndYear(new Date(2028, 8, 1))).toBe('Wrzesień 2028');
+  });
+});
+
+describe('formatCoverage', () => {
+  /**
+   * The sentence it lands in already prints money in the reader's notation, and a full stop beside
+   * a comma would be two number systems in one line.
+   */
+  it('uses the decimal mark the rest of the sentence uses', () => {
+    expect(formatCoverage(4.23)).toBe('4,2');
+  });
+
+  it('keeps a whole number whole', () => {
+    expect(formatCoverage(3)).toBe('3');
   });
 });

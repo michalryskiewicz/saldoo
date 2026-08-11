@@ -8,6 +8,20 @@ import {
   lifetimeOfSeries,
   requiredMonthlyContribution,
 } from '@/lib/goals.ts';
+import {
+  type BackableHolding,
+  type Backing,
+  backedValue,
+  backingOf,
+} from '@/features/goals/services/goal-backing.service.ts';
+import {
+  coverageInMonths,
+  monthlyClaim,
+} from '@/features/goals/services/monthly-claim.service.ts';
+import {
+  deadlineOffer,
+  type DeadlineOffer,
+} from '@/features/goals/services/deadline-offer.service.ts';
 
 export type GoalProgress = {
   goal: DBGoal;
@@ -33,6 +47,24 @@ export type GoalProgress = {
   completesOn?: Date;
   /** Everything this series has ever held, for a goal that rolls. */
   lifetime?: number;
+  /** What stands behind it, for a goal that reads its holdings instead of its declarations. */
+  backing: Backing[];
+  /**
+   * What this goal costs the month it is in — the same figure the overview takes off what is free.
+   *
+   * Here so the card can say the consequence out loud rather than leaving somebody to work out for
+   * themselves why the number at the top of the overview went down.
+   */
+  takesFromFree: number;
+  /** How many months of living the fund would buy today. Absent on every other goal. */
+  coverageNow?: number;
+  /**
+   * A later date, when the goal has outgrown what this person actually manages.
+   *
+   * Offered rather than demanded: the app moves the date and never raises the figure — the only
+   * failure in this system is abandoning a goal, not being late with one (#93 pt. 11).
+   */
+  offer?: DeadlineOffer;
 };
 
 type ProgressInput = {
@@ -41,6 +73,8 @@ type ProgressInput = {
   closedWindows: DBClosedWindow[];
   /** What the emergency fund's target is computed from. */
   expenses: DBExpense[];
+  /** Everything held, already in one currency, for the goals that read their holdings. */
+  holdings?: BackableHolding[];
   today: Date;
 };
 
@@ -64,10 +98,18 @@ export const goalProgress = ({
   contributions,
   closedWindows,
   expenses,
+  holdings = [],
   today,
 }: ProgressInput): GoalProgress[] =>
   goals.map((goal) => {
-    const saved = savedTowards(goal.id, contributions);
+    // One or the other, never the sum. A goal whose money sits in an account that is itself
+    // assigned to it would otherwise count the same złoty twice — once as a declaration somebody
+    // typed and once as the holding it landed in.
+    const backing = goal.funding === 'holdings' ? backingOf(goal.id, holdings) : [];
+    const saved =
+      goal.funding === 'holdings'
+        ? backedValue(goal.id, holdings)
+        : savedTowards(goal.id, contributions);
     const target = isEmergencyFund(goal)
       ? emergencyFundTarget(goal.coverageMonths!, today.getMonth(), expenses)
       : (goal.target ?? 0);
@@ -90,6 +132,12 @@ export const goalProgress = ({
             saved
           )
         : undefined,
+      backing,
+      takesFromFree: monthlyClaim({ goal, contributions, today }).takesFromFree,
+      coverageNow: isEmergencyFund(goal)
+        ? coverageInMonths({ saved, target, coverageMonths: goal.coverageMonths! })
+        : undefined,
+      offer: deadlineOffer(goal, contributions, today),
     };
   });
 

@@ -8,6 +8,25 @@ import { setLastUpdated } from '@/database/meta.ts';
 import { getSettings } from '@/database/settings.ts';
 import type { Rollover } from '@/features/goals/services/rollover.service.ts';
 
+/**
+ * A share of one holding, working towards one goal.
+ *
+ * **A percentage, not an amount.** A holding grows — a bond by the day, an account by whatever
+ * lands in it — and a stored amount would be right on the day it was typed and wrong from the next
+ * one. A share tracks whatever the thing turns out to be worth.
+ *
+ * It lives on the holding rather than on the goal because that is where the answer is edited: you
+ * decide what an account is *for* while looking at the account.
+ */
+export type GoalAssignment = {
+  goalId: string;
+  /** 0–100. What is left over on a holding is unassigned, and that is a figure worth printing. */
+  share: number;
+};
+
+/** Where a goal reads its progress from. */
+export type GoalFunding = 'contributions' | 'holdings';
+
 /** Months of living costs the emergency fund is meant to cover. The level, not the amount. */
 export type CoverageMonths = 3 | 6 | 12;
 
@@ -31,6 +50,14 @@ export type DBGoal = {
   currency: Currency;
   /** Which part of the budgeting strategy a contribution to this meets. */
   strategyPart: STRATEGY_PART;
+  /**
+   * Where the progress comes from: what has been declared, or what is actually held against it.
+   *
+   * Absent means `contributions`, which is every goal written before holdings could back one. The
+   * two are never added together — the same złoty would be counted as both a declaration and a
+   * holding, and the card would read double.
+   */
+  funding?: GoalFunding;
   /**
    * Whether the money is still the person's once the goal completes.
    *
@@ -166,5 +193,40 @@ export const applyDBRollovers = async (rollovers: Rollover[]): Promise<void> => 
   if (rollovers.length) {
     await setLastUpdated();
     outbox.markDirty();
+  }
+};
+
+/**
+ * Switches goals over to reading what is held against them.
+ *
+ * Called when a holding is pointed at a goal, because that is the moment somebody says where the
+ * money actually is — and a goal reads declarations or holdings, never both. Left as it was, the
+ * goal went on counting what had been typed into it while the holding stood in net worth beside
+ * it: the same złoty twice, with nothing on any screen saying so.
+ *
+ * **The contributions are not touched.** They are what the person did, and a goal switched back
+ * reads them again. This changes which of the two the goal believes, nothing more.
+ *
+ * Announced, unlike a rollover. A year ending is not somebody's action and telling them about it as
+ * though it were is noise; this happens *because* of an action of theirs, and it moves a figure they
+ * are looking at — so it says so once.
+ */
+export const switchDBGoalsToHoldings = async (goalIds: string[]): Promise<void> => {
+  if (!goalIds.length) return;
+
+  try {
+    for (const id of goalIds) {
+      await documentSession.update('goals', id, {
+        funding: 'holdings',
+        updatedAt: new Date(),
+      });
+    }
+
+    await setLastUpdated();
+    outbox.markDirty();
+    toast(i18n.t('success.goal-reads-holdings', { count: goalIds.length }));
+  } catch (e) {
+    console.error(e);
+    toast(i18n.t('errors.goal-reads-holdings'));
   }
 };
