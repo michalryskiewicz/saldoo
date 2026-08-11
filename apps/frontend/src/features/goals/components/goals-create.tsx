@@ -139,7 +139,10 @@ export default function GoalsCreate() {
   // The cost this goal is replacing, when the drawer was opened from the expenses table.
   const convertingId = useAppSelector((state) => state.preferences.convertingExpenseId);
   const replacing = useLiveQuery(() => db.expenses.get(convertingId ?? ''), [convertingId]);
-  const profits = useLiveQuery(() => db.profits.toArray(), []) || [];
+  // Left as Dexie hands it over, `undefined` and all. `|| []` builds a fresh array on every render
+  // the query has not answered on, and the memo below depends on this — so the default belongs
+  // inside it, read once, rather than out here where it changes identity for nothing.
+  const profits = useLiveQuery(() => db.profits.toArray(), []);
 
   const initialValues = useMemo(() => {
     const blank = {
@@ -155,7 +158,7 @@ export default function GoalsCreate() {
 
     // Everything the cost already knows, and nothing it does not: `keepsItsMoney` stays at its
     // default for the person to answer, because that field decides what the lifetime figure means.
-    const draft = goalDraftFromExpense(replacing, profits, new Date());
+    const draft = goalDraftFromExpense(replacing, profits ?? [], new Date());
 
     return {
       ...blank,

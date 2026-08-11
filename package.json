@@ -13,6 +13,7 @@
     "migrate": "bun --env-file=.env run --filter backend migrate",
     "build": "bun --env-file=.env run --filter '*' build",
     "test": "bun --env-file=.env run --filter '*' test",
+    "verify:boot": "bun --env-file=.env run --filter backend verify:boot",
     "lint": "bun run --filter '*' lint:check",
     "lint:fix": "bun run --filter '*' lint:fix",
     "typecheck": "bun run --filter '*' typecheck",

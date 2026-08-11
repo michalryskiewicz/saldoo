@@ -1,4 +1,4 @@
-import type { MaybeConverted } from '@/lib/exchange-rate.ts';
+import type { ConvertedFrom, MaybeConverted } from '@/lib/exchange-rate.ts';
 import type { ColumnDef } from '@tanstack/react-table';
 import { formatRecurrence } from '@/lib/formats.ts';
 import { DataTable } from '@/components/ui/data-table.tsx';
@@ -14,6 +14,7 @@ import type { DBExpense } from '@/database/expenses.ts';
 import type { DBTag } from '@/database/tags.ts';
 import { expenseCostInYear } from '@/lib/expense-amount.ts';
 import { describeShare } from '@/lib/percentage-of-income.ts';
+import { yearlyCostOrigin } from '@/features/expenses/services/yearly-cost.service.ts';
 import { survivesIncomeLoss } from '@/lib/safety-net.ts';
 
 /**
@@ -31,6 +32,8 @@ export type ExpenseRow = MaybeConverted<DBExpense> & {
   tag?: DBTag;
   totalLabel?: string;
   yearlyCost?: number;
+  /** The yearly figure's own origin — it cannot borrow the monthly one's. */
+  yearlyCostFrom?: ConvertedFrom;
   shareLabel?: string;
 };
 
@@ -90,6 +93,7 @@ export const columns: ColumnDef<ExpenseRow>[] = [
         id={row.original.id}
         price={getValue<number>()}
         currency={row.original.currency}
+        convertedFrom={row.original.yearlyCostFrom}
       />
     ),
     header: ({ column }) => <Header.Sort column={column} header="yearly_cost" />,
@@ -152,6 +156,7 @@ export const ExpensesTable = () => {
   const dataToTable = searchExpenses(allExpenses ?? [], query).map((row) => ({
     ...row,
     yearlyCost: expenseCostInYear(row, profits, year),
+    yearlyCostFrom: yearlyCostOrigin(row, profits, year),
     shareLabel: describeShare(row, profits),
   }));
 
