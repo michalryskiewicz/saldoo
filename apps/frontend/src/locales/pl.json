@@ -200,7 +200,10 @@
     "other_segment": "Pozostałe",
     "breakdown_description": "Stan na dziś, nie historia — pozycje mają jedną wycenę, tę którą wpisałeś ostatnio. Obligacje liczymy same.",
     "change": "Zmiana",
-    "change_tooltip": "O ile ta pozycja zmieniła się od poprzedniej wyceny. Oba odczyty przeliczone po jednym kursie — z dnia najnowszego — żeby liczba mówiła o zasobie, a nie o ruchu kursu. Pusta, dopóki pozycja była wyceniona tylko raz."
+    "change_tooltip": "O ile ta pozycja zmieniła się od poprzedniej wyceny. Oba odczyty przeliczone po jednym kursie — z dnia najnowszego — żeby liczba mówiła o zasobie, a nie o ruchu kursu. Pusta, dopóki pozycja była wyceniona tylko raz.",
+    "exposure": "W jakiej walucie",
+    "exposure_tooltip": "W jakich walutach faktycznie leży to, co masz. Liczy się, bo gdy złoty słabnie, Twój majątek liczony w wybranej walucie spada, choć nie ubyła ani jedna złotówka — to ryzyko kursu, nie Twoja strata. Sumy są w walucie wyświetlania, więc dodają się do liczby wyżej. Pokazywane tylko wtedy, gdy trzymasz w więcej niż jednej walucie.",
+    "exposure_share": "{{share}}%"
   },
   "goal": {
     "title": "Cele",

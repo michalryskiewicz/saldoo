@@ -798,12 +798,18 @@ export class SaldooApp {
     what,
     worth,
     owed = false,
+    currency,
     forGoal,
     share,
   }: {
     what: string;
     worth: number;
     owed?: boolean;
+    /**
+     * Left out, the form's own default stands — złoty, whatever the screen happens to read in. The
+     * switch is a button inside the amount field wearing the currency it is currently on.
+     */
+    currency?: 'PLN' | 'EUR' | 'USD';
     forGoal?: string;
     share?: number;
   }): Promise<void> {
@@ -818,6 +824,11 @@ export class SaldooApp {
       await sheet.getByRole('radio', { name: label('holdings.liability'), exact: true }).click();
     }
     await sheet.getByLabel(label('holdings.value'), { exact: true }).fill(String(worth));
+
+    if (currency) {
+      await sheet.getByRole('button', { name: 'PLN', exact: true }).click();
+      await this.page.getByRole('menuitem', { name: currency, exact: true }).click();
+    }
 
     if (forGoal) {
       await sheet.getByRole('combobox', { name: label('holdings.assigned_to') }).click();
