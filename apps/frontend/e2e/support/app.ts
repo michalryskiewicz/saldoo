@@ -748,7 +748,12 @@ export class SaldooApp {
 
     // The drawer does not close itself, and the parse runs off the main thread — so the
     // notice is the only signal that the rows have landed.
-    await expect(this.page.getByText(label('success.upload-transaction'))).toBeVisible({
+    //
+    // `.first()`, because a spec that imports twice can have the first notice still on screen when
+    // the second arrives: sonner dismisses on a timer, and on a slower machine that timer has not
+    // fired yet. Two notices then broke strict mode — a failure about how quickly a toast fades,
+    // dressed up as a failure about whether an import worked.
+    await expect(this.page.getByText(label('success.upload-transaction')).first()).toBeVisible({
       timeout: SYNC_TIMEOUT_MS,
     });
     await this.page.keyboard.press('Escape');
