@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card.tsx';
 import { MetricCard } from '@/components/stats/metric-card.tsx';
 import { EmptyState } from '@/components/stats/empty-state.tsx';
 import { Button } from '@/components/ui/button.tsx';
-import { formatMoney } from '@/lib/formats.ts';
+import { formatDate, formatMoney } from '@/lib/formats.ts';
 import i18n, { type TranslationKey } from '@/i18n.ts';
 import { NEW_ENTITY_ID } from '@/constant.ts';
 import { useGoals } from '@/features/goals/hooks/use-goals.tsx';
@@ -61,6 +61,26 @@ const Consequence = ({ row, currency }: { row: GoalProgress; currency: string })
             .map((one) => (one.share === 100 ? one.description : `${one.description} (${one.share}%)`))
             .join(' · ')}
         </span>
+      )}
+
+      {/* Why the figure above moved when nobody put anything in or took anything out. A goal reading
+          a stock follows the account down, which is correct and reads as a fault until it is named. */}
+      {row.moved && (
+        <p data-slot="goal-moved">
+          {i18n.t(row.moved.amount < 0 ? 'goal.moved_down' : 'goal.moved_up', {
+            amount: formatMoney(Math.abs(row.moved.amount), currency),
+            since: formatDate(row.moved.since),
+          })}
+          {row.coverageBefore !== undefined && row.coverageNow !== undefined && (
+            <>
+              {' '}
+              {i18n.t('goal.cover_moved', {
+                before: formatCoverage(row.coverageBefore),
+                now: formatCoverage(row.coverageNow),
+              })}
+            </>
+          )}
+        </p>
       )}
 
       {row.offer && (

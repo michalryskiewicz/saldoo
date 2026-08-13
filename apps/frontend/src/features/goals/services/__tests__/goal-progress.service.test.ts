@@ -293,3 +293,77 @@ describe('a goal backed by holdings', () => {
     expect(row.backing).toEqual([]);
   });
 });
+
+describe('why a holdings-backed goal moved', () => {
+  const spentFrom = (value: number, movedBy: number) => [
+    {
+      id: 'konto',
+      description: 'Konto',
+      value,
+      assignments: [{ goalId: 'g1', share: 100 }],
+      change: { amount: movedBy, since: new Date(2026, 4, 1) },
+    },
+  ];
+
+  /**
+   * The sentence a card cannot say without this: a fund that fell because the account it sits in was
+   * spent out of. Correct arithmetic that reads as a fault, or as something the person did and
+   * cannot remember, until the cause is named beside it.
+   */
+  it('carries what the backing did', () => {
+    const [row] = goalProgress({
+      goals: [goal({ funding: 'holdings' })],
+      contributions: [],
+      closedWindows: [],
+      expenses: [],
+      holdings: spentFrom(20000, -5000),
+      today: APRIL_2026,
+    });
+
+    expect(row.moved).toEqual({ amount: -5000, since: new Date(2026, 4, 1) });
+  });
+
+  /**
+   * And for the fund, what it cost in the unit the fund is actually about. "Down 5 000" is a fact
+   * about an account; "three months of cover instead of four" is the same fact about the person.
+   */
+  it('says what the cover was before, for the fund', () => {
+    const [row] = goalProgress({
+      goals: [goal({ funding: 'holdings', coverageMonths: 6, monthlyPace: 500, target: undefined })],
+      contributions: [],
+      closedWindows: [],
+      // 3 000 a month of costs that survive losing an income, plus the 10% the fund carries: a
+      // target of 19 800, so one month of cover is 3 300 of it.
+      expenses: [
+        {
+          expense: 3000,
+          frequency: 'MONTHLY',
+          execution: new Date(2026, 3, 10),
+          survivesIncomeLoss: true,
+        } as never,
+      ],
+      holdings: spentFrom(9900, -3300),
+      today: APRIL_2026,
+    });
+
+    // Three months of cover now; before the account lost a month's worth of it, four.
+    expect(row.coverageNow).toBe(3);
+    expect(row.coverageBefore).toBe(4);
+  });
+
+  it('has no cover-before where nothing moved', () => {
+    const [row] = goalProgress({
+      goals: [goal({ funding: 'holdings' })],
+      contributions: [],
+      closedWindows: [],
+      expenses: [],
+      holdings: [
+        { id: 'konto', description: 'Konto', value: 8000, assignments: [{ goalId: 'g1', share: 100 }] },
+      ],
+      today: APRIL_2026,
+    });
+
+    expect(row.moved).toBeUndefined();
+    expect(row.coverageBefore).toBeUndefined();
+  });
+});
