@@ -16,6 +16,37 @@ export enum FREQUENCY {
 
 export type Currency = 'PLN' | 'EUR' | 'USD';
 
+/**
+ * What kind of thing a holding is — the question `kind` cannot answer.
+ *
+ * `kind` says held or owed. This says *what* is held, which is what an allocation is a breakdown of:
+ * somebody with everything in a savings account and somebody with everything in shares have the same
+ * net worth and are not in remotely the same position.
+ *
+ * **Absent on a holding nobody has said it of.** Every position that existed before this was added
+ * has no type, and guessing one would put money into a bucket the person never chose — so an
+ * allocation counts those apart and says so rather than quietly calling them "other".
+ */
+export enum ASSET_TYPE {
+  CASH = 'CASH',
+  BANK_ACCOUNT = 'BANK_ACCOUNT',
+  SAVINGS_ACCOUNT = 'SAVINGS_ACCOUNT',
+  BONDS = 'BONDS',
+  ETF = 'ETF',
+  STOCKS = 'STOCKS',
+  CURRENCIES = 'CURRENCIES',
+  OTHER = 'OTHER',
+}
+
+/**
+ * The types whose worth is naturally a count times a price.
+ *
+ * "100 × 4,32" is how somebody actually knows what an ETF holding is worth; one figure typed in is a
+ * multiplication they did in their head and cannot check later. A savings account has no units, and
+ * asking for them would be a form inventing a question.
+ */
+export const PRICED_PER_UNIT: readonly ASSET_TYPE[] = [ASSET_TYPE.ETF, ASSET_TYPE.STOCKS];
+
 export enum STRATEGY_PART {
   NEEDS = 'NEEDS',
   WANTS = 'WANTS',

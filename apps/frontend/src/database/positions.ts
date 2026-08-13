@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { GoalAssignment } from '@/database/goals.ts';
 import { toast } from 'sonner';
-import type { Currency } from '@/constant.ts';
+import type { ASSET_TYPE, Currency } from '@/constant.ts';
 import i18n from '@/i18n.ts';
 import { documentSession } from '@/database/document/document.container.ts';
 import { outbox } from '@/database/document/outbox.container.ts';
@@ -36,6 +36,25 @@ export type DBPosition = {
   currency: Currency;
   /** The day the person last said what it was worth. */
   valuedOn: Date;
+  /**
+   * What kind of thing it is, which is what an allocation is a breakdown of.
+   *
+   * Absent on every holding that existed before this was asked for. Guessing a type would put money
+   * into a bucket the person never chose, so an allocation counts the untyped apart and says so.
+   */
+  assetType?: ASSET_TYPE;
+  /**
+   * How many of it there are, and what one costs — where the holding is the kind somebody counts.
+   *
+   * **Not a second source of truth.** `value` remains the one figure every screen reads; these record
+   * how it was arrived at, and it is computed from them when both are given. A count and a price
+   * stored beside a total they disagree with is a bug with nothing to say which number is right.
+   *
+   * The price is the half meant to be filled in for somebody one day (#30 — a spike about the legal
+   * and technical options for market data, not a task). Until then it is typed like the rest.
+   */
+  units?: number;
+  unitPrice?: number;
   /** What this is for. Empty or missing means it is not spoken for — see `GoalAssignment`. */
   assignments?: GoalAssignment[];
 };

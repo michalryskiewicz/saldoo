@@ -206,7 +206,23 @@
     "exposure_share": "{{share}}%",
     "grown": "Urosło",
     "grown_tooltip": "Ile ten zasób zarobił sam, a ile do niego dopłaciłeś. Liczone z wpłat na cel, który ten zasób pokrywa — wartość zasobu minus to, co zadeklarowałeś. Puste tam, gdzie układ tego nie mówi: przy udziale mniejszym niż całość, zasobie dzielonym między cele albo drugim zasobie pokrywającym ten sam cel nie da się ustalić, które wpłaty trafiły tutaj, a apka nie zgaduje.",
-    "paid_in": "dopłacone {{amount}}"
+    "paid_in": "dopłacone {{amount}}",
+    "asset_type": "Jakiego rodzaju",
+    "asset_type_helper": "Po tym apka rozbija Twój majątek na rodzaje. Zostaw puste, jeśli nie chcesz teraz decydować — takie pozycje policzy osobno, zamiast wrzucać je do „Inne\".",
+    "units": "Ile sztuk",
+    "unit_price": "Cena jednej",
+    "units_helper": "Wartość wyliczy się sama: sztuki × cena. Cenę na razie wpisujesz ręcznie.",
+    "type": {
+      "CASH": "Gotówka",
+      "BANK_ACCOUNT": "Konto bankowe",
+      "SAVINGS_ACCOUNT": "Konto oszczędnościowe",
+      "BONDS": "Obligacje",
+      "ETF": "ETF-y",
+      "STOCKS": "Akcje",
+      "CURRENCIES": "Waluty",
+      "OTHER": "Inne"
+    },
+    "untyped": "Bez rodzaju"
   },
   "goal": {
     "title": "Cele",
