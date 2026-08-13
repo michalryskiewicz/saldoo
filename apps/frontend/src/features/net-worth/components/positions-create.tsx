@@ -44,6 +44,7 @@ const formSchema = z.object({
   value: z.number().optional(),
   currency: z.string({ error: i18n.t('errors.field-required') }),
   valuedOn: z.date({ error: i18n.t('errors.field-required') }),
+  boughtOn: z.date().optional(),
   /** Stored as the enum, or left off entirely — `UNTYPED` is only how the form spells "not said". */
   assetType: z.string().optional(),
   units: z.number().optional(),
@@ -227,6 +228,16 @@ export default function PositionsCreate() {
 
               {/* The date is not decoration: it is what makes the figure honest about its age. */}
               <Field.Date name="valuedOn" label={i18n.t('holdings.valued_on')} fullWidth />
+
+              {/* A different question from the one above, and neither substitutes for the other: when
+                  the money went out, against what the thing is worth now. The gap between them is the
+                  only place a return over the whole holding can come from. */}
+              <Field.Date
+                name="boughtOn"
+                label={i18n.t('holdings.bought_on')}
+                helperText={i18n.t('holdings.bought_on_helper')}
+                fullWidth
+              />
 
               <AssignmentFields />
 

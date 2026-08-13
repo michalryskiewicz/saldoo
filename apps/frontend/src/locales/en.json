@@ -211,7 +211,9 @@
       "ETF": "ETFs",
       "STOCKS": "Shares",
       "CURRENCIES": "Currencies",
-      "OTHER": "Other"
+      "OTHER": "Other",
+      "REAL_ESTATE": "Property",
+      "PRECIOUS_METALS": "Precious metals"
     },
     "untyped": "No type yet",
     "allocation": {
@@ -228,11 +230,12 @@
       "target_title": "Target split",
       "target_helper": "What share of your wealth each kind should be. It has to add up to 100%. The app shows the difference and will not tell you what to buy or sell.",
       "target_sum": "Total: {{sum}}%",
-      "target_sum_error": "Has to be 100%, it is {{sum}}%"
+      "target_sum_error": "Has to be 100%, it is {{sum}}%",
+      "untyped_leads": "{{amount}} ({{share}}%) has no type yet. The split below covers the other {{typed}}% of your wealth."
     },
     "revalue": {
       "title": "Re-value",
-      "subtitle": "Enter new figures for everything at once — one date for the whole pass",
+      "subtitle": "One date, one save — fill in only the holdings you want to change",
       "as_of": "As at",
       "current": "Now",
       "new": "New worth",
@@ -242,8 +245,11 @@
       "nothing_to_do": "You have not entered a new figure",
       "saved_one": "Re-valued {{count}} holding",
       "saved_other": "Re-valued {{count}} holdings",
-      "empty": "Add a holding to be able to re-value it"
-    }
+      "empty": "Add a holding to be able to re-value it",
+      "column_holding": "Holding"
+    },
+    "bought_on": "When bought",
+    "bought_on_helper": "Optional. It lets the app say what this has done since you bought it, not only since the last valuation."
   },
   "goal": {
     "title": "Goals",

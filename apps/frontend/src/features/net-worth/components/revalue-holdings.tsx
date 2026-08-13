@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { toast } from 'sonner';
 import { db } from '@/database';
@@ -87,54 +87,62 @@ export const RevalueHoldings = () => {
               />
             </div>
 
-            <ul className="flex flex-col gap-3" data-slot="revalue-rows">
+            {/* A grid rather than a row per holding pushed apart by `justify-between`. On a wide
+                screen that put a metre of white between a name and its field, and the per-row label
+                above each input attached itself to the holding *above* — so the field a figure
+                belonged to was a guess. One header, two columns, everything on one baseline. */}
+            <div
+              className="grid grid-cols-[1fr_auto] items-baseline gap-x-6 gap-y-3 sm:max-w-2xl"
+              data-slot="revalue-rows"
+            >
+              <span className="text-muted-foreground text-xs font-medium">
+                {i18n.t('holdings.revalue.column_holding')}
+              </span>
+              <span className="text-muted-foreground text-xs font-medium">
+                {i18n.t('holdings.revalue.new')}
+              </span>
+
               {held.map((position) => {
                 const perUnit = asksForUnitPrice(position);
                 const field = `revalue-${position.id}`;
 
                 return (
-                  <li
-                    key={position.id}
-                    className="flex flex-wrap items-end justify-between gap-3"
-                    data-slot={`revalue-${position.id}`}
-                  >
-                    <div className="flex flex-col">
+                  <Fragment key={position.id}>
+                    <Label htmlFor={field} className="flex flex-col items-start gap-0.5 font-normal">
                       <span>{position.description}</span>
-                      {/* How old the figure is, on the row where it is replaced: a value nobody has
+                      {/* How old the figure is, on the row where it is replaced: the one nobody has
                           looked at since May is the one worth typing over first. */}
                       <span className="text-muted-foreground text-xs">
                         {i18n.t('holdings.revalue.current')}:{' '}
                         {formatMoney(position.value, position.currency, 'pl')} ·{' '}
                         {formatDate(position.valuedOn)}
+                        {perUnit &&
+                          ` · ${i18n.t('holdings.revalue.per_unit_note', { units: position.units })}`}
                       </span>
-                    </div>
+                    </Label>
 
-                    <div className="flex flex-col gap-1.5">
-                      <Label htmlFor={field} className="text-xs">
-                        {perUnit
-                          ? `${i18n.t('holdings.revalue.new_unit_price')} ${i18n.t('holdings.revalue.per_unit_note', { units: position.units })}`
-                          : i18n.t('holdings.revalue.new')}
-                      </Label>
-                      <Input
-                        id={field}
-                        type="number"
-                        step="any"
-                        value={entered[position.id] ?? ''}
-                        onChange={(event) =>
-                          setEntered((current) => ({
-                            ...current,
-                            // Emptied means "leave this one alone", which is not the same as nought.
-                            [position.id]:
-                              event.target.value === '' ? undefined : Number(event.target.value),
-                          }))
-                        }
-                        className="w-40"
-                      />
-                    </div>
-                  </li>
+                    <Input
+                      id={field}
+                      type="number"
+                      step="any"
+                      // Named so the field says which question it is asking, since the column header
+                      // can only carry the common case.
+                      aria-label={`${perUnit ? i18n.t('holdings.revalue.new_unit_price') : i18n.t('holdings.revalue.new')} — ${position.description}`}
+                      value={entered[position.id] ?? ''}
+                      onChange={(event) =>
+                        setEntered((current) => ({
+                          ...current,
+                          // Emptied means "leave this one alone", which is not the same as nought.
+                          [position.id]:
+                            event.target.value === '' ? undefined : Number(event.target.value),
+                        }))
+                      }
+                      className="w-36"
+                    />
+                  </Fragment>
                 );
               })}
-            </ul>
+            </div>
 
             <Button onClick={save} disabled={saving} className="w-fit">
               {i18n.t('holdings.revalue.submit')}
