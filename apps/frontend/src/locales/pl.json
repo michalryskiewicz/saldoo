@@ -264,7 +264,14 @@
     "overview_tab": "Przegląd",
     "untyped_tab": "Bez rodzaju",
     "untyped_tab_hint": "Te pozycje nie mają rodzaju, więc nie wchodzą do podziału majątku. Otwórz każdą i powiedz, czym jest.",
-    "owed_tab": "Zobowiązania"
+    "owed_tab": "Zobowiązania",
+    "growth": {
+      "title": "Jak to rosło",
+      "subtitle": "Wartość wszystkiego na każdy dzień, w którym coś wyceniłeś",
+      "series": "Majątek",
+      "empty": "Wyceń cokolwiek po raz drugi, żeby zobaczyć linię — jeden odczyt to punkt, nie przebieg",
+      "since": "Od {{date}}: {{amount}}"
+    }
   },
   "goal": {
     "title": "Cele",

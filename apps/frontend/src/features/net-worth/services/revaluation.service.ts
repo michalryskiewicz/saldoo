@@ -1,3 +1,4 @@
+import { toLocalDayKey } from '@/lib/dates.ts';
 import type { ASSET_TYPE } from '@/constant.ts';
 import { isNewReading } from '@/features/net-worth/services/valuation-history.service.ts';
 import {
@@ -22,6 +23,15 @@ export type Revaluation = {
   /** Present only where the figure typed was the price of one. */
   unitPrice?: number;
   valuedOn: Date;
+  /**
+   * That this reading belongs to the past and must not replace what the holding is worth now.
+   *
+   * Filling in history cannot be allowed to rewrite the present: a position holds the *latest*
+   * reading, so a figure said about last spring would otherwise move both the worth and the date
+   * backwards and quietly lose today's. It is still filed — the line needs it, which is the whole
+   * reason somebody typed it.
+   */
+  historyOnly?: true;
 };
 
 /**
@@ -71,12 +81,18 @@ export const revaluationsFrom = (
 
     if (!isNewReading({ value, valuedOn }, holding)) return [];
 
+    // By the day, never by the instant. A holding's `valuedOn` is stamped with a clock time, and the
+    // pass names a bare date — so comparing moments made every re-valuation entered on the same day
+    // look like the past, and filed as history a figure that was meant to become the current worth.
+    const beforeWhatItSaysNow = toLocalDayKey(valuedOn) < toLocalDayKey(holding.valuedOn);
+
     return [
       {
         positionId: holding.id,
         value,
         ...(asUnitPrice ? { unitPrice: figure } : {}),
         valuedOn,
+        ...(beforeWhatItSaysNow ? { historyOnly: true as const } : {}),
       },
     ];
   });

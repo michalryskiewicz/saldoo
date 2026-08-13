@@ -16,6 +16,7 @@ import BondsCreate from '@/features/net-worth/components/bonds-create.tsx';
 import { BondsTable } from '@/features/net-worth/components/bonds-table.tsx';
 import { BondsChart } from '@/features/net-worth/components/bonds-chart.tsx';
 import { NetWorthChart } from '@/features/net-worth/components/net-worth-chart.tsx';
+import { GrowthChart } from '@/features/net-worth/components/growth-chart.tsx';
 import {
   OWED_TAB,
   UNTYPED_TAB,
@@ -80,6 +81,9 @@ export default function Wealth() {
         </TabsList>
 
         <TabsContent value={OVERVIEW} className="flex flex-col gap-4">
+          {/* First, because it is the question the screen exists to answer: how much, and is it
+              growing. What it is made of comes after. */}
+          <GrowthChart />
           <NetWorthChart />
           <AllocationTable />
           <RevalueHoldings />

@@ -253,7 +253,14 @@
     "overview_tab": "Overview",
     "untyped_tab": "No type yet",
     "untyped_tab_hint": "These have no kind, so they stay out of the split. Open each one and say what it is.",
-    "owed_tab": "What I owe"
+    "owed_tab": "What I owe",
+    "growth": {
+      "title": "How it has moved",
+      "subtitle": "What everything came to on each day you valued something",
+      "series": "Net worth",
+      "empty": "Value anything a second time to see a line — one reading is a dot, not a course",
+      "since": "Since {{date}}: {{amount}}"
+    }
   },
   "goal": {
     "title": "Goals",
