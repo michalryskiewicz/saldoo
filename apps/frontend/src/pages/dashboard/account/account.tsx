@@ -19,12 +19,26 @@ import { addDBTags, removeDBTags } from '@/database/tags.ts';
 import { useListTags } from '@/database/hooks/use-list-tags.tsx';
 import { toast } from 'sonner';
 import { MadeByCredit } from '@/components/made-by-credit.tsx';
+import { AllocationTargetFields } from '@/features/net-worth/components/allocation-target-fields.tsx';
+import {
+  isTargetUsable,
+  onlyChosenShares,
+} from '@/features/net-worth/services/allocation.service.ts';
 
-const formSchema = z.object({
-  currency: z.string(),
-  strategy: z.string(),
-  tags: z.array(z.string()),
-});
+const formSchema = z
+  .object({
+    currency: z.string(),
+    strategy: z.string(),
+    tags: z.array(z.string()),
+    /** Per kind, as whole per cent. Blank rows are kinds nobody aimed at, not zeroes. */
+    allocationTarget: z.record(z.string(), z.number().min(0).max(100).optional()),
+  })
+  // Shares of something are not shares of it unless they come to all of it. Nothing set at all is
+  // equally valid and means nobody has chosen a target — the allocation reads fine without one.
+  .refine((values) => isTargetUsable(values.allocationTarget), {
+    path: ['allocationTarget'],
+    message: i18n.t('holdings.allocation.target_helper'),
+  });
 
 type UpdateProfileForm = z.infer<typeof formSchema>;
 
@@ -40,6 +54,7 @@ export default function Account() {
       await saveSettings({
         currency: values.currency as Currency,
         strategy: values.strategy as BudgetingStrategy,
+        allocationTarget: onlyChosenShares(values.allocationTarget),
       });
       toast(i18n.t('success.update-account-settings'));
     } catch (error) {
@@ -89,6 +104,7 @@ export default function Account() {
                 currency: settings?.currency,
                 strategy: settings?.strategy ?? undefined,
                 tags: tagsNames,
+                allocationTarget: settings?.allocationTarget ?? {},
               }}
               onSubmit={onSubmit}
             >
@@ -123,6 +139,18 @@ export default function Account() {
                   <CardContent>
                     <Field.Tags name="tags" fullWidth label={'Dodaj etykiety'} />
                     <div className="h-full w-full"></div>
+                  </CardContent>
+                </Card>
+
+                <Card className="w-full">
+                  <CardHeader className="border-b">
+                    <CardTitle>{i18n.t('holdings.allocation.target_title')}</CardTitle>
+                    <CardDescription>
+                      {i18n.t('holdings.allocation.target_helper')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AllocationTargetFields />
                   </CardContent>
                 </Card>
 

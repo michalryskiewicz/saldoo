@@ -10,6 +10,8 @@ import { netWorthBreakdown } from '@/features/net-worth/services/net-worth-break
 import { valueBondsOn } from '@/features/net-worth/services/bond-accrual.service.ts';
 import { changeSincePrevious } from '@/features/net-worth/services/valuation-history.service.ts';
 import { currencyExposure } from '@/features/net-worth/services/currency-exposure.service.ts';
+import { allocation } from '@/features/net-worth/services/allocation.service.ts';
+import { ASSET_TYPE } from '@/constant.ts';
 import { paidInAndGrown } from '@/features/net-worth/services/paid-in-and-grown.service.ts';
 import { useGoalRecords } from '@/features/goals/hooks/use-goal-records.tsx';
 import { freeValue, type BackableHolding } from '@/features/goals/services/goal-backing.service.ts';
@@ -141,6 +143,18 @@ export const useNetWorth = () => {
       ...convertedPositions.filter((position) => position.kind === 'asset'),
       ...valuedBonds,
     ]),
+    // What the wealth is made of, and how far that is from what was planned. Assets only: an
+    // allocation is a breakdown of what you hold, and a mortgage is not a kind of holding.
+    allocation: allocation(
+      [
+        ...converted
+          .filter((position) => position.kind === 'asset')
+          .map((position) => ({ value: position.value, assetType: position.assetType })),
+        // Bonds are bonds, and the app knows it without anybody saying so.
+        ...valuedBonds.map((valued) => ({ value: valued.value, assetType: ASSET_TYPE.BONDS })),
+      ],
+      settings?.allocationTarget ?? {}
+    ),
     valuedOn: stalestValuation(convertedPositions),
     // What the two sides are made of, for anything drawing the whole picture rather than the figure.
     breakdown: netWorthBreakdown(convertedPositions, bondValues),

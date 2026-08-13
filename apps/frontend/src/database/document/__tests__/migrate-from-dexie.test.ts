@@ -42,6 +42,7 @@ describe('migrate from Dexie', () => {
       currency: 'EUR',
       strategy: 'EIGHTY_TWENTY',
       requiredActions: [],
+      allocationTarget: {},
     });
 
     const s = session(`mig-settings-${Math.random()}`);

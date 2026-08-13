@@ -222,7 +222,23 @@
       "CURRENCIES": "Waluty",
       "OTHER": "Inne"
     },
-    "untyped": "Bez rodzaju"
+    "untyped": "Bez rodzaju",
+    "allocation": {
+      "title": "Podział majątku",
+      "subtitle": "Z czego składa się to, co masz — i jak daleko to od tego, co zaplanowałeś",
+      "share": "Udział",
+      "target": "Cel",
+      "drift": "Różnica",
+      "over": "o {{points}} pp więcej",
+      "under": "o {{points}} pp mniej",
+      "on_target": "zgodnie z celem",
+      "untyped": "Bez rodzaju: {{amount}} — nie wchodzi do podziału, dopóki nie powiesz, co to jest",
+      "empty": "Nadaj rodzaj choć jednej pozycji, żeby zobaczyć podział",
+      "target_title": "Docelowy podział majątku",
+      "target_helper": "Wpisz, jaką część majątku ma stanowić każdy rodzaj. Musi zsumować się do 100%. Apka pokaże różnicę i nie doradzi, co kupić ani sprzedać.",
+      "target_sum": "Razem: {{sum}}%",
+      "target_sum_error": "Musi być 100%, jest {{sum}}%"
+    }
   },
   "goal": {
     "title": "Cele",

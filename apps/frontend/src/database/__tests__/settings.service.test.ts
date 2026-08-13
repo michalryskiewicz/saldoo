@@ -22,6 +22,7 @@ describe('withSettingsDefaults', () => {
       currency: 'EUR',
       strategy: 'FIFTY_THIRTY_TWENTY',
       requiredActions: [],
+      allocationTarget: {},
     };
 
     expect(withSettingsDefaults(stored)).toEqual(stored);
@@ -32,6 +33,7 @@ describe('withSettingsDefaults', () => {
       currency: 'USD',
       strategy: DEFAULT_SETTINGS.strategy,
       requiredActions: DEFAULT_SETTINGS.requiredActions,
+      allocationTarget: DEFAULT_SETTINGS.allocationTarget,
     });
   });
 
@@ -95,6 +97,7 @@ describe('completeOnboarding', () => {
       currency: 'EUR',
       strategy: 'EIGHTY_TWENTY',
       requiredActions: [ONBOARDING_ACTION],
+      allocationTarget: {},
     };
 
     expect(completeOnboarding(settings)).toMatchObject({

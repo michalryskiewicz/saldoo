@@ -1,3 +1,4 @@
+import { PRICED_PER_UNIT } from '../../src/constant.ts';
 import { expect, type Locator, type Page } from '@playwright/test';
 import pl from '../../src/locales/pl.json' with { type: 'json' };
 import en from '../../src/locales/en.json' with { type: 'json' };
@@ -307,6 +308,20 @@ export class SaldooApp {
 
   async chooseCurrency(currency: string): Promise<void> {
     await this.radio(currency).click();
+  }
+
+  /**
+   * Fills in the target split, per kind, in whole per cent.
+   *
+   * Only the kinds named: the rest stay blank, which is how somebody says they did not aim at them —
+   * different from aiming at nought.
+   */
+  async setAllocationTarget(target: Record<string, number>): Promise<void> {
+    for (const [type, share] of Object.entries(target)) {
+      await this.page
+        .getByLabel(label(`holdings.type.${type}`), { exact: true })
+        .fill(String(share));
+    }
   }
 
   async submitAccountSettings(): Promise<void> {
@@ -799,12 +814,15 @@ export class SaldooApp {
     worth,
     owed = false,
     currency,
+    assetType,
     forGoal,
     share,
   }: {
     what: string;
     worth: number;
     owed?: boolean;
+    /** Left out, the holding has no kind — which is a valid answer and not a gap. */
+    assetType?: 'CASH' | 'BANK_ACCOUNT' | 'SAVINGS_ACCOUNT' | 'BONDS' | 'ETF' | 'STOCKS' | 'CURRENCIES' | 'OTHER';
     /**
      * Left out, the form's own default stands — złoty, whatever the screen happens to read in. The
      * switch is a button inside the amount field wearing the currency it is currently on.
@@ -823,7 +841,24 @@ export class SaldooApp {
     if (owed) {
       await sheet.getByRole('radio', { name: label('holdings.liability'), exact: true }).click();
     }
-    await sheet.getByLabel(label('holdings.value'), { exact: true }).fill(String(worth));
+
+    // Before the worth, because for a counted kind the worth stops being a field and becomes the
+    // product of two others.
+    if (assetType) {
+      await sheet.getByRole('combobox', { name: label('holdings.asset_type') }).click();
+      await this.page
+        .getByRole('option', { name: label(`holdings.type.${assetType}`), exact: true })
+        .click();
+    }
+
+    // For a counted kind the worth is not a field — it is the product of two. Entered as one unit at
+    // the whole price, because these specs are about what a holding is worth and not about counting.
+    if (assetType && (PRICED_PER_UNIT as readonly string[]).includes(assetType)) {
+      await sheet.getByLabel(label('holdings.units'), { exact: true }).fill('1');
+      await sheet.getByLabel(label('holdings.unit_price'), { exact: true }).fill(String(worth));
+    } else {
+      await sheet.getByLabel(label('holdings.value'), { exact: true }).fill(String(worth));
+    }
 
     if (currency) {
       await sheet.getByRole('button', { name: 'PLN', exact: true }).click();
