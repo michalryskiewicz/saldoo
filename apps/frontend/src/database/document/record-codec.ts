@@ -48,7 +48,7 @@ const DATE_FIELDS: Record<DocumentTable, readonly string[]> = {
   goals: ['createdAt', 'updatedAt', 'deadline', 'closedAt'],
   contributions: ['createdAt', 'updatedAt', 'contributedAt'],
   closedWindows: ['createdAt', 'openedOn', 'closedOn'],
-  positions: ['createdAt', 'updatedAt', 'valuedOn'],
+  positions: ['createdAt', 'updatedAt', 'valuedOn', 'boughtOn'],
   valuations: ['createdAt', 'valuedOn'],
   bonds: ['createdAt', 'updatedAt', 'boughtOn'],
   settings: [],

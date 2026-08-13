@@ -1,9 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.tsx';
-import { cn } from '@/lib/utils.ts';
 import { formatMoney } from '@/lib/formats.ts';
 import i18n, { type TranslationKey } from '@/i18n.ts';
 import { useNetWorth } from '@/features/net-worth/hooks/use-net-worth.tsx';
-import type { AllocationPart } from '@/features/net-worth/services/allocation.service.ts';
+import {
+  untypedShare,
+  type AllocationPart,
+} from '@/features/net-worth/services/allocation.service.ts';
 
 /**
  * How far a kind is from where it was meant to be, in words rather than a signed number.
@@ -28,6 +30,7 @@ const drift = (part: AllocationPart): string | undefined => {
  */
 export const AllocationTable = () => {
   const { allocation, currency } = useNetWorth();
+  const untyped = untypedShare(allocation);
 
   return (
     <Card>
@@ -36,7 +39,20 @@ export const AllocationTable = () => {
         <CardDescription>{i18n.t('holdings.allocation.subtitle')}</CardDescription>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="flex flex-col gap-4">
+        {/* First, not last. Seen on a real account: bonds at 5 544 € reported as "100%" beside
+            69 122 € under no type — every figure true, and the screen reading as though the app were
+            broken. The share of a split means nothing until the reader knows what it is a split *of*. */}
+        {untyped > 0 && (
+          <p className="text-warning text-sm" data-slot="allocation-untyped">
+            {i18n.t('holdings.allocation.untyped_leads', {
+              amount: formatMoney(allocation.untyped, currency, 'pl'),
+              share: untyped,
+              typed: 100 - untyped,
+            })}
+          </p>
+        )}
+
         {allocation.parts.length ? (
           <table className="w-full text-sm" data-slot="allocation">
             <thead className="text-muted-foreground text-xs">
@@ -76,19 +92,6 @@ export const AllocationTable = () => {
           </table>
         ) : (
           <p className="text-muted-foreground text-sm">{i18n.t('holdings.allocation.empty')}</p>
-        )}
-
-        {/* Said out loud rather than folded into the shares: counted in, every kind would read as far
-            below its target for a reason that is bookkeeping rather than a position. */}
-        {allocation.untyped > 0 && (
-          <p
-            className={cn('text-muted-foreground text-xs', allocation.parts.length && 'mt-3')}
-            data-slot="allocation-untyped"
-          >
-            {i18n.t('holdings.allocation.untyped', {
-              amount: formatMoney(allocation.untyped, currency, 'pl'),
-            })}
-          </p>
         )}
       </CardContent>
     </Card>

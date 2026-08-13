@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { ASSET_TYPE } from '@/constant.ts';
-import { allocation, isTargetUsable, onlyChosenShares, targetSum } from '../allocation.service.ts';
+import {
+  allocation,
+  isTargetUsable,
+  onlyChosenShares,
+  targetSum,
+  untypedShare,
+} from '../allocation.service.ts';
 
 const held = (value: number, assetType?: ASSET_TYPE) => ({ value, assetType });
 
@@ -177,5 +183,31 @@ describe('onlyChosenShares', () => {
         [ASSET_TYPE.BONDS]: 0,
       })
     ).toEqual({ [ASSET_TYPE.ETF]: 60, [ASSET_TYPE.CASH]: 40 });
+  });
+});
+
+describe('untypedShare', () => {
+  /**
+   * The figure the card has to lead with. Seen on a real account: bonds at 5 544 € reported as "100%"
+   * beside 69 122 € under no type — every number true, and the screen reads as though the app were
+   * broken. What the reader needs first is that the split covers a fourteenth of their money.
+   */
+  it('is what part of everything held has no type', () => {
+    expect(untypedShare({ parts: [{ assetType: ASSET_TYPE.BONDS, value: 5000, share: 100 }], untyped: 15000 })).toBe(75);
+  });
+
+  it('is nothing where everything has a type', () => {
+    expect(
+      untypedShare({ parts: [{ assetType: ASSET_TYPE.BONDS, value: 5000, share: 100 }], untyped: 0 })
+    ).toBe(0);
+  });
+
+  /** All of it, when nothing has been said of at all — and it must not divide by nought. */
+  it('is everything where nothing has a type', () => {
+    expect(untypedShare({ parts: [], untyped: 15000 })).toBe(100);
+  });
+
+  it('is nothing on an empty account', () => {
+    expect(untypedShare({ parts: [], untyped: 0 })).toBe(0);
   });
 });

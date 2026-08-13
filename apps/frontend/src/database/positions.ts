@@ -37,6 +37,17 @@ export type DBPosition = {
   /** The day the person last said what it was worth. */
   valuedOn: Date;
   /**
+   * The day it was bought, where somebody knows it.
+   *
+   * Not the same question as `valuedOn` and not a substitute for it: one is when the money went out,
+   * the other is what the thing is worth now. A flat bought in 2019 and valued last month has both,
+   * and the gap between them is the only place a return over the whole holding can come from.
+   *
+   * Absent on everything that existed before this was asked, and on anything nobody remembers buying
+   * — a savings account has no purchase date worth naming.
+   */
+  boughtOn?: Date;
+  /**
    * What kind of thing it is, which is what an allocation is a breakdown of.
    *
    * Absent on every holding that existed before this was asked for. Guessing a type would put money

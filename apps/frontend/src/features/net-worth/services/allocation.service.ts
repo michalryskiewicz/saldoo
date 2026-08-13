@@ -120,3 +120,17 @@ export const onlyChosenShares = (
   Object.fromEntries(
     Object.entries(target).filter(([, share]) => share !== undefined && share > 0)
   ) as AllocationTarget;
+
+/**
+ * What part of everything held has no type yet — the figure the card must lead with.
+ *
+ * Seen on a real account: bonds at 5 544 € reported as "100%" beside 69 122 € under no type. Every
+ * number was true and the screen read as though the app were broken. The share of the split is only
+ * meaningful once the reader knows how much of their money the split is *of*, so that comes first.
+ */
+export const untypedShare = ({ parts, untyped }: Pick<Allocation, 'parts' | 'untyped'>): number => {
+  const typed = parts.reduce((sum, part) => sum + part.value, 0);
+  const everything = typed + untyped;
+
+  return everything ? Math.round((untyped / everything) * 100) : 0;
+};

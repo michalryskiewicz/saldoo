@@ -158,6 +158,7 @@ describe('record codec', () => {
       value: 31000,
       currency: 'PLN',
       valuedOn: new Date('2026-07-01T00:00:00.000Z'),
+      boughtOn: new Date('2019-03-15T00:00:00.000Z'),
     };
 
     const back = decodeRecord(
@@ -167,6 +168,10 @@ describe('record codec', () => {
 
     expect(back.valuedOn).toBeInstanceOf(Date);
     expect(back.valuedOn.getTime()).toBe(position.valuedOn.getTime());
+    // The day it was bought is a second date on the same row, and a date the codec has not been told
+    // about crosses as `{}` while reading back perfectly on the device that wrote it.
+    expect(back.boughtOn).toBeInstanceOf(Date);
+    expect(back.boughtOn.getTime()).toBe(position.boughtOn.getTime());
     expect(back.value).toBe(31000);
     expect(back.kind).toBe('asset');
   });

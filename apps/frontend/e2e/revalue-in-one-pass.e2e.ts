@@ -39,9 +39,10 @@ test('every holding is re-valued in one pass, and the history follows', async ({
   // One date for the whole pass, said once.
   await device.page.getByLabel(pl.holdings.revalue.as_of, { exact: true }).fill('2026-08-28');
 
-  // Addressed by what the row says rather than by a test-only attribute keyed on the holding's id.
+  // By the field's own accessible name, which says both what it is asking and which holding it asks
+  // about — the one locator that survives the card being laid out differently.
   const entry = (what: string) =>
-    device.page.getByRole('listitem').filter({ hasText: what }).getByRole('spinbutton');
+    device.page.getByRole('spinbutton', { name: new RegExp(`— ${what}$`) });
 
   // The account is asked for its total; the ETF for the price of one, because that is what a broker
   // shows. It was entered as one unit at 7 500, so 8 000 a unit is 8 000.
@@ -86,11 +87,7 @@ test('a blank row leaves its holding alone', async ({ browser, baseURL }) => {
 
   await app.open('/dashboard/wealth');
 
-  await device.page
-    .getByRole('listitem')
-    .filter({ hasText: 'Konto' })
-    .getByRole('spinbutton')
-    .fill('5200');
+  await device.page.getByRole('spinbutton', { name: /— Konto$/ }).fill('5200');
   await device.page.getByRole('button', { name: pl.holdings.revalue.submit }).click();
 
   const rowFor = (what: string) => device.page.getByRole('row').filter({ hasText: what });
