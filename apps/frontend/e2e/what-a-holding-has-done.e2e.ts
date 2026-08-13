@@ -26,6 +26,9 @@ test('a holding re-valued says what it has done since the last reading', async (
 
   await app.addPosition({ what: 'Konto IKE', worth: 30000 });
 
+  // The list lives behind its kind now; this holding was added without one.
+  await app.openHoldingsTab('untyped');
+
   const row = () => device.page.getByRole('row').filter({ hasText: 'Konto IKE' });
 
   // Valued once, so there is nothing to have moved from — and the column says nothing rather than
@@ -62,7 +65,7 @@ test('a holding re-valued says what it has done since the last reading', async (
 
   // It survived the vault rather than only the render: history that is not stored is not history.
   await device.page.reload();
-  await app.open('/dashboard/wealth');
+  await app.openHoldingsTab('untyped');
   await expect(row().getByText('1500,00 zł').first()).toBeVisible();
 
   expect(device.problems()).toEqual([]);

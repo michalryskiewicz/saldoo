@@ -28,7 +28,7 @@ test('every holding is re-valued in one pass, and the history follows', async ({
   // Owed money is not re-valued by looking it up, so it keeps out of this.
   await app.addPosition({ what: 'Kredyt', worth: 20000, owed: true });
 
-  await app.open('/dashboard/wealth');
+  await app.openHoldingsTab('overview');
 
   const pass = device.page.locator('[data-slot="revalue-rows"]');
   await expect(pass).toBeVisible();
@@ -51,16 +51,18 @@ test('every holding is re-valued in one pass, and the history follows', async ({
 
   await device.page.getByRole('button', { name: pl.holdings.revalue.submit }).click();
 
-  const rowFor = (what: string) => device.page.getByRole('row').filter({ hasText: what });
-
-  // Both worths moved, in one go.
-  await expect(rowFor('Konto').getByText('5200,00 zł').first()).toBeVisible();
-  await expect(rowFor('VWCE').getByText('8000,00 zł').first()).toBeVisible();
+  // Both worths moved, in one go — read back on the very card they were typed on, which is the
+  // screen that has to reflect the save.
+  await expect(pass).toContainText('5200,00 zł');
+  await expect(pass).toContainText('8000,00 zł');
 
   // And each pass leaves a reading behind, so the change column has a before to measure from — which
-  // is the thing a single stored value could never give it.
-  await expect(rowFor('Konto').getByText('200,00 zł').first()).toBeVisible();
-  await expect(rowFor('VWCE').getByText('500,00 zł').first()).toBeVisible();
+  // is the thing a single stored value could never give it. Checked on the holding's own tab, since
+  // that is where the list lives now.
+  await app.openHoldingsTab('ETF');
+  await expect(
+    device.page.getByRole('row').filter({ hasText: 'VWCE' }).getByText('500,00 zł').first()
+  ).toBeVisible();
 
   expect(device.problems()).toEqual([]);
 
@@ -85,11 +87,12 @@ test('a blank row leaves its holding alone', async ({ browser, baseURL }) => {
   await app.addPosition({ what: 'Konto', worth: 5000 });
   await app.addPosition({ what: 'Skarbonka', worth: 800 });
 
-  await app.open('/dashboard/wealth');
+  await app.openHoldingsTab('overview');
 
   await device.page.getByRole('spinbutton', { name: /— Konto$/ }).fill('5200');
   await device.page.getByRole('button', { name: pl.holdings.revalue.submit }).click();
 
+  await app.openHoldingsTab('untyped');
   const rowFor = (what: string) => device.page.getByRole('row').filter({ hasText: what });
 
   await expect(rowFor('Konto').getByText('5200,00 zł').first()).toBeVisible();

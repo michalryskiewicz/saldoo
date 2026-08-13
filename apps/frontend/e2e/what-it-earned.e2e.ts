@@ -34,7 +34,7 @@ test('a holding says what it earned apart from what was put into it', async ({
 
   const row = () => device.page.getByRole('row').filter({ hasText: 'Konto IKE' });
 
-  await app.open('/dashboard/wealth');
+  await app.openHoldingsTab('untyped');
 
   await expect(row().getByText('500,00 zł', { exact: true })).toBeVisible();
   await expect(row()).toContainText('2500,00 zł');
@@ -67,7 +67,7 @@ test('a holding only partly serving a goal says nothing about what it earned', a
 
   await app.addPosition({ what: 'Konto wspólne', worth: 3000, forGoal: 'IKE', share: 60 });
 
-  await app.open('/dashboard/wealth');
+  await app.openHoldingsTab('untyped');
 
   const row = device.page.getByRole('row').filter({ hasText: 'Konto wspólne' });
   await expect(row).toBeVisible();

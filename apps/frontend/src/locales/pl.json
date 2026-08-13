@@ -260,7 +260,11 @@
       "column_holding": "Pozycja"
     },
     "bought_on": "Kiedy kupione",
-    "bought_on_helper": "Nieobowiązkowe. Dzięki temu apka policzy, ile to urosło od zakupu, a nie tylko od poprzedniej wyceny."
+    "bought_on_helper": "Nieobowiązkowe. Dzięki temu apka policzy, ile to urosło od zakupu, a nie tylko od poprzedniej wyceny.",
+    "overview_tab": "Przegląd",
+    "untyped_tab": "Bez rodzaju",
+    "untyped_tab_hint": "Te pozycje nie mają rodzaju, więc nie wchodzą do podziału majątku. Otwórz każdą i powiedz, czym jest.",
+    "owed_tab": "Zobowiązania"
   },
   "goal": {
     "title": "Cele",

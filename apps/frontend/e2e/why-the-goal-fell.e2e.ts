@@ -36,7 +36,7 @@ test('a goal whose account was spent out of says so', async ({ browser, baseURL 
   await expect(card().locator('[data-slot="goal-moved"]')).toBeHidden();
 
   // The car broke, so five thousand left the account — and the person says what it is worth now.
-  await app.open('/dashboard/wealth');
+  await app.openHoldingsTab('untyped');
   await device.page
     .getByRole('row')
     .filter({ hasText: 'Konto' })

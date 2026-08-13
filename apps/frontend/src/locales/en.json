@@ -249,7 +249,11 @@
       "column_holding": "Holding"
     },
     "bought_on": "When bought",
-    "bought_on_helper": "Optional. It lets the app say what this has done since you bought it, not only since the last valuation."
+    "bought_on_helper": "Optional. It lets the app say what this has done since you bought it, not only since the last valuation.",
+    "overview_tab": "Overview",
+    "untyped_tab": "No type yet",
+    "untyped_tab_hint": "These have no kind, so they stay out of the split. Open each one and say what it is.",
+    "owed_tab": "What I owe"
   },
   "goal": {
     "title": "Goals",
