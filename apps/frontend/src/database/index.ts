@@ -156,6 +156,29 @@ export class AppDB extends Dexie {
       bonds: 'id, createdAt, updatedAt, description, boughtOn, currency',
       valuations: 'id, createdAt, positionId, valuedOn, currency',
     });
+
+    // Version 8 asks what a holding *is*. `kind` only ever said held or owed, which cannot be the
+    // basis of an allocation: everything in a savings account and everything in shares are the same
+    // net worth and not the same position. Indexed so a breakdown does not have to read every row.
+    this.version(8).stores({
+      expenses:
+        'id, createdAt, updatedAt, userId, description, expense, currency, severity, frequency, execution, strategyPart, tagId',
+      profits:
+        'id, createdAt, updatedAt, userId, description, profit, currency, frequency, execution',
+      duties:
+        'id, createdAt, updatedAt, resolved, ignored, frequency, executionDate, expenseId, transactionId, &hash',
+      transactions:
+        'id, createdAt, updatedAt, transactionId, sourceBank, amount, currency, transactionDate, description, &hash, expenseId, strategyPart, tagId, duties',
+      tags: 'id, createdAt, updatedAt, userId, &name',
+      meta: '&key',
+      settings: '&id',
+      goals: 'id, createdAt, updatedAt, description, currency, strategyPart, deadline, year, seriesId, closedAt',
+      contributions: 'id, createdAt, updatedAt, goalId, contributedAt, transactionId',
+      closedWindows: 'id, createdAt, goalId, seriesId, year',
+      positions: 'id, createdAt, updatedAt, description, kind, currency, valuedOn, assetType',
+      bonds: 'id, createdAt, updatedAt, description, boughtOn, currency',
+      valuations: 'id, createdAt, positionId, valuedOn, currency',
+    });
   }
 }
 

@@ -17,6 +17,12 @@ import {
   AssignmentFields,
   UNASSIGNED,
 } from '@/features/net-worth/components/assignment-fields.tsx';
+import { AssetTypeFields } from '@/features/net-worth/components/asset-type-fields.tsx';
+import {
+  assetTypeFrom,
+  isPricedPerUnit,
+  worthFromUnits,
+} from '@/features/net-worth/services/unit-priced-worth.service.ts';
 import { db } from '@/database';
 import { useAppSelector } from '@/store/store.ts';
 import { setPositionFromGoalId, setPositionsDrawerId } from '@/store/preferences.slice.ts';
@@ -30,12 +36,50 @@ const formSchema = z.object({
     .string({ error: i18n.t('errors.field-required') })
     .min(2, i18n.t('errors.min-2-length-required')),
   kind: z.enum(['asset', 'liability']),
-  value: z.number({ error: i18n.t('errors.field-required') }),
+  /**
+   * Optional here and required by the rule below, because which figure a holding needs depends on
+   * what kind it is: a counted one has no total to type, and asking for it anyway would refuse to
+   * save an ETF that has been filled in perfectly.
+   */
+  value: z.number().optional(),
   currency: z.string({ error: i18n.t('errors.field-required') }),
   valuedOn: z.date({ error: i18n.t('errors.field-required') }),
+  /** Stored as the enum, or left off entirely — `UNTYPED` is only how the form spells "not said". */
+  assetType: z.string().optional(),
+  units: z.number().optional(),
+  unitPrice: z.number().optional(),
   /** Edited as one goal and a share; stored as the list the record carries. */
   assignedGoalId: z.string().optional(),
   assignedShare: z.number().optional(),
+});
+
+/**
+ * A holding is worth what somebody typed, or what its count and price come to — one of the two, and
+ * which one follows from its kind. Enforced here rather than on the fields, because neither field is
+ * required on its own: it depends on the answer to another question.
+ */
+const positionSchema = formSchema.superRefine((values, context) => {
+  if (isPricedPerUnit(assetTypeFrom(values.assetType))) {
+    for (const field of ['units', 'unitPrice'] as const) {
+      if (values[field] === undefined) {
+        context.addIssue({
+          code: 'custom',
+          path: [field],
+          message: i18n.t('errors.field-required'),
+        });
+      }
+    }
+
+    return;
+  }
+
+  if (values.value === undefined) {
+    context.addIssue({
+      code: 'custom',
+      path: ['value'],
+      message: i18n.t('errors.field-required'),
+    });
+  }
 });
 
 type PositionCreateType = z.infer<typeof formSchema>;
@@ -121,9 +165,20 @@ export default function PositionsCreate() {
 
     const { assignedGoalId, assignedShare, ...rest } = values;
     const assignments = assignmentsFrom(assignedGoalId, assignedShare);
+    const assetType = assetTypeFrom(values.assetType);
+
+    // One stored worth, whichever way it was arrived at. For a counted holding the count and the
+    // price are what the person knows and the multiplication is not theirs to do; for everything else
+    // the figure they typed stands.
+    const fromUnits = isPricedPerUnit(assetType)
+      ? worthFromUnits({ units: values.units, unitPrice: values.unitPrice })
+      : undefined;
+
     const draft = {
       ...rest,
+      assetType,
       kind: values.kind as PositionKind,
+      value: fromUnits ?? values.value,
       assignments,
     } as never;
     const saved =
@@ -153,7 +208,7 @@ export default function PositionsCreate() {
           <Form
             key={goal?.id ?? id}
             initialValues={initialValues}
-            schema={formSchema}
+            schema={positionSchema}
             onSubmit={handleSubmit}
           >
             <div className="flex flex-col gap-7">
@@ -168,7 +223,7 @@ export default function PositionsCreate() {
                 ]}
               />
 
-              <Field.Money name="value" currencyField="currency" label={i18n.t('holdings.value')} />
+              <AssetTypeFields />
 
               {/* The date is not decoration: it is what makes the figure honest about its age. */}
               <Field.Date name="valuedOn" label={i18n.t('holdings.valued_on')} fullWidth />

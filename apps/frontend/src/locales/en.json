@@ -197,7 +197,23 @@
     "exposure_share": "{{share}}%",
     "grown": "Earned",
     "grown_tooltip": "How much this holding earned by itself, and how much you put into it. Taken from the declarations into the goal this holding covers — its value less what was declared. Empty wherever the arrangement does not say: with a share below the whole, a holding split between goals, or a second holding covering the same goal, which declarations landed here cannot be established, and the app does not guess.",
-    "paid_in": "{{amount}} put in"
+    "paid_in": "{{amount}} put in",
+    "asset_type": "What sort of thing",
+    "asset_type_helper": "What the app breaks your wealth down by. Leave it out if you would rather not decide now — those are counted apart rather than dropped into \"Other\".",
+    "units": "How many",
+    "unit_price": "Price of one",
+    "units_helper": "The worth is worked out for you: units × price. The price is typed in for now.",
+    "type": {
+      "CASH": "Cash",
+      "BANK_ACCOUNT": "Bank account",
+      "SAVINGS_ACCOUNT": "Savings account",
+      "BONDS": "Bonds",
+      "ETF": "ETFs",
+      "STOCKS": "Shares",
+      "CURRENCIES": "Currencies",
+      "OTHER": "Other"
+    },
+    "untyped": "No type yet"
   },
   "goal": {
     "title": "Goals",
