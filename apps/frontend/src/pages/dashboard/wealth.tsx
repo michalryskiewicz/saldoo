@@ -7,6 +7,7 @@ import { setPositionsDrawerId } from '@/store/preferences.slice.ts';
 import PositionsCreate from '@/features/net-worth/components/positions-create.tsx';
 import { PositionsTable } from '@/features/net-worth/components/positions-table.tsx';
 import { AllocationTable } from '@/features/net-worth/components/allocation-table.tsx';
+import { RevalueHoldings } from '@/features/net-worth/components/revalue-holdings.tsx';
 import BondsCreate from '@/features/net-worth/components/bonds-create.tsx';
 import { BondsTable } from '@/features/net-worth/components/bonds-table.tsx';
 import { BondsChart } from '@/features/net-worth/components/bonds-chart.tsx';
@@ -30,6 +31,8 @@ export default function Wealth() {
       <NetWorthChart />
 
       <PositionsTable />
+
+      <RevalueHoldings />
 
       <AllocationTable />
 
