@@ -1,4 +1,5 @@
 import { toLocalDayKey } from '@/lib/dates.ts';
+import type { PositionKind } from '@/database/positions.ts';
 /** One day, and what everything came to on it. */
 export type GrowthPoint = { on: Date; value: number };
 
@@ -9,7 +10,19 @@ export type GrowthPoint = { on: Date; value: number };
  * line would rise and fall with the exchange rate, and a chart answering "is my wealth growing" would
  * be answering "did the złoty move" instead.
  */
-type Reading = { positionId: string; value: number; valuedOn: Date; createdAt: Date };
+type Reading = {
+  positionId: string;
+  value: number;
+  /**
+   * Whether the reading is of something held or something owed.
+   *
+   * The line is net worth, so a debt has to come **off** it. Without this, summing every reading drew
+   * the gross total with a mortgage counted as though somebody owned it — off by twice the debt.
+   */
+  kind: PositionKind;
+  valuedOn: Date;
+  createdAt: Date;
+};
 
 /**
  * What everything was worth, on every day anybody said anything about it.
@@ -23,6 +36,10 @@ type Reading = { positionId: string; value: number; valuedOn: Date; createdAt: D
  * every time somebody values a single account — which is the shape of a bug, not of a portfolio.
  *
  * Two readings about one day are a correction rather than a contradiction, so the later saying wins.
+ *
+ * **What is owed comes off it.** The line is net worth, and a screenshot of a real spread is what caught
+ * this: the axis sat at 1 129 000 while the figure above the chart said 308 800, because the mortgage
+ * was being added. No unit test could see it — they had no holdings with a kind.
  *
  * **Nothing at all where there is one day to plot.** A line needs two points; an axis drawn around a
  * single dot says "flat" about a holding nobody has valued twice, which is a claim nobody has made.
@@ -42,7 +59,7 @@ export const growthSeries = (readings: Reading[]): GrowthPoint[] => {
 
   return days.map((day) => {
     for (const reading of latestFirst.filter((one) => toLocalDayKey(one.valuedOn) === day)) {
-      worthOf.set(reading.positionId, reading.value);
+      worthOf.set(reading.positionId, reading.kind === 'liability' ? -reading.value : reading.value);
     }
 
     return {

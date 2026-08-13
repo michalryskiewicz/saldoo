@@ -4,8 +4,14 @@ import { growthSeries } from '../growth-series.service.ts';
 const said = (positionId: string, value: number, valuedOn: string) => ({
   positionId,
   value,
+  kind: 'asset' as const,
   valuedOn: new Date(valuedOn),
   createdAt: new Date(valuedOn),
+});
+
+const owed = (positionId: string, value: number, valuedOn: string) => ({
+  ...said(positionId, value, valuedOn),
+  kind: 'liability' as const,
 });
 
 describe('growthSeries', () => {
@@ -83,5 +89,36 @@ describe('growthSeries', () => {
 
   it('says nothing about nothing', () => {
     expect(growthSeries([])).toEqual([]);
+  });
+});
+
+describe('what is owed', () => {
+  /**
+   * The line is labelled net worth, so a debt has to come off it. Summing every reading regardless of
+   * kind drew a line at the gross total with the mortgage counted as though somebody owned it — off by
+   * twice the debt, and invisible in a unit test whose holdings had no kind at all. A screenshot of a
+   * real spread caught it: the axis sat at 1 129 000 while the figure above said 308 800.
+   */
+  it('comes off the line rather than onto it', () => {
+    const history = [
+      said('mieszkanie', 620000, '2026-05-01'),
+      owed('kredyt', 410000, '2026-05-01'),
+      said('mieszkanie', 640000, '2026-08-01'),
+    ];
+
+    expect(growthSeries(history)).toEqual([
+      { on: new Date('2026-05-01'), value: 210000 },
+      { on: new Date('2026-08-01'), value: 230000 },
+    ]);
+  });
+
+  it('follows a debt down as it is paid off', () => {
+    const history = [
+      said('konto', 100000, '2026-05-01'),
+      owed('kredyt', 60000, '2026-05-01'),
+      owed('kredyt', 50000, '2026-08-01'),
+    ];
+
+    expect(growthSeries(history).map((point) => point.value)).toEqual([40000, 50000]);
   });
 });

@@ -162,7 +162,13 @@ export const useNetWorth = () => {
     // złoty move" instead.
     growth: growthSeries(
       convertDataToDesiredCurrency({
-        data: valuations,
+        // The kind joined on from the holding, because a valuation does not carry one and the line is
+        // net worth: a debt has to come off it rather than onto it.
+        data: valuations.map((valuation) => ({
+          ...valuation,
+          kind:
+            positions.find((position) => position.id === valuation.positionId)?.kind ?? 'asset',
+        })),
         exchangeRates,
         desiredCurrency: settings?.currency,
         amountKey: 'value',

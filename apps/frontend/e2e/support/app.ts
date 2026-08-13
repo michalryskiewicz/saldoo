@@ -1,4 +1,4 @@
-import { PRICED_PER_UNIT } from '../../src/constant.ts';
+import { ASSET_TYPE, PRICED_PER_UNIT } from '../../src/constant.ts';
 import { expect, type Locator, type Page } from '@playwright/test';
 import pl from '../../src/locales/pl.json' with { type: 'json' };
 import en from '../../src/locales/en.json' with { type: 'json' };
@@ -845,8 +845,13 @@ export class SaldooApp {
     what: string;
     worth: number;
     owed?: boolean;
-    /** Left out, the holding has no kind — which is a valid answer and not a gap. */
-    assetType?: 'CASH' | 'BANK_ACCOUNT' | 'SAVINGS_ACCOUNT' | 'BONDS' | 'ETF' | 'STOCKS' | 'CURRENCIES' | 'OTHER';
+    /**
+     * Left out, the holding has no kind — which is a valid answer and not a gap.
+     *
+     * Taken from the enum rather than listed here: a second list of the kinds drifts from the first the
+     * day somebody adds one, which is exactly what happened when property and metals arrived.
+     */
+    assetType?: keyof typeof ASSET_TYPE;
     /**
      * Left out, the form's own default stands — złoty, whatever the screen happens to read in. The
      * switch is a button inside the amount field wearing the currency it is currently on.
