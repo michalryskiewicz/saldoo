@@ -1,5 +1,8 @@
 import type { MaybeConverted } from '@/lib/exchange-rate.ts';
 import type { ValuationChange } from '@/features/net-worth/services/valuation-history.service.ts';
+import type { PaidInAndGrown } from '@/features/net-worth/services/paid-in-and-grown.service.ts';
+import { formatMoney } from '@/lib/formats.ts';
+import { cn } from '@/lib/utils.ts';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useDispatch } from 'react-redux';
@@ -18,6 +21,8 @@ type PositionRow = MaybeConverted<DBPosition> & {
   totalLabel?: string;
   /** What it has done since the reading before its latest — absent while it has only one. */
   change?: ValuationChange;
+  /** What went in by hand against what it earned — absent where the arrangement does not say. */
+  split?: PaidInAndGrown;
 };
 
 const PositionActions = ({ id }: { id: string }) => {
@@ -116,6 +121,33 @@ const columns: ColumnDef<PositionRow>[] = [
     },
     header: ({ column }) => (
       <Header.Info column={column} header="holdings.change" tooltip="holdings.change_tooltip" />
+    ),
+  },
+  {
+    id: 'grown',
+    // Both facts in one cell rather than two columns: they are one sentence about the holding, and
+    // the earned figure is meaningless without the figure it is measured against.
+    accessorFn: (row) => row.split?.grown ?? 0,
+    cell: ({ row }) => {
+      const { split } = row.original;
+
+      if (row.original.id === TOTAL || !split) return null;
+
+      return (
+        <div className="flex flex-col items-end whitespace-nowrap">
+          <span className={cn('tabular-nums', { 'text-positive': split.grown > 0 })}>
+            {formatMoney(split.grown, split.currency, 'pl')}
+          </span>
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {i18n.t('holdings.paid_in', {
+              amount: formatMoney(split.paidIn, split.currency, 'pl'),
+            })}
+          </span>
+        </div>
+      );
+    },
+    header: ({ column }) => (
+      <Header.Info column={column} header="holdings.grown" tooltip="holdings.grown_tooltip" />
     ),
   },
   {
