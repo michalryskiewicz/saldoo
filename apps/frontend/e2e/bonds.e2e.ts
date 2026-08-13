@@ -243,6 +243,10 @@ test('złoty bonds are drawn and counted for somebody reading in euro', async ({
   await app.openAccount();
   await app.chooseCurrency('EUR');
   await app.submitAccountSettings();
+  // Before navigating away — this was the only spec changing the currency that did not wait for the
+  // write to land, and leaving while it was in flight ran the rest against an account still reading
+  // in złoty, where the euro figure below correctly never arrives.
+  await app.expectSavedNotice();
 
   await app.open('/dashboard/wealth');
   await addBond(device.page, { series: 'EDO', quantity: '100' });
@@ -259,13 +263,14 @@ test('złoty bonds are drawn and counted for somebody reading in euro', async ({
   // 10 000,00 zł rather than stamping euro over a złoty figure. `amountOf` strips the sign, so it
   // cannot tell those two apart, and it accepted the wrong one the moment the suite's timing shifted.
   //
-  // The ceiling is generous because the thing being waited for is a network round trip that has
-  // already fired by the time anything here could listen for it, and it is slow under a full
-  // parallel run. Nothing is masked by the wait: the figure it must settle on is exact.
+  // A modest ceiling, because the only thing still being waited for is the rates arriving. It used to
+  // be thirty seconds on the theory that the round trip was slow under load — that theory was wrong:
+  // the account had not finished becoming a euro account, and no amount of waiting fixes a screen
+  // that is correctly showing złoty.
   await app.openOverview();
   const tile = device.page.locator('[data-slot="net-worth"]');
   await expect
-    .poll(async () => (await tile.textContent())?.trim(), { timeout: 30_000 })
+    .poll(async () => (await tile.textContent())?.trim(), { timeout: 10_000 })
     .toMatch(/2\s*222,22\s*€/);
 
   expect(device.problems()).toEqual([]);

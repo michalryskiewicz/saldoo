@@ -10,6 +10,8 @@ import { netWorthBreakdown } from '@/features/net-worth/services/net-worth-break
 import { valueBondsOn } from '@/features/net-worth/services/bond-accrual.service.ts';
 import { changeSincePrevious } from '@/features/net-worth/services/valuation-history.service.ts';
 import { currencyExposure } from '@/features/net-worth/services/currency-exposure.service.ts';
+import { paidInAndGrown } from '@/features/net-worth/services/paid-in-and-grown.service.ts';
+import { useGoalRecords } from '@/features/goals/hooks/use-goal-records.tsx';
 import { freeValue, type BackableHolding } from '@/features/goals/services/goal-backing.service.ts';
 
 /**
@@ -24,6 +26,12 @@ export const useNetWorth = () => {
   const positions = useLiveQuery(() => db.positions.toArray(), []) || [];
   const bonds = useLiveQuery(() => db.bonds.toArray(), []) || [];
   const valuations = useLiveQuery(() => db.valuations.toArray(), []) || [];
+
+  // The declarations, already in the currency this screen reads — from the one place that joins a
+  // goal's currency onto them, so this screen and the goals screen cannot disagree about what was
+  // put aside. Handing over one side converted and the other not would report a difference that is
+  // mostly the exchange rate.
+  const { contributions: declared } = useGoalRecords();
 
   const today = new Date();
 
@@ -59,10 +67,7 @@ export const useNetWorth = () => {
     dateKey: 'on',
   });
 
-  const convertedPositions = inOneCurrency(positions, 'valuedOn').map((position) => ({
-    ...position,
-    change: changes.find((change) => change.positionId === position.id),
-  }));
+  const converted = inOneCurrency(positions, 'valuedOn');
 
   // Valued first, converted second, added last. A bond's worth follows from its own currency's
   // nominal and rate, so it cannot be converted until something has priced it — and it has to be
@@ -75,6 +80,31 @@ export const useNetWorth = () => {
   // goal. Positions keep their own valuation date; a bond is priced for today and converted at
   // today's rate, which is why the two can only be joined after both have been through the
   // converter and never before.
+  // Every asset in one shape, so what went into it can be told from what it earned. The bonds are in
+  // it because a goal can read one, and the split is as much a fact about a bond as about an account.
+  const assigned = [
+    ...converted
+      .filter((position) => position.kind === 'asset')
+      .map((position) => ({
+        id: position.id,
+        value: position.value,
+        currency: position.currency,
+        assignments: position.assignments,
+      })),
+    ...valuedBonds.map((valued, index) => ({
+      id: valued.id,
+      value: valued.value,
+      currency: valued.currency,
+      assignments: bonds[index]?.assignments,
+    })),
+  ];
+
+  const convertedPositions = converted.map((position) => ({
+    ...position,
+    change: changes.find((change) => change.positionId === position.id),
+    split: paidInAndGrown(position.id, assigned, declared),
+  }));
+
   const holdings: BackableHolding[] = [
     ...convertedPositions
       .filter((position) => position.kind === 'asset')

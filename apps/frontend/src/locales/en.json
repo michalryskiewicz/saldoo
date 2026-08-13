@@ -194,7 +194,10 @@
     "change_tooltip": "How much this holding has moved since it was last valued. Both readings are converted at one rate — the latest reading’s — so the figure is about the holding and not about the rate moving. Empty while a holding has only been valued once.",
     "exposure": "Held in",
     "exposure_tooltip": "Which currencies what you hold actually sits in. It matters because when the złoty weakens your net worth falls in the currency you read it in, without a single złoty having left — that is exchange-rate exposure, not a loss you made. The amounts are in your display currency, so they add up to the figure above. Shown only when you hold in more than one currency.",
-    "exposure_share": "{{share}}%"
+    "exposure_share": "{{share}}%",
+    "grown": "Earned",
+    "grown_tooltip": "How much this holding earned by itself, and how much you put into it. Taken from the declarations into the goal this holding covers — its value less what was declared. Empty wherever the arrangement does not say: with a share below the whole, a holding split between goals, or a second holding covering the same goal, which declarations landed here cannot be established, and the app does not guess.",
+    "paid_in": "{{amount}} put in"
   },
   "goal": {
     "title": "Goals",
