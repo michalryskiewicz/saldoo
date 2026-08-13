@@ -229,6 +229,20 @@
       "target_helper": "What share of your wealth each kind should be. It has to add up to 100%. The app shows the difference and will not tell you what to buy or sell.",
       "target_sum": "Total: {{sum}}%",
       "target_sum_error": "Has to be 100%, it is {{sum}}%"
+    },
+    "revalue": {
+      "title": "Re-value",
+      "subtitle": "Enter new figures for everything at once — one date for the whole pass",
+      "as_of": "As at",
+      "current": "Now",
+      "new": "New worth",
+      "new_unit_price": "New price of one",
+      "per_unit_note": "× {{units}}",
+      "submit": "Save the re-valuation",
+      "nothing_to_do": "You have not entered a new figure",
+      "saved_one": "Re-valued {{count}} holding",
+      "saved_other": "Re-valued {{count}} holdings",
+      "empty": "Add a holding to be able to re-value it"
     }
   },
   "goal": {

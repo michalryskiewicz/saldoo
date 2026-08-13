@@ -238,6 +238,22 @@
       "target_helper": "Wpisz, jaką część majątku ma stanowić każdy rodzaj. Musi zsumować się do 100%. Apka pokaże różnicę i nie doradzi, co kupić ani sprzedać.",
       "target_sum": "Razem: {{sum}}%",
       "target_sum_error": "Musi być 100%, jest {{sum}}%"
+    },
+    "revalue": {
+      "title": "Przecena",
+      "subtitle": "Wpisz nowe wartości wszystkiego naraz — jedna data na cały przebieg",
+      "as_of": "Na dzień",
+      "current": "Teraz",
+      "new": "Nowa wartość",
+      "new_unit_price": "Nowa cena jednej",
+      "per_unit_note": "× {{units}} szt.",
+      "submit": "Zapisz przecenę",
+      "nothing_to_do": "Nie wpisałeś żadnej nowej wartości",
+      "saved_one": "Przeceniono {{count}} pozycję",
+      "saved_few": "Przeceniono {{count}} pozycje",
+      "saved_many": "Przeceniono {{count}} pozycji",
+      "saved_other": "Przeceniono {{count}} pozycji",
+      "empty": "Dodaj pozycję, żeby móc ją przeceniać"
     }
   },
   "goal": {
