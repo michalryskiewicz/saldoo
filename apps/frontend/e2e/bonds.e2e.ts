@@ -66,6 +66,10 @@ test('treasury bonds are worth what the arithmetic says, and land in net worth',
   await app.open('/dashboard/wealth');
   await addBond(device.page, { series: 'EDO', quantity: '100' });
 
+  // The bonds now live behind their own tab rather than at the foot of the page, and that tab only
+  // exists once a bond does — so it is opened after the first one is added, never before.
+  await app.openHoldingsTab('BONDS');
+
   // Named by the app, from the month and the series: a ten-year bought this month is redeemed ten
   // years from this month, and that is what the Ministry calls it. Read off the row rather than off
   // the page — the chart marks the same name against its redemption on the axis.
@@ -103,6 +107,10 @@ test('the bond chart plots the projection, not just what is held today', async (
 
   await app.open('/dashboard/wealth');
   await addBond(device.page, { series: 'EDO', quantity: '100' });
+
+  // The bonds now live behind their own tab rather than at the foot of the page, and that tab only
+  // exists once a bond does — so it is opened after the first one is added, never before.
+  await app.openHoldingsTab('BONDS');
 
   await expect(device.page.getByText(pl.bonds.chart_title)).toBeVisible();
 
@@ -176,6 +184,8 @@ test('a bond bought years ago is priced from that month\'s offer', async ({ brow
   await sheet.getByRole('button', { name: pl.submit, exact: true }).click();
   await expect(sheet).toBeHidden();
 
+  await app.openHoldingsTab('BONDS');
+
   // Named for the month it is redeemed: a ten-year bought in March 2019 is EDO0329.
   await expect(device.page.getByRole('cell', { name: 'EDO0329', exact: true })).toBeVisible();
 
@@ -206,6 +216,10 @@ test('a bond bought before this month has earned something to show for it', asyn
 
   await app.open('/dashboard/wealth');
   await addBond(device.page, { series: 'EDO', quantity: '100', monthsAgo: 2 });
+
+  // The bonds now live behind their own tab rather than at the foot of the page, and that tab only
+  // exists once a bond does — so it is opened after the first one is added, never before.
+  await app.openHoldingsTab('BONDS');
 
   const total = device.page.locator('[data-slot="summary-figure"]').first();
 
@@ -250,6 +264,10 @@ test('złoty bonds are drawn and counted for somebody reading in euro', async ({
 
   await app.open('/dashboard/wealth');
   await addBond(device.page, { series: 'EDO', quantity: '100' });
+
+  // The bonds now live behind their own tab rather than at the foot of the page, and that tab only
+  // exists once a bond does — so it is opened after the first one is added, never before.
+  await app.openHoldingsTab('BONDS');
 
   // Drawn in the bonds' own currency rather than not drawn at all.
   await expect(device.page.getByText(pl.bonds.chart_title)).toBeVisible();
@@ -301,6 +319,10 @@ test('the chart switches between gross and after tax, and the horizon winds back
   await app.open('/dashboard/wealth');
   await addBond(device.page, { series: 'EDO', quantity: '100', monthsAgo: 2 });
 
+  // The bonds now live behind their own tab rather than at the foot of the page, and that tab only
+  // exists once a bond does — so it is opened after the first one is added, never before.
+  await app.openHoldingsTab('BONDS');
+
   const card = device.page
     .locator('[data-slot="card"]')
     .filter({ hasText: pl.bonds.chart_title });
@@ -348,6 +370,10 @@ test('an IKE holding reads the same gross and after tax', async ({ browser, base
 
   await app.open('/dashboard/wealth');
   await addBond(device.page, { series: 'EDO', quantity: '100', monthsAgo: 2, wrapper: 'IKE' });
+
+  // The bonds now live behind their own tab rather than at the foot of the page, and that tab only
+  // exists once a bond does — so it is opened after the first one is added, never before.
+  await app.openHoldingsTab('BONDS');
 
   const card = device.page
     .locator('[data-slot="card"]')

@@ -151,6 +151,17 @@ const columns: ColumnDef<PositionRow>[] = [
     ),
   },
   {
+    accessorKey: 'boughtOn',
+    // Beside the valuation date rather than instead of it: one is when the money went out, the other
+    // is what the thing is worth now, and the gap between them is where a return over the whole
+    // holding lives. Blank on anything nobody remembers buying.
+    header: i18n.t('holdings.bought_on'),
+    cell: ({ row }) =>
+      row.original.id === TOTAL || !row.original.boughtOn ? null : (
+        <Cell.Text id={row.original.id} name={formatDate(row.original.boughtOn)} />
+      ),
+  },
+  {
     accessorKey: 'valuedOn',
     header: i18n.t('holdings.valued_on'),
     cell: ({ row }) =>
@@ -167,10 +178,16 @@ const columns: ColumnDef<PositionRow>[] = [
   },
 ];
 
-export const PositionsTable = () => {
+/**
+ * @param only Which holdings to show — one tab's worth. Left out, everything, as the whole-page table
+ *   has always done. The total row follows the rows on screen, or it would answer a question nobody
+ *   asked on a filtered view.
+ */
+export const PositionsTable = ({ only }: { only?: (position: PositionRow) => boolean } = {}) => {
   const { positions, totals, currency } = useNetWorth();
+  const shown = only ? positions.filter(only) : positions;
 
-  const totalRow: PositionRow[] = positions.length
+  const totalRow: PositionRow[] = !only && shown.length
     ? [
         {
           id: TOTAL,
@@ -188,7 +205,7 @@ export const PositionsTable = () => {
   return (
     <DataTable
       columns={columns}
-      data={[...positions, ...totalRow]}
+      data={[...shown, ...totalRow]}
       emptyMessage={i18n.t('holdings.empty')}
     />
   );

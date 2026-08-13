@@ -51,10 +51,11 @@ test('an ETF is entered as units and a price, and the worth follows', async ({
 
   // The multiplication is what every other screen reads, and it survived the vault.
   const row = () => device.page.getByRole('row').filter({ hasText: 'VWCE' });
+  await app.openHoldingsTab('ETF');
   await expect(row().getByText('432,00 zł').first()).toBeVisible();
 
   await device.page.reload();
-  await app.open('/dashboard/wealth');
+  await app.openHoldingsTab('ETF');
   await expect(row().getByText('432,00 zł').first()).toBeVisible();
 
   // Reopened, it still reads as a count and a price rather than as a total somebody typed.

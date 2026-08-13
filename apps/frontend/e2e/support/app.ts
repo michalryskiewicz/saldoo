@@ -804,6 +804,30 @@ export class SaldooApp {
   // === Holdings ===
 
   /**
+   * Opens one of the wealth tabs by its own label.
+   *
+   * The wealth section is a tab per kind of thing held, so a list of holdings is no longer on the first
+   * screen — a spec that wants one has to say which. `Przegląd` answers "how much and is it growing";
+   * everything else lives behind its own kind.
+   */
+  async openHoldingsTab(
+    tab: 'overview' | 'owed' | 'untyped' | keyof typeof pl.holdings.type
+  ): Promise<void> {
+    await this.open('/dashboard/wealth');
+
+    const name =
+      tab === 'overview'
+        ? label('holdings.overview_tab')
+        : tab === 'owed'
+          ? label('holdings.owed_tab')
+          : tab === 'untyped'
+            ? label('holdings.untyped_tab')
+            : label(`holdings.type.${tab}`);
+
+    await this.page.getByRole('tab', { name, exact: true }).click();
+  }
+
+  /**
    * Adds a holding, optionally pointed at a goal.
    *
    * The assignment fields only exist once some goal reads its holdings, so a spec that wants them

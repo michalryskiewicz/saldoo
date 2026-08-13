@@ -26,7 +26,7 @@ test('the wealth splits by kind, and says how far that is from the target', asyn
   await app.addPosition({ what: 'Konto', worth: 2500, assetType: 'SAVINGS_ACCOUNT' });
   await app.addPosition({ what: 'VWCE', worth: 7500, assetType: 'ETF' });
 
-  await app.open('/dashboard/wealth');
+  await app.openHoldingsTab('overview');
 
   const table = device.page.locator('[data-slot="allocation"]');
   await expect(table).toBeVisible();
@@ -45,7 +45,7 @@ test('the wealth splits by kind, and says how far that is from the target', asyn
   await app.submitAccountSettings();
   await app.expectSavedNotice();
 
-  await app.open('/dashboard/wealth');
+  await app.openHoldingsTab('overview');
 
   // Fifteen points over where it was meant to be — said in words, because a bare "15" leaves the
   // reader working out which way it points and against which unit.
@@ -81,7 +81,7 @@ test('a holding with no kind is reported rather than counted', async ({ browser,
   await app.addPosition({ what: 'VWCE', worth: 7500, assetType: 'ETF' });
   await app.addPosition({ what: 'Coś jeszcze', worth: 5000 });
 
-  await app.open('/dashboard/wealth');
+  await app.openHoldingsTab('overview');
 
   // The typed holding is the whole of the split, and the untyped one is named underneath it.
   await expect(device.page.locator('[data-slot="allocation-ETF"]')).toContainText('100%');
