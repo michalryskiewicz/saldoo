@@ -24,3 +24,5 @@ dist-ssr
 *.sln
 *.sw?
 coverage
+# Shots from e2e/final-look.e2e.ts — pictures to look at, not artefacts to keep.
+final-look/
