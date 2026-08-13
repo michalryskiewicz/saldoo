@@ -83,3 +83,27 @@ export function toISODate(date: Date | string | number): string {
   }
   return d.toISOString().split('T')[0];
 }
+
+/**
+ * The calendar day a moment falls on, **where the person is**.
+ *
+ * `toISOString` above answers in UTC, which is right for a wire format and wrong for "is this the same
+ * day". East of Greenwich, local midnight is the previous day in UTC — so comparing a bare date the
+ * person picked against a timestamp the app stamped puts them on different days, and anything deciding
+ * "is this about today or about the past" gets the opposite answer for the first two hours of every day
+ * in Poland.
+ *
+ * Found the hard way: a re-valuation entered this afternoon was filed as history, because the pass
+ * named midnight and the holding carried a clock time.
+ */
+export function toLocalDayKey(date: Date | string | number): string {
+  const d = date instanceof Date ? date : new Date(date);
+
+  if (isNaN(d.getTime())) throw new Error('Invalid date');
+
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0'),
+  ].join('-');
+}

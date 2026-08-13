@@ -105,3 +105,53 @@ describe('revaluationsFrom', () => {
     ]);
   });
 });
+
+describe('a figure said about an earlier day', () => {
+  /**
+   * Filling in history must not rewrite the present. Somebody reconstructing last spring from a
+   * statement is saying what a holding *was* worth — and a position holds the latest reading, so
+   * moving its worth and its date backwards would quietly replace today's figure with an old one.
+   *
+   * The reading is still filed, because that is the whole point of entering it: the line needs it.
+   */
+  it('is filed as history without moving what the holding is worth now', () => {
+    const konto = holding({ id: 'konto', value: 5000, valuedOn: TODAY });
+
+    expect(revaluationsFrom([konto], { konto: 4200 }, MAY)).toEqual([
+      { positionId: 'konto', value: 4200, valuedOn: MAY, historyOnly: true },
+    ]);
+  });
+
+  it('is not history when it is about the same day the holding already speaks for', () => {
+    const konto = holding({ id: 'konto', value: 5000, valuedOn: MAY });
+
+    expect(revaluationsFrom([konto], { konto: 4200 }, MAY)?.[0]?.historyOnly).toBeUndefined();
+  });
+
+  it('is not history when it is about a later day', () => {
+    const konto = holding({ id: 'konto', value: 5000, valuedOn: MAY });
+
+    expect(revaluationsFrom([konto], { konto: 5200 }, TODAY)?.[0]?.historyOnly).toBeUndefined();
+  });
+});
+
+describe('the day, not the instant', () => {
+  /**
+   * A holding's `valuedOn` is stamped with a clock time — `new Date()` when the form saved it — while a
+   * pass names a bare date at midnight. Compared as moments, every re-valuation entered on the same day
+   * looked earlier than the holding it was about, and was filed as history: the figure somebody typed
+   * to be the current worth silently was not.
+   */
+  it('treats a figure about today as today, whatever time the holding was stamped', () => {
+    const stampedThisAfternoon = holding({
+      id: 'konto',
+      value: 5000,
+      valuedOn: new Date(2026, 7, 13, 14, 32),
+    });
+    const midnight = new Date(2026, 7, 13);
+
+    expect(revaluationsFrom([stampedThisAfternoon], { konto: 5200 }, midnight)).toEqual([
+      { positionId: 'konto', value: 5200, valuedOn: midnight },
+    ]);
+  });
+});

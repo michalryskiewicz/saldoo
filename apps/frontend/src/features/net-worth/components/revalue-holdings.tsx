@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { toast } from 'sonner';
 import { db } from '@/database';
 import { updateDBPosition } from '@/database/positions.ts';
+import { addDBValuation } from '@/database/valuations.ts';
 import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import { Label } from '@/components/ui/label.tsx';
@@ -47,12 +48,25 @@ export const RevalueHoldings = () => {
 
     setSaving(true);
 
-    // One write per holding, through the same path the drawer uses — so the valuation history is
-    // filed the same way whichever screen the figure was typed on.
     for (const change of changes) {
       const position = held.find((one) => one.id === change.positionId);
       if (!position) continue;
 
+      // A figure about a day earlier than the one the holding already speaks for is history, and
+      // history does not replace the present — it is filed on its own rather than through the
+      // position, which would drag today's worth and date backwards with it.
+      if (change.historyOnly) {
+        await addDBValuation({
+          positionId: change.positionId,
+          value: change.value,
+          currency: position.currency,
+          valuedOn: change.valuedOn,
+        });
+        continue;
+      }
+
+      // Otherwise through the same path the drawer uses, so the reading is filed identically
+      // whichever screen the figure was typed on.
       await updateDBPosition(change.positionId, {
         ...position,
         value: change.value,

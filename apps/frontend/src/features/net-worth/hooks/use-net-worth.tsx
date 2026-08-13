@@ -11,6 +11,7 @@ import { valueBondsOn } from '@/features/net-worth/services/bond-accrual.service
 import { changeSincePrevious } from '@/features/net-worth/services/valuation-history.service.ts';
 import { currencyExposure } from '@/features/net-worth/services/currency-exposure.service.ts';
 import { allocation } from '@/features/net-worth/services/allocation.service.ts';
+import { growthSeries } from '@/features/net-worth/services/growth-series.service.ts';
 import { ASSET_TYPE } from '@/constant.ts';
 import { paidInAndGrown } from '@/features/net-worth/services/paid-in-and-grown.service.ts';
 import { useGoalRecords } from '@/features/goals/hooks/use-goal-records.tsx';
@@ -154,6 +155,18 @@ export const useNetWorth = () => {
         ...valuedBonds.map((valued) => ({ value: valued.value, assetType: ASSET_TYPE.BONDS })),
       ],
       settings?.allocationTarget ?? {}
+    ),
+    // How the whole of it has moved, on every day anybody said anything. Every reading converted at
+    // **one** rate — today's — because at each reading's own day's rate the line would rise and fall
+    // with the exchange rate, and a chart answering "is my wealth growing" would answer "did the
+    // złoty move" instead.
+    growth: growthSeries(
+      convertDataToDesiredCurrency({
+        data: valuations,
+        exchangeRates,
+        desiredCurrency: settings?.currency,
+        amountKey: 'value',
+      })
     ),
     valuedOn: stalestValuation(convertedPositions),
     // What the two sides are made of, for anything drawing the whole picture rather than the figure.
