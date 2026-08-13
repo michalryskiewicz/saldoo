@@ -12,6 +12,14 @@ export type BackableHolding = {
   description: string;
   value: number;
   assignments?: GoalAssignment[];
+  /**
+   * What it has done since the reading before its latest, where it has one.
+   *
+   * Carried here so a goal can say *why* its figure moved when nobody touched it — see
+   * `backingMoved`. Optional because most callers of this shape do not care, and a holding valued
+   * once has no answer.
+   */
+  change?: { amount: number; since: Date };
 };
 
 /** One holding's contribution to one goal. */

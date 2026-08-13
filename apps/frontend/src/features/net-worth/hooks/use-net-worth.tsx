@@ -113,6 +113,8 @@ export const useNetWorth = () => {
         description: position.description,
         value: position.value,
         assignments: position.assignments,
+        // Carried through so a goal reading this holding can say why its own figure moved.
+        change: position.change,
       })),
     ...valuedBonds.map((valued, index) => ({
       id: valued.id,

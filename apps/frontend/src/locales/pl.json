@@ -260,7 +260,10 @@
     "converted": "Wydatek zakończony, cel utworzony",
     "top_up": "Dopłać",
     "amount": "Kwota",
-    "on_day": "Kiedy"
+    "on_day": "Kiedy",
+    "moved_down": "Z zasobów za tym celem ubyło {{amount}} od {{since}} — dlatego ta liczba spadła, a nie dlatego, że coś przestałeś robić.",
+    "moved_up": "Zasoby za tym celem urosły o {{amount}} od {{since}} — same, bez wpłaty.",
+    "cover_moved": "Pokrycie: {{before}} → {{now}} mies."
   },
   "cost_nature": {
     "question": "Płaciłbyś to bez dochodu?",

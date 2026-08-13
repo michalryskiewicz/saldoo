@@ -251,7 +251,10 @@
     "converted": "The cost is ended and the goal is open",
     "top_up": "Top up",
     "amount": "Amount",
-    "on_day": "When"
+    "on_day": "When",
+    "moved_down": "The holdings behind this goal are down {{amount}} since {{since}} — that is why this figure fell, not anything you stopped doing.",
+    "moved_up": "The holdings behind this goal are up {{amount}} since {{since}} — on their own, with nothing put in.",
+    "cover_moved": "Cover: {{before}} → {{now}} months"
   },
   "cost_nature": {
     "question": "Would you still pay this with no income?",

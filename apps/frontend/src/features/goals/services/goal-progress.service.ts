@@ -19,6 +19,10 @@ import {
   monthlyClaim,
 } from '@/features/goals/services/monthly-claim.service.ts';
 import {
+  backingMoved,
+  type BackingMoved,
+} from '@/features/goals/services/backing-moved.service.ts';
+import {
   deadlineOffer,
   type DeadlineOffer,
 } from '@/features/goals/services/deadline-offer.service.ts';
@@ -58,6 +62,18 @@ export type GoalProgress = {
   takesFromFree: number;
   /** How many months of living the fund would buy today. Absent on every other goal. */
   coverageNow?: number;
+  /**
+   * What the cover was before the holdings behind it last moved — the fund's own unit for the same
+   * fact `moved` states in money. Absent where nothing moved, or on any goal that is not the fund.
+   */
+  coverageBefore?: number;
+  /**
+   * What the holdings behind it did since anybody last valued them, where they did anything.
+   *
+   * The answer to "why did this fall when I did nothing", which a goal reading a stock has to be able
+   * to give: the account it sits in was spent out of, and the goal followed it down.
+   */
+  moved?: BackingMoved;
   /**
    * A later date, when the goal has outgrown what this person actually manages.
    *
@@ -106,6 +122,8 @@ export const goalProgress = ({
     // assigned to it would otherwise count the same złoty twice — once as a declaration somebody
     // typed and once as the holding it landed in.
     const backing = goal.funding === 'holdings' ? backingOf(goal.id, holdings) : [];
+    // Only where the goal actually reads them: a goal on declarations is not moved by an account.
+    const moved = goal.funding === 'holdings' ? backingMoved(goal.id, holdings) : undefined;
     const saved =
       goal.funding === 'holdings'
         ? backedValue(goal.id, holdings)
@@ -137,6 +155,15 @@ export const goalProgress = ({
       coverageNow: isEmergencyFund(goal)
         ? coverageInMonths({ saved, target, coverageMonths: goal.coverageMonths! })
         : undefined,
+      coverageBefore:
+        isEmergencyFund(goal) && moved
+          ? coverageInMonths({
+              saved: saved - moved.amount,
+              target,
+              coverageMonths: goal.coverageMonths!,
+            })
+          : undefined,
+      moved,
       offer: deadlineOffer(goal, contributions, today),
     };
   });
