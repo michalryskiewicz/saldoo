@@ -213,7 +213,23 @@
       "CURRENCIES": "Currencies",
       "OTHER": "Other"
     },
-    "untyped": "No type yet"
+    "untyped": "No type yet",
+    "allocation": {
+      "title": "How your wealth splits",
+      "subtitle": "What it is made of — and how far that is from what you planned",
+      "share": "Share",
+      "target": "Target",
+      "drift": "Difference",
+      "over": "{{points}} pp over",
+      "under": "{{points}} pp under",
+      "on_target": "on target",
+      "untyped": "No type: {{amount}} — left out of the split until you say what it is",
+      "empty": "Give at least one holding a type to see the split",
+      "target_title": "Target split",
+      "target_helper": "What share of your wealth each kind should be. It has to add up to 100%. The app shows the difference and will not tell you what to buy or sell.",
+      "target_sum": "Total: {{sum}}%",
+      "target_sum_error": "Has to be 100%, it is {{sum}}%"
+    }
   },
   "goal": {
     "title": "Goals",

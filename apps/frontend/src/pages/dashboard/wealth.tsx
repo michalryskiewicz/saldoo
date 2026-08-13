@@ -6,6 +6,7 @@ import { NEW_ENTITY_ID } from '@/constant.ts';
 import { setPositionsDrawerId } from '@/store/preferences.slice.ts';
 import PositionsCreate from '@/features/net-worth/components/positions-create.tsx';
 import { PositionsTable } from '@/features/net-worth/components/positions-table.tsx';
+import { AllocationTable } from '@/features/net-worth/components/allocation-table.tsx';
 import BondsCreate from '@/features/net-worth/components/bonds-create.tsx';
 import { BondsTable } from '@/features/net-worth/components/bonds-table.tsx';
 import { BondsChart } from '@/features/net-worth/components/bonds-chart.tsx';
@@ -29,6 +30,8 @@ export default function Wealth() {
       <NetWorthChart />
 
       <PositionsTable />
+
+      <AllocationTable />
 
       {/* Its own section rather than another kind of position: a bond is the one holding whose
           value the app can work out, and mixing it in would hide that. */}
