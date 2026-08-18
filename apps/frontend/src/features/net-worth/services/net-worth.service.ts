@@ -1,4 +1,6 @@
 import type { DBPosition } from '@/database/positions.ts';
+import type { DBBondHolding } from '@/database/bonds.ts';
+import { bondValueOn } from '@/features/net-worth/services/bond-accrual.service.ts';
 
 export type NetWorth = {
   /** Everything held. */
@@ -45,3 +47,28 @@ export const stalestValuation = (positions: DBPosition[]): Date | undefined =>
       (oldest, day) => (!oldest || day < oldest ? day : oldest),
       undefined
     );
+
+/**
+ * Net worth with treasury bonds counted at what they are **worth today**, not at what they cost.
+ *
+ * That is the whole difference between a bond and a hand-valued position: a bond's value follows
+ * from the day it was bought and the rate announced for the period, so nobody has to remember to
+ * update it. A bond that pays its interest out is worth its nominal and no more — the interest is
+ * sitting in the account it was paid into, and that account is a position of its own.
+ */
+export const netWorthWithBonds = (
+  positions: DBPosition[],
+  bonds: DBBondHolding[],
+  on: Date
+): NetWorth => {
+  const stated = netWorth(positions);
+  const computed = round(
+    bonds.reduce((total, bond) => total + bondValueOn(bond, on).value, 0)
+  );
+
+  return {
+    held: round(stated.held + computed),
+    owed: stated.owed,
+    net: round(stated.held + computed - stated.owed),
+  };
+};

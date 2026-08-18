@@ -5,7 +5,8 @@ import { useListExchangeRatesQuery } from '@/store/exchange-rates.api.ts';
 import { convertDataToDesiredCurrency } from '@/lib/exchange-rate.ts';
 import { getEarliestAndLatestDate, toISODate } from '@/lib/dates.ts';
 import { DEFAULT_SETTINGS } from '@/database/settings.service.ts';
-import { netWorth, stalestValuation } from '@/features/net-worth/services/net-worth.service.ts';
+import { netWorthWithBonds, stalestValuation } from '@/features/net-worth/services/net-worth.service.ts';
+import { netWorthBreakdown } from '@/features/net-worth/services/net-worth-breakdown.service.ts';
 
 /**
  * What is held and what is owed, in one currency.
@@ -17,6 +18,7 @@ import { netWorth, stalestValuation } from '@/features/net-worth/services/net-wo
 export const useNetWorth = () => {
   const { settings } = useSettings();
   const positions = useLiveQuery(() => db.positions.toArray(), []) || [];
+  const bonds = useLiveQuery(() => db.bonds.toArray(), []) || [];
 
   const { earliest } = getEarliestAndLatestDate(positions, 'valuedOn', 'iso-date');
   const { data: exchangeRates } = useListExchangeRatesQuery(
@@ -37,7 +39,12 @@ export const useNetWorth = () => {
   return {
     currency: settings?.currency ?? DEFAULT_SETTINGS.currency,
     positions: inOneCurrency,
-    totals: netWorth(inOneCurrency),
+    bonds,
+    // Bonds at what they are worth today, worked out rather than stated — nobody has to remember
+    // to update one.
+    totals: netWorthWithBonds(inOneCurrency, bonds, new Date()),
     valuedOn: stalestValuation(inOneCurrency),
+    // What the two sides are made of, for anything drawing the whole picture rather than the figure.
+    breakdown: netWorthBreakdown(inOneCurrency, bonds, new Date()),
   };
 };

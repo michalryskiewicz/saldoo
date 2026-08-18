@@ -42,6 +42,7 @@ const PROJECTED_TABLES: readonly DocumentTable[] = [
   'contributions',
   'closedWindows',
   'positions',
+  'bonds',
   'settings',
 ];
 

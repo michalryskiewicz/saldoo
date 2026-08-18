@@ -31,4 +31,5 @@ export default axiosInstance;
 export const endpoints = {
   profile: '/api/profile',
   exchange: '/api/exchange',
+  bondOffers: '/api/bonds/offers',
 } as const;
