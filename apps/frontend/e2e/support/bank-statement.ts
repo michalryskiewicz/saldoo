@@ -1,7 +1,7 @@
 /**
  * An ING statement, byte for byte the way the bank exports one.
  *
- * The app parses uploads as `cp1250` (`lib/transactions.ts`), so a UTF-8 file with Polish
+ * The app parses uploads as `cp1250` (`lib/banks/ing.ts`), so a UTF-8 file with Polish
  * letters in it arrives as mojibake — which looks like a rendering defect and is not one. The
  * encoder below is the whole reason this file exists: the fixture has to be the encoding the
  * parser is told to expect, or the screenshots it feeds are of a bug in the harness.
@@ -62,9 +62,9 @@ export type StatementEntry = {
 };
 
 /**
- * The columns the mapper reads, at the indices it reads them from
- * (`database/services/transactions.service.ts`): date, title, transaction number, amount,
- * currency. The rest are padding the real export carries and the app ignores.
+ * The columns the parser reads, at the indices it reads them from (`lib/banks/ing.ts`): date,
+ * title, transaction number, amount, currency. The rest are padding the real export carries and
+ * the app ignores.
  */
 const toRow = ({ date, title, amount, currency = 'PLN' }: StatementEntry, index: number) => {
   const row = Array<string>(ING_HEADER_ROW.length).fill('');
