@@ -715,5 +715,12 @@
     "month_other": "months",
     "year_one": "year",
     "year_other": "years"
+  },
+  "statement": {
+    "detecting": "Checking which bank wrote this file…",
+    "detected": "Recognised {{bank}} — the file's header matches in full.",
+    "ambiguous": "This could be {{banks}}. Say which bank the file came from.",
+    "unknown": "We do not recognise this format. Choose the bank yourself.",
+    "skipped_rows": "Rows that could not be read and were skipped: {{count}}."
   }
 }
