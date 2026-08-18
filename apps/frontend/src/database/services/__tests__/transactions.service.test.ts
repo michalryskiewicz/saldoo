@@ -1,156 +1,71 @@
 import { describe, it, expect } from 'vitest';
-import {
-  mapINGRowToDBTransaction,
-  mapPKOBPRowToDBTransaction,
-  mapBankRowToDBTransaction,
-  allocateTransactionsToOccurrences,
-} from '../transactions.service';
+import { toDBTransaction, allocateTransactionsToOccurrences } from '../transactions.service';
+import type { ParsedTransaction } from '@/lib/banks/contract.ts';
 
-describe('transactions.service', () => {
-  describe('mapINGRowToDBTransaction', () => {
-    it('maps ING CSV row to DBTransaction correctly', async () => {
-      const mockRow = [
-        '2025-12-09', // Data transakcji
-        '2025-12-09', // Data księgowania
-        'Test Kontrahent', // Dane kontrahenta
-        'Test Tytuł', // Tytuł
-        '12345678901234567890', // Nr rachunku
-        'ING Bank', // Nazwa banku
-        'Szczegóły', // Szczegóły
-        'TRX123456', // Nr transakcji
-        '-123,45', // Kwota transakcji
-        'PLN', // Waluta
-      ];
+const payment = (overrides: Partial<ParsedTransaction> = {}): ParsedTransaction => ({
+  transactionDate: '2025-12-09',
+  description: 'Test Tytuł',
+  amount: -123.45,
+  currency: 'PLN',
+  transactionId: 'TRX123456',
+  rawData: ['2025-12-09', '2025-12-09', '', 'Test Tytuł', '', '', '', 'TRX123456', '-123,45', 'PLN'],
+  ...overrides,
+});
 
-      const result = await mapINGRowToDBTransaction(mockRow);
+describe('toDBTransaction', () => {
+  it('keeps what the parser read and adds only what the database owns', async () => {
+    const parsed = payment();
 
-      expect(result.sourceBank).toBe('ING');
-      expect(result.amount).toBe(-123.45);
-      expect(result.currency).toBe('PLN');
-      expect(result.transactionDate).toBe('2025-12-09');
-      expect(result.description).toBe('Test Tytuł');
-      expect(result.transactionId).toBe('TRX123456');
-      expect(result.rawData).toEqual(mockRow);
-      expect(result.id).toBeDefined();
-      expect(result.createdAt).toBeInstanceOf(Date);
-      expect(result.hash).toBeDefined();
-    });
+    const stored = await toDBTransaction(parsed, 'ING');
 
-    it('handles positive amounts', async () => {
-      const mockRow = ['2025-12-09', '2025-12-09', '', '', '', '', '', '', '1000,50', 'PLN'];
-      const result = await mapINGRowToDBTransaction(mockRow);
-      expect(result.amount).toBe(1000.5);
-    });
-
-    it('handles zero amount', async () => {
-      const mockRow = ['2025-12-09', '2025-12-09', '', '', '', '', '', '', '0,00', 'PLN'];
-      const result = await mapINGRowToDBTransaction(mockRow);
-      expect(result.amount).toBe(0);
-    });
-
-    it('handles empty amount', async () => {
-      const mockRow = ['2025-12-09', '2025-12-09', '', '', '', '', '', '', '', 'PLN'];
-      const result = await mapINGRowToDBTransaction(mockRow);
-      expect(result.amount).toBe(0);
-    });
-
-    it('handles EUR currency', async () => {
-      const mockRow = ['2025-12-09', '2025-12-09', '', '', '', '', '', '', '-50,25', 'EUR'];
-      const result = await mapINGRowToDBTransaction(mockRow);
-      expect(result.currency).toBe('EUR');
-      expect(result.amount).toBe(-50.25);
-    });
+    expect(stored.sourceBank).toBe('ING');
+    expect(stored.amount).toBe(-123.45);
+    expect(stored.currency).toBe('PLN');
+    expect(stored.transactionDate).toBe('2025-12-09');
+    expect(stored.description).toBe('Test Tytuł');
+    expect(stored.transactionId).toBe('TRX123456');
+    expect(stored.rawData).toEqual(parsed.rawData);
+    expect(stored.id).toBeDefined();
+    expect(stored.createdAt).toBeInstanceOf(Date);
+    expect(stored.hash).toBeDefined();
   });
 
-  describe('mapPKOBPRowToDBTransaction', () => {
-    it('maps PKOBP CSV row to DBTransaction correctly', async () => {
-      const mockRow = [
-        '2025-12-09', // Data operacji
-        '2025-12-09', // Data waluty
-        'Przelew', // Typ transakcji
-        '-250,00', // Kwota
-        'PLN', // Waluta
-        'Opis', // Opis transakcji
-        'część 1',
-        'część 2',
-      ];
+  it('files a payment under whichever bank read it', async () => {
+    const stored = await toDBTransaction(payment({ transactionId: undefined }), 'PKOBP');
 
-      const result = await mapPKOBPRowToDBTransaction(mockRow);
-
-      expect(result.sourceBank).toBe('PKOBP');
-      expect(result.amount).toBe(-250.0);
-      expect(result.currency).toBe('PLN');
-      expect(result.transactionDate).toBe('2025-12-09');
-      expect(result.description).toBe('Opis część 1 część 2');
-      expect(result.rawData).toEqual(mockRow);
-      expect(result.id).toBeDefined();
-      expect(result.createdAt).toBeInstanceOf(Date);
-      expect(result.hash).toBeDefined();
-    });
-
-    it('concatenates description fields correctly', async () => {
-      const mockRow = [
-        '2025-12-09',
-        '2025-12-09',
-        'Type',
-        '100,00',
-        'PLN',
-        'Part1',
-        'Part2',
-        'Part3',
-        'Part4',
-      ];
-      const result = await mapPKOBPRowToDBTransaction(mockRow);
-      expect(result.description).toBe('Part1 Part2 Part3 Part4');
-    });
-
-    it('handles USD currency', async () => {
-      const mockRow = ['2025-12-09', '2025-12-09', 'Type', '99,99', 'USD', 'Description'];
-      const result = await mapPKOBPRowToDBTransaction(mockRow);
-      expect(result.currency).toBe('USD');
-      expect(result.amount).toBe(99.99);
-    });
+    expect(stored.sourceBank).toBe('PKOBP');
+    expect(stored.transactionId).toBeUndefined();
   });
 
-  describe('mapBankRowToDBTransaction', () => {
-    it('routes to ING mapper for ING bank', async () => {
-      const mockRow = ['2025-12-09', '2025-12-09', '', '', '', '', '', 'TRX', '-100,00', 'PLN'];
-      const result = await mapBankRowToDBTransaction('ING', mockRow);
-      expect(result.sourceBank).toBe('ING');
+  describe('hash', () => {
+    it('differs when the rows differ', async () => {
+      const one = await toDBTransaction(payment({ rawData: ['a', 'TRX1'] }), 'ING');
+      const other = await toDBTransaction(payment({ rawData: ['a', 'TRX2'] }), 'ING');
+
+      expect(one.hash).not.toBe(other.hash);
     });
 
-    it('routes to PKOBP mapper for PKOBP bank', async () => {
-      const mockRow = ['2025-12-09', '2025-12-09', 'Type', '-100,00', 'PLN', 'Desc'];
-      const result = await mapBankRowToDBTransaction('PKOBP', mockRow);
-      expect(result.sourceBank).toBe('PKOBP');
-    });
-
-    it('throws error for unsupported bank', async () => {
-      const mockRow = ['data'];
-      await expect(mapBankRowToDBTransaction('UNKNOWN_BANK', mockRow)).rejects.toThrow(
-        'Unsupported bank: UNKNOWN_BANK'
-      );
-    });
-  });
-
-  describe('hash generation', () => {
-    it('generates different hashes for different rows', async () => {
-      const row1 = ['2025-12-09', '2025-12-09', '', '', '', '', '', 'TRX1', '-100,00', 'PLN'];
-      const row2 = ['2025-12-09', '2025-12-09', '', '', '', '', '', 'TRX2', '-100,00', 'PLN'];
-
-      const result1 = await mapINGRowToDBTransaction(row1);
-      const result2 = await mapINGRowToDBTransaction(row2);
-
-      expect(result1.hash).not.toBe(result2.hash);
-    });
-
-    it('generates same hash for identical rows', async () => {
+    it('is the same for the same row, which is what makes re-uploading a statement harmless', async () => {
       const row = ['2025-12-09', '2025-12-09', '', '', '', '', '', 'TRX', '-100,00', 'PLN'];
 
-      const result1 = await mapINGRowToDBTransaction(row);
-      const result2 = await mapINGRowToDBTransaction(row);
+      const one = await toDBTransaction(payment({ rawData: row }), 'ING');
+      const other = await toDBTransaction(payment({ rawData: row }), 'ING');
 
-      expect(result1.hash).toBe(result2.hash);
+      expect(one.hash).toBe(other.hash);
+    });
+
+    it('is taken over the original row, not the parsed fields', async () => {
+      const row = ['2025-12-09', '2025-12-09', '', '', '', '', '', 'TRX', '-100,00', 'PLN'];
+
+      // Two readings of one row that disagree about everything except the row itself: a parser fix
+      // must not make already-imported payments look new.
+      const before = await toDBTransaction(payment({ rawData: row, description: 'old reading' }), 'ING');
+      const after = await toDBTransaction(
+        payment({ rawData: row, description: 'better reading', amount: -100 }),
+        'ING'
+      );
+
+      expect(before.hash).toBe(after.hash);
     });
   });
 });

@@ -2,54 +2,34 @@ import { type DBTransaction } from '../transactions';
 import { v4 as uuidv4 } from 'uuid';
 import { hashString } from '@/lib/helpers.ts';
 import type { Currency } from '@/constant.ts';
+import type { ParsedTransaction } from '@/lib/banks/contract.ts';
 
-// Map ING row to DBTransaction
-export async function mapINGRowToDBTransaction(row: unknown[]): Promise<DBTransaction> {
-  // Adjust indices as per ING_HEADER_ROW
-  return {
-    id: uuidv4(),
-    createdAt: new Date(),
-    sourceBank: 'ING',
-    amount: parseFloat((row[8] as string)?.replace(',', '.') || '0'),
-    currency: (row[9] as Currency) || '',
-    transactionDate: (row[0] as string) || '',
-    description: (row[3] as string) || '',
-    hash: await hashString(row.join('|')), // You may want to implement a hash function
-    transactionId: (row[7] as string) || '',
-    rawData: row,
-  };
-}
-
-// Map PKOBP row to DBTransaction
-export async function mapPKOBPRowToDBTransaction(row: unknown[]): Promise<DBTransaction> {
-  // Adjust indices as per PKOBP_HEADER_ROW
-  return {
-    id: uuidv4(),
-    createdAt: new Date(),
-    sourceBank: 'PKOBP',
-    amount: parseFloat((row[3] as string)?.replace(',', '.') || '0'),
-    currency: (row[4] as Currency) || '',
-    transactionDate: (row[0] as string) || '',
-    description: (row.slice(5).join(' ') || '')?.trim(),
-    hash: await hashString(row.join('|')), // You may want to implement a hash function
-    rawData: row,
-  };
-}
-
-// Generic dispatcher
-export async function mapBankRowToDBTransaction(
-  bank: string,
-  row: unknown[]
-): Promise<DBTransaction> {
-  switch (bank) {
-    case 'ING':
-      return mapINGRowToDBTransaction(row);
-    case 'PKOBP':
-      return mapPKOBPRowToDBTransaction(row);
-    default:
-      throw new Error(`Unsupported bank: ${bank}`);
-  }
-}
+/**
+ * A payment a parser read, as this database stores it.
+ *
+ * The identity is added here and nowhere else: a parser says what a file contains, and what counts
+ * as one record — its id, when it arrived, and the hash that decides whether it is already held —
+ * is the database's question, asked the same way for every bank.
+ *
+ * **The hash is taken over the original row**, joined, exactly as it was before there was a parser
+ * contract. It is not a nicety: it is what makes re-uploading a statement harmless, and computing it
+ * from the parsed fields instead would make every transaction anybody has already imported look new.
+ */
+export const toDBTransaction = async (
+  parsed: ParsedTransaction,
+  sourceBank: string
+): Promise<DBTransaction> => ({
+  id: uuidv4(),
+  createdAt: new Date(),
+  sourceBank,
+  amount: parsed.amount,
+  currency: parsed.currency as Currency,
+  transactionDate: parsed.transactionDate,
+  description: parsed.description,
+  transactionId: parsed.transactionId,
+  hash: await hashString(parsed.rawData.join('|')),
+  rawData: parsed.rawData,
+});
 
 /** How far either side of a duty's execution date a payment still counts as that duty's. */
 const MATCH_WINDOW_DAYS = 4;
