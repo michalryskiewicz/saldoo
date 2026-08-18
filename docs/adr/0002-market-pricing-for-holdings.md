@@ -119,10 +119,17 @@ worth screen, and all of it would matter for anything resembling a trading tool 
 1. Manual entry remains the default and stays supported forever. It is the only path with no legal
    exposure, no cost and no leak, and for many holdings — a flat, a savings account — it is also the
    only truthful one.
+
+   This is not a stopgap and shipped already: a counted holding is entered as units and the price of
+   one, the worth is computed from them, and `RevalueHoldings` re-asks every holding the question its
+   kind is answered in, once, under one shared date. Somebody saying what a share was worth on a day
+   is a fact with a date on it — which is what the valuation history stores.
 2. Automatic prices, when built, come from the user's own sheet through #32/#33, and are presented as
    delayed and informational.
 3. Stooq and Yahoo are closed. Reopening either needs written permission, not a better parser.
-4. A licensed vendor feed is revisited when there is revenue to carry a licence, and only in the
+4. A licensed vendor feed is revisited **when re-valuing by hand is observed to be working and
+   getting used** — that is the signal that the price is worth automating, and it has to come before
+   the licence, not after. Revenue to carry the fee is the second gate, not the first. And only in the
    `BondOffer` shape: a whole public catalogue, cached, served to everybody, personal to nobody.
    First question to the vendor, in writing: does the plan cover displaying prices to our end users,
    and does it cover GPW delayed data, or does the 24,000 PLN/year land on us?
