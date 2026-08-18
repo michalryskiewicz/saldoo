@@ -461,7 +461,10 @@
     "goal-reads-holdings_one": "Cel czyta teraz wartość przypisanego zasobu, nie wpłat",
     "goal-reads-holdings_few": "Te cele czytają teraz wartość przypisanego zasobu, nie wpłat",
     "goal-reads-holdings_many": "Te cele czytają teraz wartość przypisanego zasobu, nie wpłat",
-    "goal-reads-holdings_other": "Te cele czytają teraz wartość przypisanego zasobu, nie wpłat"
+    "goal-reads-holdings_other": "Te cele czytają teraz wartość przypisanego zasobu, nie wpłat",
+    "create-mapping": "Zapisaliśmy format",
+    "update-mapping": "Zmieniliśmy format",
+    "deleted-mapping": "Usunęliśmy format"
   },
   "errors": {
     "create-expense": "Nie udało się dodać wydatku. Spróbuj ponownie później",
@@ -492,7 +495,10 @@
     "update-account-settings": "Nie udało się zaktualizować ustawień konta. Spróbuj ponownie później",
     "generic": "Coś poszło nie tak. Spróbuj ponownie później",
     "ends-before-it-starts": "Koniec nie może wypaść przed pierwszym wystąpieniem",
-    "goal-reads-holdings": "Nie udało się przestawić celu na wartość zasobu"
+    "goal-reads-holdings": "Nie udało się przestawić celu na wartość zasobu",
+    "create-mapping": "Nie udało się zapisać formatu",
+    "update-mapping": "Nie udało się zmienić formatu",
+    "deleted-mapping": "Nie udało się usunąć formatu"
   },
   "resolved": "Opłacone",
   "resolved_via_transaction": "Opłacone automatycznie z transakcji",
@@ -743,6 +749,37 @@
     "detected": "Rozpoznaliśmy {{bank}} — nagłówek pliku zgadza się w całości.",
     "ambiguous": "To może być {{banks}}. Wskaż, z którego banku pochodzi ten plik.",
     "unknown": "Nie rozpoznaliśmy tego formatu. Wybierz bank samodzielnie.",
-    "skipped_rows": "Pominięto wiersze, których nie dało się odczytać: {{count}}."
+    "skipped_rows": "Pominięto wiersze, których nie dało się odczytać: {{count}}.",
+    "mapping": {
+      "title": "Opisz format swojego banku",
+      "description": "Nie znamy tego pliku. Wskaż, co jest w której kolumnie — zapamiętamy to i następnym razem rozpoznamy plik sami.",
+      "cta": "Mojego banku nie ma na liście",
+      "encoding": "Kodowanie",
+      "delimiter": "Separator",
+      "delimiter_semicolon": "Średnik (;)",
+      "delimiter_comma": "Przecinek (,)",
+      "delimiter_tab": "Tabulator",
+      "header_hint": "Kliknij wiersz, który nazywa kolumny.",
+      "header_is": "Nagłówek",
+      "no_header": "Plik nie ma nagłówka",
+      "column_n": "Kolumna {{index}}",
+      "choose_column": "Wskaż kolumnę",
+      "date": "Data",
+      "date_format": "Format daty",
+      "description_column": "Opis",
+      "amount": "Kwota",
+      "split_amounts": "Wpłaty i wypłaty w osobnych kolumnach",
+      "debit": "Obciążenia",
+      "credit": "Uznania",
+      "currency_column": "Waluta",
+      "counterparty": "Kontrahent",
+      "name": "Nazwa formatu",
+      "name_placeholder": "np. mBank — konto osobiste",
+      "reads": "Odczytamy płatności: {{count}}.",
+      "reads_none": "Przy tym ustawieniu nie odczytamy żadnej płatności.",
+      "save": "Zapisz format i użyj",
+      "saved_formats": "Twoje formaty"
+    },
+    "using": "Zaimportujemy ten plik formatem: {{name}}."
   }
 }

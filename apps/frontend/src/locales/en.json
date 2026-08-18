@@ -446,7 +446,10 @@
     "upload-transaction": "Transaction added",
     "update-transactions": "Transactions updated",
     "goal-reads-holdings_one": "That goal now reads the value of the holding, not the declarations",
-    "goal-reads-holdings_other": "Those goals now read the value of the holding, not the declarations"
+    "goal-reads-holdings_other": "Those goals now read the value of the holding, not the declarations",
+    "create-mapping": "Format saved",
+    "update-mapping": "Format changed",
+    "deleted-mapping": "Format deleted"
   },
   "errors": {
     "create-expense": "Could not add the expense. Please try again later",
@@ -477,7 +480,10 @@
     "update-account-settings": "Could not update your account settings. Please try again later",
     "generic": "Something went wrong. Please try again later",
     "ends-before-it-starts": "The end cannot fall before the first occurrence",
-    "goal-reads-holdings": "Could not switch the goal to read the holding"
+    "goal-reads-holdings": "Could not switch the goal to read the holding",
+    "create-mapping": "We could not save the format",
+    "update-mapping": "We could not change the format",
+    "deleted-mapping": "We could not delete the format"
   },
   "resolved": "Paid",
   "resolved_via_transaction": "Paid automatically from a transaction",
@@ -721,6 +727,37 @@
     "detected": "Recognised {{bank}} — the file's header matches in full.",
     "ambiguous": "This could be {{banks}}. Say which bank the file came from.",
     "unknown": "We do not recognise this format. Choose the bank yourself.",
-    "skipped_rows": "Rows that could not be read and were skipped: {{count}}."
+    "skipped_rows": "Rows that could not be read and were skipped: {{count}}.",
+    "mapping": {
+      "title": "Describe your bank's format",
+      "description": "We do not know this file. Say what is in which column — we will remember it and recognise the file ourselves next time.",
+      "cta": "My bank is not on the list",
+      "encoding": "Encoding",
+      "delimiter": "Separator",
+      "delimiter_semicolon": "Semicolon (;)",
+      "delimiter_comma": "Comma (,)",
+      "delimiter_tab": "Tab",
+      "header_hint": "Click the row that names the columns.",
+      "header_is": "Header",
+      "no_header": "The file has no header",
+      "column_n": "Column {{index}}",
+      "choose_column": "Choose a column",
+      "date": "Date",
+      "date_format": "Date format",
+      "description_column": "Description",
+      "amount": "Amount",
+      "split_amounts": "Money in and money out are in separate columns",
+      "debit": "Debits",
+      "credit": "Credits",
+      "currency_column": "Currency",
+      "counterparty": "Counterparty",
+      "name": "Format name",
+      "name_placeholder": "e.g. mBank — personal account",
+      "reads": "We will read {{count}} payments.",
+      "reads_none": "With these settings we would read no payments at all.",
+      "save": "Save the format and use it",
+      "saved_formats": "Your formats"
+    },
+    "using": "We will import this file with your format: {{name}}."
   }
 }

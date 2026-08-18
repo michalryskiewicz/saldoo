@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useFormContext } from 'react-hook-form';
 import i18n from '@/i18n.ts';
 import {
@@ -27,7 +28,11 @@ import { checkIfOpen } from '@/lib/helpers.ts';
 import { setTransactionsDrawerId } from '@/store/preferences.slice.ts';
 import { useDispatch } from 'react-redux';
 import { toast } from 'sonner';
-import { BANK_PARSERS, parserById } from '@/lib/banks/registry.ts';
+import { BANK_PARSERS } from '@/lib/banks/registry.ts';
+import { parserFromMapping } from '@/lib/banks/mapping.ts';
+import { db } from '@/database/index.ts';
+import StatementMapping from '@/features/transactions/views/statement-mapping.tsx';
+import type { BankCsvParser } from '@/lib/banks/contract.ts';
 import { readCandidates } from '@/lib/banks/read-statement.ts';
 import { detectParser, type Detection, type DetectionCandidate } from '@/lib/banks/detect.ts';
 import { addDBTransactions } from '@/database/transactions.ts';
@@ -35,9 +40,9 @@ import { addDBTransactions } from '@/database/transactions.ts';
 type CreateTransactionFormType = z.infer<typeof formSchema>;
 
 const formSchema = z.object({
-  // A string checked against the registry rather than a literal union: the list of banks lives in
-  // one place, and a union here would be the copy that goes stale the first time one is added.
-  bank: z.string().refine((id) => !!parserById(id)),
+  // Not a literal union of the banks Saldoo ships: a format somebody described themselves is as
+  // valid a choice as ING, and its id is only known at runtime.
+  bank: z.string().min(1),
   file: z.any(),
 });
 
@@ -71,12 +76,44 @@ const detectionMessage = (detection: Detection | null, reading: boolean): string
  * or a sign flipped is not something anybody catches in a table of four hundred rows. So a close
  * match is named and offered, never chosen.
  */
-const StatementField = ({ onRead }: { onRead: (candidates: DetectionCandidate[]) => void }) => {
+const StatementField = ({
+  parsers,
+  onRead,
+}: {
+  parsers: BankCsvParser[];
+  onRead: (candidates: DetectionCandidate[]) => void;
+}) => {
   const { setValue } = useFormContext();
   const [detection, setDetection] = useState<Detection | null>(null);
   const [reading, setReading] = useState(false);
+  const [file, setFile] = useState<File | undefined>();
+  /** Open when the person asked to describe the format, or when nothing recognised the file. */
+  const [describing, setDescribing] = useState(false);
+  /** The format they just described, which is neither a detection nor a guess. */
+  const [described, setDescribed] = useState<BankCsvParser | null>(null);
+
+  /**
+   * Reads the file through a format somebody described, and selects it.
+   *
+   * Deliberately not folded into detection: a mapping saved a second ago was not *recognised*, and
+   * saying so would be the app taking credit for the person's own work — and hiding, next month,
+   * that this is the format that will be recognised then.
+   */
+  const chooseDescribed = async (parser: BankCsvParser) => {
+    if (!file) return;
+
+    const candidates = await readCandidates(file, [parser]);
+
+    onRead(candidates);
+    setDescribed(parser);
+    setDescribing(false);
+    setValue('bank', parser.id, { shouldValidate: true });
+  };
 
   const read = async (file?: File) => {
+    setFile(file);
+    setDescribed(null);
+    setDescribing(false);
     setValue('file', file);
     setValue('bank', '');
     setDetection(null);
@@ -87,7 +124,7 @@ const StatementField = ({ onRead }: { onRead: (candidates: DetectionCandidate[])
     setReading(true);
 
     try {
-      const candidates = await readCandidates(file, BANK_PARSERS);
+      const candidates = await readCandidates(file, parsers);
       const detected = detectParser(candidates);
 
       onRead(candidates);
@@ -101,7 +138,9 @@ const StatementField = ({ onRead }: { onRead: (candidates: DetectionCandidate[])
     }
   };
 
-  const message = detectionMessage(detection, reading);
+  const message = described
+    ? i18n.t('statement.using', { name: described.displayName })
+    : detectionMessage(detection, reading);
 
   return (
     <>
@@ -148,8 +187,18 @@ const StatementField = ({ onRead }: { onRead: (candidates: DetectionCandidate[])
       <Field.RadioGroup
         label={i18n.t('bank_description')}
         name="bank"
-        options={BANK_PARSERS.map((parser) => ({ value: parser.id, label: parser.displayName }))}
+        options={parsers.map((parser) => ({ value: parser.id, label: parser.displayName }))}
       />
+
+      {file &&
+        !described &&
+        (describing || detection?.kind === 'unknown' ? (
+          <StatementMapping file={file} onSaved={(parser) => void chooseDescribed(parser)} />
+        ) : (
+          <Button type="button" variant="ghost" onClick={() => setDescribing(true)}>
+            {i18n.t('statement.mapping.cta')}
+          </Button>
+        ))}
     </>
   );
 };
@@ -165,8 +214,20 @@ export default function TransactionsCreate() {
    */
   const [candidates, setCandidates] = useState<DetectionCandidate[]>([]);
 
+  /**
+   * Everything that can read a statement here: the banks Saldoo ships, and the formats this person
+   * described for banks it does not. They are the same kind of thing by the time they reach the
+   * screen, which is the whole point of the parser contract.
+   */
+  const mappings = useLiveQuery(() => db.csvMappings.toArray(), []) ?? [];
+  const parsers = useMemo(
+    () => [...BANK_PARSERS, ...mappings.map(parserFromMapping)],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mappings.map((mapping) => `${mapping.id}:${mapping.version}`).join()]
+  );
+
   const onSubmit = async (values: CreateTransactionFormType) => {
-    const parser = parserById(values.bank);
+    const parser = parsers.find((one) => one.id === values.bank);
     if (!parser) return;
 
     const alreadyRead = candidates.find((candidate) => candidate.parser.id === parser.id);
@@ -198,7 +259,7 @@ export default function TransactionsCreate() {
         <div className="flex flex-col gap-1.5 p-4">
           <Form schema={formSchema} onSubmit={onSubmit}>
             <div className="flex flex-col gap-5">
-              <StatementField onRead={setCandidates} />
+              <StatementField parsers={parsers} onRead={setCandidates} />
               <Button type="submit">{i18n.t(id === NEW_ENTITY_ID ? 'submit' : 'edit')}</Button>
             </div>
           </Form>
