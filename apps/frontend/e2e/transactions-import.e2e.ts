@@ -125,3 +125,107 @@ test('the app names the bank from the file, and imports without being told', asy
 
   await device.close();
 });
+
+/**
+ * The report, which is what makes a repeated import readable rather than merely harmless.
+ *
+ * Uploading a month twice already changed nothing — the hash saw to that — but the second upload
+ * looked exactly like the first from the outside. The numbers are the difference between "it worked"
+ * and knowing that nothing was imported because everything was already held.
+ */
+test('the second upload of a month reports what it did instead of just succeeding', async ({
+  browser,
+  baseURL,
+}) => {
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  await app.openTransactions();
+  await device.page.getByRole('button', { name: pl.create_transactions }).click();
+
+  const sheet = device.page.getByRole('dialog', { name: pl.add_transactions });
+  const upload = () =>
+    sheet.locator('#file-input').setInputFiles({
+      name: 'marzec.csv',
+      mimeType: 'text/csv',
+      buffer: ingStatement(STATEMENT),
+    });
+
+  await upload();
+  await sheet.getByRole('button', { name: pl.submit, exact: true }).click();
+
+  const report = sheet.getByTestId('import-report');
+  await expect(report).toContainText(
+    pl.statement.report.imported.replace('{{count}}', String(STATEMENT.length))
+  );
+  await expect(report).toContainText(
+    pl.statement.report.covering
+      .replace('{{from}}', STATEMENT[0].date)
+      .replace('{{to}}', STATEMENT[STATEMENT.length - 1].date)
+  );
+
+  await upload();
+  await sheet.getByRole('button', { name: pl.submit, exact: true }).click();
+
+  await expect(report).toContainText(pl.statement.report.imported.replace('{{count}}', '0'));
+  await expect(report).toContainText(
+    pl.statement.report.duplicates.replace('{{count}}', String(STATEMENT.length))
+  );
+
+  expect(device.problems()).toEqual([]);
+
+  await device.close();
+});
+
+/**
+ * A row the parser cannot read is named, not swallowed.
+ *
+ * The amount is what makes a row unreadable here, and the point of the assertion is that the file
+ * still imports: one broken row in a statement of hundreds must not cost somebody the other rows.
+ */
+test('a row that cannot be read is reported by its number, and the rest still import', async ({
+  browser,
+  baseURL,
+}) => {
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  const broken = Buffer.from(
+    ingStatement(STATEMENT)
+      .toString('latin1')
+      .replace(STATEMENT[1].amount.toFixed(2).replace('.', ','), 'brak danych'),
+    'latin1'
+  );
+
+  await app.openTransactions();
+  await device.page.getByRole('button', { name: pl.create_transactions }).click();
+
+  const sheet = device.page.getByRole('dialog', { name: pl.add_transactions });
+  await sheet
+    .locator('#file-input')
+    .setInputFiles({ name: 'marzec.csv', mimeType: 'text/csv', buffer: broken });
+  await sheet.getByRole('button', { name: pl.submit, exact: true }).click();
+
+  const report = sheet.getByTestId('import-report');
+  await expect(report).toContainText(
+    pl.statement.report.imported.replace('{{count}}', String(STATEMENT.length - 1))
+  );
+  await expect(report).toContainText(pl.statement.report.unreadable.replace('{{count}}', '1'));
+  await expect(report).toContainText(pl.statement.report.row.replace('{{row}}', '2'));
+  await expect(report).toContainText(pl.statement.report['reason_unreadable-amount']);
+
+  await device.page.keyboard.press('Escape');
+  await expect(device.page.getByText(STATEMENT[0].title)).toBeVisible();
+
+  await device.close();
+});

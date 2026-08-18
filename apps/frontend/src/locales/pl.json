@@ -749,7 +749,6 @@
     "detected": "Rozpoznaliśmy {{bank}} — nagłówek pliku zgadza się w całości.",
     "ambiguous": "To może być {{banks}}. Wskaż, z którego banku pochodzi ten plik.",
     "unknown": "Nie rozpoznaliśmy tego formatu. Wybierz bank samodzielnie.",
-    "skipped_rows": "Pominięto wiersze, których nie dało się odczytać: {{count}}.",
     "mapping": {
       "title": "Opisz format swojego banku",
       "description": "Nie znamy tego pliku. Wskaż, co jest w której kolumnie — zapamiętamy to i następnym razem rozpoznamy plik sami.",
@@ -780,6 +779,21 @@
       "save": "Zapisz format i użyj",
       "saved_formats": "Twoje formaty"
     },
-    "using": "Zaimportujemy ten plik formatem: {{name}}."
+    "using": "Zaimportujemy ten plik formatem: {{name}}.",
+    "report": {
+      "title": "Co się wydarzyło",
+      "imported": "Zaimportowane: {{count}}",
+      "duplicates": "Już je mieliśmy: {{count}}",
+      "repeated": "Powtórzone w samym pliku: {{count}}",
+      "unreadable": "Nieodczytane wiersze: {{count}}",
+      "not_stored": "Odczytane, ale niezapisane: {{count}}",
+      "covering": "Zakres dat: {{from}} – {{to}}",
+      "row": "wiersz {{row}}",
+      "reason_no-date": "brak daty",
+      "reason_unreadable-amount": "nieczytelna kwota",
+      "copy": "Skopiuj raport",
+      "copied": "Skopiowano raport",
+      "download": "Pobierz raport"
+    }
   }
 }
