@@ -737,5 +737,12 @@
     "year_one": "rok",
     "year_few": "lata",
     "year_many": "lat"
+  },
+  "statement": {
+    "detecting": "Sprawdzamy, z którego banku jest ten plik…",
+    "detected": "Rozpoznaliśmy {{bank}} — nagłówek pliku zgadza się w całości.",
+    "ambiguous": "To może być {{banks}}. Wskaż, z którego banku pochodzi ten plik.",
+    "unknown": "Nie rozpoznaliśmy tego formatu. Wybierz bank samodzielnie.",
+    "skipped_rows": "Pominięto wiersze, których nie dało się odczytać: {{count}}."
   }
 }
