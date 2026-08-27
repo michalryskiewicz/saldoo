@@ -4,6 +4,7 @@ import { openDevice } from './support/device.ts';
 import { SaldooApp } from './support/app.ts';
 import { PASSPHRASE } from './support/fixtures.ts';
 import { ingStatement } from './support/bank-statement.ts';
+import pl from '../src/locales/pl.json' with { type: 'json' };
 
 /**
  * Uploading a statement, which is the only way transactions ever enter this app.
@@ -70,6 +71,57 @@ test('uploading the same statement twice adds nothing the second time', async ({
   for (const entry of STATEMENT) {
     await expect(device.page.getByText(entry.title)).toHaveCount(1);
   }
+
+  await device.close();
+});
+
+/**
+ * The file says which bank wrote it, so nobody should have to.
+ *
+ * A browser test because the answer depends on things no unit test has: the file is read through
+ * the real input, in the encoding the bank writes, before anything is stored. What is asserted is
+ * both halves — that the screen says which bank it recognised, and that the import then works
+ * without the bank ever having been picked.
+ */
+test('the app names the bank from the file, and imports without being told', async ({
+  browser,
+  baseURL,
+}) => {
+  const drive = createFakeDrive();
+  const device = await openDevice(browser, { drive, baseURL: baseURL! });
+  const app = new SaldooApp(device.page);
+
+  await app.open();
+  await app.createVault(PASSPHRASE);
+  await app.completeOnboarding();
+
+  await app.openTransactions();
+  await device.page.getByRole('button', { name: pl.create_transactions }).click();
+
+  const sheet = device.page.getByRole('dialog', { name: pl.add_transactions });
+  await sheet
+    .locator('#file-input')
+    .setInputFiles({
+      name: 'statement.csv',
+      mimeType: 'text/csv',
+      buffer: ingStatement(STATEMENT),
+    });
+
+  await expect(sheet.getByTestId('import-detection')).toHaveText(
+    pl.statement.detected.replace('{{bank}}', 'ING Bank Śląski')
+  );
+  await expect(sheet.getByRole('radio', { name: 'ING Bank Śląski' })).toBeChecked();
+
+  await sheet.getByRole('button', { name: pl.submit, exact: true }).click();
+
+  await expect(device.page.getByText(pl.success['upload-transaction']).first()).toBeVisible();
+  await device.page.keyboard.press('Escape');
+
+  for (const entry of STATEMENT) {
+    await expect(device.page.getByText(entry.title)).toBeVisible();
+  }
+
+  expect(device.problems()).toEqual([]);
 
   await device.close();
 });

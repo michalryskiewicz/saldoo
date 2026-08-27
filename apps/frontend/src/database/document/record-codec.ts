@@ -36,6 +36,7 @@ export type DocumentTable =
   | 'positions'
   | 'valuations'
   | 'bonds'
+  | 'csvMappings'
   | 'settings';
 
 /** Fields held as `Date` in Dexie and as epoch milliseconds in the document. */
@@ -51,6 +52,7 @@ const DATE_FIELDS: Record<DocumentTable, readonly string[]> = {
   positions: ['createdAt', 'updatedAt', 'valuedOn', 'boughtOn'],
   valuations: ['createdAt', 'valuedOn'],
   bonds: ['createdAt', 'updatedAt', 'boughtOn'],
+  csvMappings: ['createdAt', 'updatedAt'],
   settings: [],
 };
 
@@ -72,6 +74,7 @@ const DENORMALISED_FIELDS: Record<DocumentTable, readonly string[]> = {
   positions: [],
   valuations: [],
   bonds: [],
+  csvMappings: [],
   settings: [],
 };
 
@@ -92,6 +95,7 @@ const JSON_FIELDS: Record<DocumentTable, readonly string[]> = {
   positions: [],
   valuations: [],
   bonds: [],
+  csvMappings: ['columns', 'headerRow'],
   settings: [],
 };
 

@@ -44,6 +44,7 @@ const PROJECTED_TABLES: readonly DocumentTable[] = [
   'positions',
   'valuations',
   'bonds',
+  'csvMappings',
   'settings',
 ];
 

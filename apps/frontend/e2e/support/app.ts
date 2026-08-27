@@ -747,17 +747,28 @@ export class SaldooApp {
    * The file input is `display: none` behind a styled label, which `setInputFiles` does not
    * mind — it sets the field rather than clicking it.
    */
-  async importTransactions(statement: Buffer, bank: 'ING' | 'PKOBP' = 'ING'): Promise<void> {
+  async importTransactions(
+    statement: Buffer,
+    bank: 'ING' | 'PKOBP' | 'auto' = 'ING'
+  ): Promise<void> {
     await this.openTransactions();
     await this.page.getByRole('button', { name: label('create_transactions') }).click();
 
     const sheet = this.page.getByRole('dialog', { name: label('add_transactions') });
     await expect(sheet).toBeVisible();
 
-    await sheet.getByRole('radio', { name: bank === 'ING' ? 'ING Bank Śląski' : 'PKO BP' }).click();
+    // The file goes in first, because that is the order the screen asks in now: reading it is what
+    // names the bank. `auto` leaves the choice to that reading, which is what the detection spec
+    // drives; naming a bank clicks the radio afterwards, the way somebody correcting a guess would.
     await sheet
       .locator('#file-input')
       .setInputFiles({ name: 'statement.csv', mimeType: 'text/csv', buffer: statement });
+
+    if (bank !== 'auto') {
+      await sheet
+        .getByRole('radio', { name: bank === 'ING' ? 'ING Bank Śląski' : 'PKO BP' })
+        .click();
+    }
 
     await sheet.getByRole('button', { name: label('submit'), exact: true }).click();
 
