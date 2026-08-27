@@ -1,4 +1,5 @@
 import type { ParseWarning } from '@/lib/banks/contract.ts';
+import type { SheetRefusal } from '@/features/transactions/services/sheet-plan.service.ts';
 
 /**
  * What one upload did, in full.
@@ -22,11 +23,52 @@ export type ImportReport = {
   /** The span the stored payments cover, absent when nothing was stored. */
   from?: string;
   to?: string;
+  /**
+   * Rows that changed a record we already held, and records the file asked to remove.
+   *
+   * Absent on every bank import, because a statement cannot ask for either: it says what happened
+   * and has no opinion about our records. Only Saldoo's own sheet (#141) round-trips, so only it
+   * ever fills these in — and a report showing "updated: 0" on a bank statement would be answering
+   * a question nobody asked.
+   */
+  updated?: number;
+  deleted?: number;
+  /**
+   * Rows, or single fields of them, that were not applied and why.
+   *
+   * Beside `unreadable` rather than folded into it, because they are a different kind of refusal:
+   * an unreadable row is a row we could not make sense of, while these are rows we understood
+   * perfectly and declined — an unknown category, an edit to a figure a bank stated. Calling that
+   * "unreadable" would be the report lying about whose fault it is.
+   */
+  refused?: SheetRefusal[];
+  /**
+   * How many rows the file offered, where the outcomes cannot be added up to say.
+   *
+   * Set by our own sheet, whose rows do not fall into one bucket each: a row can be updated and
+   * still have a field refused, and a row can be refused outright and land in no bucket at all. The
+   * bank path leaves it absent, because there the arithmetic *is* the answer and a second, stated
+   * figure is a second thing that can be wrong.
+   */
+  rows?: number;
 };
 
-/** The rows a file offered, however each of them ended up. */
+/**
+ * The rows a file offered, however each of them ended up.
+ *
+ * The buckets it adds up are mutually exclusive, which is what makes it a count of rows rather than
+ * of outcomes — so a refusal is not among them. One row of our own sheet can be applied *and* have
+ * a field refused, and adding those in would report a file of ten rows as having eleven.
+ */
 export const rowsSeen = (report: ImportReport): number =>
-  report.imported + report.duplicates + report.repeatedInFile + report.unreadable.length + report.notStored;
+  report.rows ??
+  report.imported +
+  report.duplicates +
+  report.repeatedInFile +
+  report.unreadable.length +
+  report.notStored +
+  (report.updated ?? 0) +
+  (report.deleted ?? 0);
 
 /**
  * Whether this upload needs somebody to look at it rather than just be told it worked.
@@ -36,7 +78,17 @@ export const rowsSeen = (report: ImportReport): number =>
  * stored is a payment missing from a month, which is the thing worth interrupting for.
  */
 export const needsAttention = (report: ImportReport): boolean =>
-  report.unreadable.length > 0 || report.notStored > 0;
+  report.unreadable.length > 0 || report.notStored > 0 || (report.refused?.length ?? 0) > 0;
+
+/**
+ * Whether this report has anything in it beyond a clean import worth offering to save.
+ *
+ * Asked as its own question because `rowsSeen` cannot answer it: a sheet that updated six rows and
+ * imported none has every row accounted for and is still the most interesting report the app
+ * produces.
+ */
+export const worthKeeping = (report: ImportReport): boolean =>
+  rowsSeen(report) > report.imported || needsAttention(report);
 
 const dateRange = (dates: string[]): Pick<ImportReport, 'from' | 'to'> => {
   const sorted = [...dates].filter(Boolean).sort();
@@ -76,11 +128,24 @@ export const reportAsText = (
     `Read but not stored: ${report.notStored}`,
   ];
 
+  if (report.updated !== undefined) lines.push(`Updated: ${report.updated}`);
+  if (report.deleted !== undefined) lines.push(`Deleted: ${report.deleted}`);
+
   if (report.from && report.to) lines.push(`Covering: ${report.from} to ${report.to}`);
 
   if (report.unreadable.length) {
     lines.push(``, `Rows that could not be read:`);
     for (const warning of report.unreadable) lines.push(`  row ${warning.row}: ${warning.reason}`);
+  }
+
+  if (report.refused?.length) {
+    lines.push(``, `Rows that were not applied:`);
+    // The row, the reason and the column — and never the cell. `value` is what somebody called a
+    // category, which is theirs, and this is the text that leaves their machine.
+    for (const refusal of report.refused)
+      lines.push(
+        `  row ${refusal.row}: ${refusal.reason}${refusal.field ? ` (${refusal.field})` : ''}`
+      );
   }
 
   return lines.join('\n');

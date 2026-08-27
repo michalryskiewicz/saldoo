@@ -744,6 +744,10 @@
     "year_few": "lata",
     "year_many": "lat"
   },
+  "sheet": {
+    "export": "Pobierz arkusz",
+    "exported": "Zapisaliśmy arkusz: {{count}} płatności"
+  },
   "statement": {
     "detecting": "Sprawdzamy, z którego banku jest ten plik…",
     "detected": "Rozpoznaliśmy {{bank}} — nagłówek pliku zgadza się w całości.",
@@ -787,10 +791,20 @@
       "repeated": "Powtórzone w samym pliku: {{count}}",
       "unreadable": "Nieodczytane wiersze: {{count}}",
       "not_stored": "Odczytane, ale niezapisane: {{count}}",
+      "updated": "Zmienione: {{count}}",
+      "deleted": "Usunięte: {{count}}",
+      "refused": "Niezastosowane: {{count}}",
       "covering": "Zakres dat: {{from}} – {{to}}",
       "row": "wiersz {{row}}",
       "reason_no-date": "brak daty",
       "reason_unreadable-amount": "nieczytelna kwota",
+      "reason_duplicate-id": "ten sam id w dwóch wierszach",
+      "reason_unknown-name": "nie ma nic o takiej nazwie",
+      "reason_ambiguous-name": "ta nazwa nie jest jednoznaczna",
+      "reason_unknown-budget-part": "nieznana część budżetu",
+      "reason_unknown-currency": "nieznana waluta",
+      "reason_bank-fact-edited": "tego nie zmieniamy — tak zapisał to bank",
+      "reason_nothing-to-delete": "nie mamy wpisu o tym id",
       "copy": "Skopiuj raport",
       "copied": "Skopiowano raport",
       "download": "Pobierz raport"

@@ -1,8 +1,8 @@
-import type { BankCsvParser, RawRow } from '@/lib/banks/contract.ts';
+import type { CsvFormat, RawRow } from '@/lib/banks/contract.ts';
 
-/** One parser's reading of the file, scored on rows read the way that parser writes them. */
+/** One format's reading of the file, scored on rows read the way that format writes them. */
 export type ScoredParser = {
-  parser: BankCsvParser;
+  parser: CsvFormat;
   /** 0 to 1, from the parser's own `detect`. */
   confidence: number;
 };
