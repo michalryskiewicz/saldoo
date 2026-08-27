@@ -24,14 +24,16 @@ import { useAppSelector } from '@/store/store.ts';
 import { checkIfOpen } from '@/lib/helpers.ts';
 import { setTransactionsDrawerId } from '@/store/preferences.slice.ts';
 import { useDispatch } from 'react-redux';
-import Papa from 'papaparse';
-import { getBankSchema } from '@/lib/transactions.ts';
+import { BANK_PARSERS, parserById } from '@/lib/banks/registry.ts';
+import { readStatement } from '@/lib/banks/read-statement.ts';
 import { addDBTransactions } from '@/database/transactions.ts';
 
 type CreateTransactionFormType = z.infer<typeof formSchema>;
 
 const formSchema = z.object({
-  bank: z.enum(['ING', 'PKOBP']),
+  // A string checked against the registry rather than a literal union: the list of banks lives in
+  // one place, and a union here would be the copy that goes stale the first time one is added.
+  bank: z.string().refine((id) => !!parserById(id)),
   file: z.any(),
 });
 
@@ -41,25 +43,13 @@ export default function TransactionsCreate() {
   const id = useAppSelector((state) => state.preferences.transactionsDrawerId);
 
   const onSubmit = async (values: CreateTransactionFormType) => {
-    const schema = getBankSchema(values.bank);
+    const parser = parserById(values.bank);
+    if (!parser) return;
 
-    if (schema) {
-      // On this thread rather than in a worker. Papa spawns its worker from a `blob:` URL, and
-      // the shipped Content-Security-Policy refuses it — `worker-src` is unset, so `script-src
-      // 'self'` is what it falls back to. The upload then died in silence: no rows stored, and
-      // no error shown either, because the `complete` that reports both never ran. A bank
-      // statement is a few thousand rows; the thread it parses on was never worth an exception
-      // in a policy this app's whole claim rests on.
-      Papa.parse(values.file, {
-        encoding: schema.encoding,
-        delimiter: schema.delimiter,
-        step: schema.step,
-        complete: async function () {
-          const rows = schema.getRows ? schema.getRows() : [];
-          await addDBTransactions(values.bank, rows);
-        },
-      });
-    }
+    const rows = await readStatement(values.file, parser);
+    const { transactions } = parser.parse(rows);
+
+    await addDBTransactions(parser.id, transactions);
   };
 
   return (
@@ -82,10 +72,10 @@ export default function TransactionsCreate() {
               <Field.RadioGroup
                 label={i18n.t('bank_description')}
                 name="bank"
-                options={[
-                  { value: 'ING', label: 'ING Bank Śląski' },
-                  { value: 'PKOBP', label: 'PKO BP' },
-                ]}
+                options={BANK_PARSERS.map((parser) => ({
+                  value: parser.id,
+                  label: parser.displayName,
+                }))}
               />
               <FormField
                 name="file"

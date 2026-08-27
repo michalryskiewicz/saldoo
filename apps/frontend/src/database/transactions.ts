@@ -1,5 +1,5 @@
 import {
-  mapBankRowToDBTransaction,
+  toDBTransaction,
   allocateTransactionsToOccurrences,
 } from '@/database/services/transactions.service.ts';
 import { db } from '@/database/index.ts';
@@ -12,6 +12,7 @@ import { setLastUpdated } from '@/database/meta.ts';
 import { documentSession } from '@/database/document/document.container.ts';
 import { outbox } from '@/database/document/outbox.container.ts';
 import type { DBTag } from '@/database/tags.ts';
+import type { ParsedTransaction } from '@/lib/banks/contract.ts';
 
 export type DBTransaction = {
   id: string;
@@ -46,9 +47,17 @@ export type DBTransaction = {
   duties?: string[];
 };
 
-export const addDBTransactions = async (bank: string, rows: unknown[][]) => {
+/**
+ * Stores what a parser read, and only what is not already held.
+ *
+ * Takes payments rather than rows, and a bank's id rather than a bank's format: which columns mean
+ * what was decided upstream by the parser, and this stays the one place that decides what is new.
+ */
+export const addDBTransactions = async (sourceBank: string, parsed: ParsedTransaction[]) => {
   try {
-    const transactions = await Promise.all(rows.map((row) => mapBankRowToDBTransaction(bank, row)));
+    const transactions = await Promise.all(
+      parsed.map((transaction) => toDBTransaction(transaction, sourceBank))
+    );
     const transactionsWithUniqueHashes = uniqBy<DBTransaction>(transactions, (t) => t.hash);
     const alreadyAddedTransactions = await db.transactions.toArray();
     const existingHashes = new Set(alreadyAddedTransactions.map((t) => t.hash));
