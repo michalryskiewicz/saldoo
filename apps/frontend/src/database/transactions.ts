@@ -12,7 +12,11 @@ import { setLastUpdated } from '@/database/meta.ts';
 import { documentSession } from '@/database/document/document.container.ts';
 import { outbox } from '@/database/document/outbox.container.ts';
 import type { DBTag } from '@/database/tags.ts';
-import type { ParsedTransaction } from '@/lib/banks/contract.ts';
+import type { ParsedTransaction, ParseWarning } from '@/lib/banks/contract.ts';
+import {
+  reportOf,
+  type ImportReport,
+} from '@/features/transactions/services/import-report.service.ts';
 
 export type DBTransaction = {
   id: string;
@@ -48,33 +52,73 @@ export type DBTransaction = {
 };
 
 /**
- * Stores what a parser read, and only what is not already held.
+ * Stores what a parser read, and says exactly what became of every row.
  *
  * Takes payments rather than rows, and a bank's id rather than a bank's format: which columns mean
  * what was decided upstream by the parser, and this stays the one place that decides what is new.
+ *
+ * **Row by row, and a failure does not end the import.** Storing them in one loop that throws left
+ * whatever had already landed in place and said "could not upload" over the top of it — so nobody
+ * could tell a file that stored nothing from one that stored half. Each write now stands or falls
+ * on its own and is counted either way, which is what makes the report's arithmetic add up to the
+ * rows the file had.
  */
-export const addDBTransactions = async (sourceBank: string, parsed: ParsedTransaction[]) => {
+export const addDBTransactions = async (
+  sourceBank: string,
+  parsed: ParsedTransaction[],
+  unreadable: ParseWarning[] = []
+): Promise<ImportReport> => {
   try {
     const transactions = await Promise.all(
       parsed.map((transaction) => toDBTransaction(transaction, sourceBank))
     );
-    const transactionsWithUniqueHashes = uniqBy<DBTransaction>(transactions, (t) => t.hash);
-    const alreadyAddedTransactions = await db.transactions.toArray();
-    const existingHashes = new Set(alreadyAddedTransactions.map((t) => t.hash));
-    const newUniqueTransactions = transactionsWithUniqueHashes.filter(
-      (t) => !existingHashes.has(t.hash)
-    );
 
-    for (const transaction of newUniqueTransactions)
-      await documentSession.put('transactions', transaction);
+    const distinct = uniqBy<DBTransaction>(transactions, (t) => t.hash);
+    const alreadyHeld = new Set((await db.transactions.toArray()).map((t) => t.hash));
+    const fresh = distinct.filter((t) => !alreadyHeld.has(t.hash));
 
-    console.log('ADDED: ', newUniqueTransactions.length, ' transactions');
-    await setLastUpdated();
-    outbox.markDirty();
-    toast(i18n.t('success.upload-transaction'));
+    const stored: DBTransaction[] = [];
+    let notStored = 0;
+
+    for (const transaction of fresh) {
+      try {
+        await documentSession.put('transactions', transaction);
+        stored.push(transaction);
+      } catch (e) {
+        console.error(e);
+        notStored += 1;
+      }
+    }
+
+    if (stored.length) {
+      await setLastUpdated();
+      outbox.markDirty();
+    }
+
+    toast(i18n.t(notStored ? 'errors.upload-transaction' : 'success.upload-transaction'));
+
+    return reportOf({
+      imported: stored.length,
+      duplicates: distinct.length - fresh.length,
+      repeatedInFile: transactions.length - distinct.length,
+      unreadable,
+      notStored,
+      storedDates: stored.map((t) => t.transactionDate),
+    });
   } catch (e) {
     console.error(e);
     toast(i18n.t('errors.upload-transaction'));
+
+    // Nothing was read, so nothing can be claimed: the rows are reported as not stored rather than
+    // as a clean import of nought.
+    return reportOf({
+      imported: 0,
+      duplicates: 0,
+      repeatedInFile: 0,
+      unreadable,
+      notStored: parsed.length,
+      storedDates: [],
+    });
   }
 };
 

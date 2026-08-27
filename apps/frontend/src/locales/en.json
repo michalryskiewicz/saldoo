@@ -727,7 +727,6 @@
     "detected": "Recognised {{bank}} — the file's header matches in full.",
     "ambiguous": "This could be {{banks}}. Say which bank the file came from.",
     "unknown": "We do not recognise this format. Choose the bank yourself.",
-    "skipped_rows": "Rows that could not be read and were skipped: {{count}}.",
     "mapping": {
       "title": "Describe your bank's format",
       "description": "We do not know this file. Say what is in which column — we will remember it and recognise the file ourselves next time.",
@@ -758,6 +757,21 @@
       "save": "Save the format and use it",
       "saved_formats": "Your formats"
     },
-    "using": "We will import this file with your format: {{name}}."
+    "using": "We will import this file with your format: {{name}}.",
+    "report": {
+      "title": "What happened",
+      "imported": "Imported: {{count}}",
+      "duplicates": "Already held: {{count}}",
+      "repeated": "Repeated within the file: {{count}}",
+      "unreadable": "Rows we could not read: {{count}}",
+      "not_stored": "Read but not stored: {{count}}",
+      "covering": "Covering: {{from}} – {{to}}",
+      "row": "row {{row}}",
+      "reason_no-date": "no date",
+      "reason_unreadable-amount": "unreadable amount",
+      "copy": "Copy the report",
+      "copied": "Report copied",
+      "download": "Download the report"
+    }
   }
 }

@@ -27,11 +27,12 @@ import { useAppSelector } from '@/store/store.ts';
 import { checkIfOpen } from '@/lib/helpers.ts';
 import { setTransactionsDrawerId } from '@/store/preferences.slice.ts';
 import { useDispatch } from 'react-redux';
-import { toast } from 'sonner';
 import { BANK_PARSERS } from '@/lib/banks/registry.ts';
 import { parserFromMapping } from '@/lib/banks/mapping.ts';
 import { db } from '@/database/index.ts';
 import StatementMapping from '@/features/transactions/views/statement-mapping.tsx';
+import ImportReportPanel from '@/features/transactions/views/import-report.tsx';
+import type { ImportReport } from '@/features/transactions/services/import-report.service.ts';
 import type { BankCsvParser } from '@/lib/banks/contract.ts';
 import { readCandidates } from '@/lib/banks/read-statement.ts';
 import { detectParser, type Detection, type DetectionCandidate } from '@/lib/banks/detect.ts';
@@ -214,6 +215,13 @@ export default function TransactionsCreate() {
    */
   const [candidates, setCandidates] = useState<DetectionCandidate[]>([]);
 
+  /** Kept on screen after the import rather than announced and lost: it is a thing to read. */
+  const [report, setReport] = useState<{
+    report: ImportReport;
+    bank: string;
+    fileName: string;
+  } | null>(null);
+
   /**
    * Everything that can read a statement here: the banks Saldoo ships, and the formats this person
    * described for banks it does not. They are the same kind of thing by the time they reach the
@@ -235,11 +243,11 @@ export default function TransactionsCreate() {
 
     const { transactions, warnings } = parser.parse(rows);
 
-    await addDBTransactions(parser.id, transactions);
-
-    // Said once, with a count, rather than per row: the full per-row report is #16. Silence would
-    // be worse than either — a row skipped without a word is a payment missing from a month.
-    if (warnings.length) toast(i18n.t('statement.skipped_rows', { count: warnings.length }));
+    setReport({
+      report: await addDBTransactions(parser.id, transactions, warnings),
+      bank: parser.displayName,
+      fileName: (values.file as File | undefined)?.name ?? 'statement.csv',
+    });
   };
 
   return (
@@ -259,8 +267,22 @@ export default function TransactionsCreate() {
         <div className="flex flex-col gap-1.5 p-4">
           <Form schema={formSchema} onSubmit={onSubmit}>
             <div className="flex flex-col gap-5">
-              <StatementField parsers={parsers} onRead={setCandidates} />
+              <StatementField
+                parsers={parsers}
+                onRead={(read) => {
+                  setCandidates(read);
+                  setReport(null);
+                }}
+              />
               <Button type="submit">{i18n.t(id === NEW_ENTITY_ID ? 'submit' : 'edit')}</Button>
+
+              {report && (
+                <ImportReportPanel
+                  report={report.report}
+                  bank={report.bank}
+                  fileName={report.fileName}
+                />
+              )}
             </div>
           </Form>
         </div>
