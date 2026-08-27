@@ -5,9 +5,32 @@ import { cn } from '@/lib/utils.ts';
 import {
   needsAttention,
   reportAsText,
-  rowsSeen,
+  worthKeeping,
   type ImportReport,
 } from '@/features/transactions/services/import-report.service.ts';
+import type { SheetRefusal } from '@/features/transactions/services/sheet-plan.service.ts';
+import { sheetColumnLabel } from '@/lib/saldoo-sheet/format.ts';
+import type { Locale } from '@/i18n.ts';
+
+/**
+ * One refusal, as the person can act on it: the row, the reason, and the cell they typed.
+ *
+ * The cell is shown *here* and never in the copyable report. "Nothing is called that" is useless
+ * without knowing which name was meant, and this screen is theirs; the text report is the thing that
+ * leaves their machine, and a category name is not ours to put in it.
+ */
+const refusalLine = ({ row, reason, field, value }: SheetRefusal): string => {
+  const column = field ? sheetColumnLabel(field, i18n.language as Locale) : undefined;
+  const said = [
+    i18n.t('statement.report.row', { row }),
+    ' — ',
+    i18n.t(`statement.report.reason_${reason}` as const),
+  ].join('');
+
+  if (!column) return said;
+
+  return value ? `${said} (${column}: ${value})` : `${said} (${column})`;
+};
 
 /**
  * What one upload did, said in full and on the screen that did it.
@@ -74,10 +97,29 @@ export const ImportReportPanel = ({
             {i18n.t('statement.report.not_stored', { count: report.notStored })}
           </li>
         )}
+        {!!report.updated && (
+          <li>{i18n.t('statement.report.updated', { count: report.updated })}</li>
+        )}
+        {!!report.deleted && <li>{i18n.t('statement.report.deleted', { count: report.deleted })}</li>}
+        {!!report.refused?.length && (
+          <li className="text-destructive">
+            {i18n.t('statement.report.refused', { count: report.refused.length })}
+          </li>
+        )}
         {report.from && report.to && (
           <li>{i18n.t('statement.report.covering', { from: report.from, to: report.to })}</li>
         )}
       </ul>
+
+      {!!report.refused?.length && (
+        <ul className="text-muted-foreground flex flex-col gap-0.5 text-xs">
+          {report.refused.map((refusal, index) => (
+            <li key={`${refusal.row}-${refusal.reason}-${refusal.field ?? index}`}>
+              {refusalLine(refusal)}
+            </li>
+          ))}
+        </ul>
+      )}
 
       {report.unreadable.length > 0 && (
         <ul className="text-muted-foreground flex flex-col gap-0.5 text-xs">
@@ -94,7 +136,7 @@ export const ImportReportPanel = ({
         </ul>
       )}
 
-      {rowsSeen(report) > report.imported && (
+      {worthKeeping(report) && (
         <div className="flex gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => void copy()}>
             {i18n.t('statement.report.copy')}

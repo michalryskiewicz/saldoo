@@ -15,8 +15,13 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog.tsx';
 import { Button } from '@/components/ui/button.tsx';
-import { PencilLine } from 'lucide-react';
+import { Download, PencilLine } from 'lucide-react';
 import i18n from '@/i18n.ts';
+import type { Locale } from '@/i18n.ts';
+import { toast } from 'sonner';
+import { TOTAL } from '@/constant.ts';
+import { toISODate } from '@/lib/dates.ts';
+import { sheetForTransactions } from '@/features/transactions/services/sheet-export.service.ts';
 import type { Table } from '@tanstack/react-table';
 import z from 'zod';
 import { Field, Form } from '@/components/hook-form';
@@ -53,6 +58,24 @@ type TransactionDataTableTopBarProps = {
   onRangeChange: (range: TransactionRange) => void;
 };
 
+/**
+ * Writes the sheet and hands it to the browser to save.
+ *
+ * A blob and a click, never a trip through anything of ours: this file is somebody's whole payment
+ * history, and the only correct number of servers for it to pass through on the way to their disk
+ * is nought.
+ */
+const download = (csv: string) => {
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = `saldoo-${toISODate(new Date())}.csv`;
+  link.click();
+
+  URL.revokeObjectURL(url);
+};
+
 export default function TransactionsDataTableTopBar({
   table,
   query,
@@ -64,6 +87,28 @@ export default function TransactionsDataTableTopBar({
   const { budgetingPartsOptions, tags } = useCategories();
 
   const [open, setOpen] = useState(false);
+
+  /**
+   * What the table is showing, which is what the button appears to offer.
+   *
+   * The range and the search have already narrowed this list, and exporting the whole database from
+   * a screen filtered to March would be the button doing something other than what it looks like.
+   * Re-importing part of an export is safe by design — absence never deletes — so a narrowed export
+   * is a narrowed edit, not a lossy one.
+   *
+   * The totals row is dropped: it is a sum the screen draws, not a payment anybody made.
+   */
+  const shown = table
+    .getFilteredRowModel()
+    .rows.map((row) => row.original)
+    .filter((transaction) => transaction.id !== TOTAL);
+
+  const exportSheet = async () => {
+    const csv = await sheetForTransactions(shown, i18n.language as Locale);
+
+    download(csv);
+    toast(i18n.t('sheet.exported', { count: shown.length }));
+  };
 
   const expenses = allExpenses?.map((expense) => ({
     value: expense.id,
@@ -90,6 +135,15 @@ export default function TransactionsDataTableTopBar({
             ))}
           </SelectContent>
         </Select>
+
+        <Button
+          variant="outline"
+          disabled={!shown.length}
+          onClick={() => void exportSheet()}
+          data-testid="export-sheet"
+        >
+          <Download /> {i18n.t('sheet.export')}
+        </Button>
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>

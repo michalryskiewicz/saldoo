@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import type { BankCsvParser, RawRow } from '@/lib/banks/contract.ts';
+import type { CsvFormat, RawRow } from '@/lib/banks/contract.ts';
 import type { DetectionCandidate } from '@/lib/banks/detect.ts';
 
 /**
@@ -16,7 +16,7 @@ import type { DetectionCandidate } from '@/lib/banks/detect.ts';
  */
 export const readStatement = (
   file: File | string,
-  { encoding, delimiter }: Pick<BankCsvParser, 'encoding' | 'delimiter'>
+  { encoding, delimiter }: Pick<CsvFormat, 'encoding' | 'delimiter'>
 ): Promise<RawRow[]> =>
   new Promise((resolve, reject) => {
     Papa.parse(file as File, {
@@ -41,9 +41,9 @@ export const readStatement = (
  */
 export const readCandidates = async (
   file: File | string,
-  parsers: readonly BankCsvParser[]
+  parsers: readonly CsvFormat[]
 ): Promise<DetectionCandidate[]> => {
-  const byFormat = new Map<string, BankCsvParser[]>();
+  const byFormat = new Map<string, CsvFormat[]>();
 
   for (const parser of parsers) {
     const format = `${parser.encoding}|${parser.delimiter}`;

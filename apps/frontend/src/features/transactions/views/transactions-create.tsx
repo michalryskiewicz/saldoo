@@ -27,16 +27,18 @@ import { useAppSelector } from '@/store/store.ts';
 import { checkIfOpen } from '@/lib/helpers.ts';
 import { setTransactionsDrawerId } from '@/store/preferences.slice.ts';
 import { useDispatch } from 'react-redux';
-import { BANK_PARSERS } from '@/lib/banks/registry.ts';
+import { CSV_FORMATS } from '@/lib/banks/registry.ts';
 import { parserFromMapping } from '@/lib/banks/mapping.ts';
 import { db } from '@/database/index.ts';
 import StatementMapping from '@/features/transactions/views/statement-mapping.tsx';
 import ImportReportPanel from '@/features/transactions/views/import-report.tsx';
 import type { ImportReport } from '@/features/transactions/services/import-report.service.ts';
-import type { BankCsvParser } from '@/lib/banks/contract.ts';
+import type { BankCsvParser, CsvFormat } from '@/lib/banks/contract.ts';
 import { readCandidates } from '@/lib/banks/read-statement.ts';
 import { detectParser, type Detection, type DetectionCandidate } from '@/lib/banks/detect.ts';
-import { addDBTransactions } from '@/database/transactions.ts';
+import { addDBTransactions, applyDBSheet } from '@/database/transactions.ts';
+import { SHEET_ID } from '@/lib/saldoo-sheet/format.ts';
+import { readSheet } from '@/lib/saldoo-sheet/read.ts';
 
 type CreateTransactionFormType = z.infer<typeof formSchema>;
 
@@ -81,7 +83,7 @@ const StatementField = ({
   parsers,
   onRead,
 }: {
-  parsers: BankCsvParser[];
+  parsers: CsvFormat[];
   onRead: (candidates: DetectionCandidate[]) => void;
 }) => {
   const { setValue } = useFormContext();
@@ -91,7 +93,7 @@ const StatementField = ({
   /** Open when the person asked to describe the format, or when nothing recognised the file. */
   const [describing, setDescribing] = useState(false);
   /** The format they just described, which is neither a detection nor a guess. */
-  const [described, setDescribed] = useState<BankCsvParser | null>(null);
+  const [described, setDescribed] = useState<CsvFormat | null>(null);
 
   /**
    * Reads the file through a format somebody described, and selects it.
@@ -100,7 +102,7 @@ const StatementField = ({
    * saying so would be the app taking credit for the person's own work — and hiding, next month,
    * that this is the format that will be recognised then.
    */
-  const chooseDescribed = async (parser: BankCsvParser) => {
+  const chooseDescribed = async (parser: CsvFormat) => {
     if (!file) return;
 
     const candidates = await readCandidates(file, [parser]);
@@ -229,24 +231,48 @@ export default function TransactionsCreate() {
    */
   const mappings = useLiveQuery(() => db.csvMappings.toArray(), []) ?? [];
   const parsers = useMemo(
-    () => [...BANK_PARSERS, ...mappings.map(parserFromMapping)],
+    () => [...CSV_FORMATS, ...mappings.map(parserFromMapping)],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [mappings.map((mapping) => `${mapping.id}:${mapping.version}`).join()]
   );
 
+  /**
+   * Reads the file with the chosen format and stores what it says.
+   *
+   * **The fork is here and nowhere else.** Both branches were handed the same rows by the same
+   * reader, and the difference is only what the rows are allowed to ask for: a statement can say a
+   * payment happened, and our own sheet can also say which record it is, what it should now read,
+   * and that it should be gone. Only a format we defined can carry that, which is why only this
+   * branch may update or delete anything.
+   */
   const onSubmit = async (values: CreateTransactionFormType) => {
-    const parser = parsers.find((one) => one.id === values.bank);
-    if (!parser) return;
+    const format = parsers.find((one) => one.id === values.bank);
+    if (!format) return;
 
-    const alreadyRead = candidates.find((candidate) => candidate.parser.id === parser.id);
-    const rows = alreadyRead?.rows ?? (await readCandidates(values.file, [parser]))[0].rows;
+    const alreadyRead = candidates.find((candidate) => candidate.parser.id === format.id);
+    const rows = alreadyRead?.rows ?? (await readCandidates(values.file, [format]))[0].rows;
 
-    const { transactions, warnings } = parser.parse(rows);
+    const fileName = (values.file as File | undefined)?.name ?? 'statement.csv';
+
+    if (format.id === SHEET_ID) {
+      setReport({
+        report: await applyDBSheet(readSheet(rows).rows),
+        bank: format.displayName,
+        fileName,
+      });
+      return;
+    }
+
+    // Everything else on the list parses; the sheet is the only entry that does not, and it has
+    // just been handled. A format with neither is not something this screen can offer.
+    if (!('parse' in format)) return;
+
+    const { transactions, warnings } = (format as BankCsvParser).parse(rows);
 
     setReport({
-      report: await addDBTransactions(parser.id, transactions, warnings),
-      bank: parser.displayName,
-      fileName: (values.file as File | undefined)?.name ?? 'statement.csv',
+      report: await addDBTransactions(format.id, transactions, warnings),
+      bank: format.displayName,
+      fileName,
     });
   };
 

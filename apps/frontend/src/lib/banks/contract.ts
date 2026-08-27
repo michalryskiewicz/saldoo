@@ -43,6 +43,38 @@ export type ParseResult = {
 };
 
 /**
+ * Enough to recognise a file and read it: who this format is, and how sure it is the file is its own.
+ *
+ * Separated from `BankCsvParser` because reading a file and turning its rows into payments are not
+ * the same job, and one format Saldoo ships does only the first: its own sheet (#141) states which
+ * record each row *is* and whether it should be deleted, which no `ParsedTransaction` can carry and
+ * no bank ever says. Detection and the file read work on this, so that sheet can be offered on the
+ * import screen and recognised by its header exactly like a bank, without pretending to be one.
+ */
+export type CsvFormat = {
+  /** Stable, stored on every transaction as `sourceBank`. Renaming one orphans somebody's history. */
+  id: string;
+  /** What the format calls itself, for the screen. Not translated: a bank's name is its name. */
+  displayName: string;
+  /**
+   * Bumped when this format's reading changes in a way that would produce different records from
+   * the same file. Recorded with the import so a later fix can find what it broke.
+   */
+  version: number;
+  /** How the file is written, which is not negotiable and not detectable before reading it. */
+  encoding: string;
+  delimiter: string;
+  /**
+   * How sure this format is that the file is its own, from 0 to 1.
+   *
+   * A number rather than a yes: two banks can export something similar enough that only the caller,
+   * seeing every score at once, can say whether one of them stands out. What counts as sure enough
+   * is the caller's rule, not each format's.
+   */
+  detect: (rawRows: RawRow[]) => number;
+};
+
+/**
  * What Saldoo knows about one bank's statement export.
  *
  * The point of the contract is that everything bank-shaped lives behind it: the import screen picks
@@ -54,26 +86,6 @@ export type ParseResult = {
  * same knowledge `parse` needs, and split across two modules the two would drift: a parser that had
  * learned a second header layout would go on being detected by the first.
  */
-export type BankCsvParser = {
-  /** Stable, stored on every transaction as `sourceBank`. Renaming one orphans somebody's history. */
-  id: string;
-  /** What the bank calls itself, for the screen. Not translated: a bank's name is its name. */
-  displayName: string;
-  /**
-   * Bumped when this parser's reading of the format changes in a way that would produce different
-   * transactions from the same file. Recorded with the import so a later fix can find what it broke.
-   */
-  version: number;
-  /** How the bank writes the file, which is not negotiable and not detectable before reading it. */
-  encoding: string;
-  delimiter: string;
-  /**
-   * How sure this parser is that the file is its bank's, from 0 to 1.
-   *
-   * A number rather than a yes: two banks can export something similar enough that only the caller,
-   * seeing every score at once, can say whether one of them stands out. What counts as sure enough
-   * is the caller's rule, not each parser's.
-   */
-  detect: (rawRows: RawRow[]) => number;
+export type BankCsvParser = CsvFormat & {
   parse: (rawRows: RawRow[]) => ParseResult;
 };

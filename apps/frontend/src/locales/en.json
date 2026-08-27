@@ -722,6 +722,10 @@
     "year_one": "year",
     "year_other": "years"
   },
+  "sheet": {
+    "export": "Download the sheet",
+    "exported": "Sheet saved: {{count}} payments"
+  },
   "statement": {
     "detecting": "Checking which bank wrote this file…",
     "detected": "Recognised {{bank}} — the file's header matches in full.",
@@ -765,10 +769,20 @@
       "repeated": "Repeated within the file: {{count}}",
       "unreadable": "Rows we could not read: {{count}}",
       "not_stored": "Read but not stored: {{count}}",
+      "updated": "Updated: {{count}}",
+      "deleted": "Deleted: {{count}}",
+      "refused": "Not applied: {{count}}",
       "covering": "Covering: {{from}} – {{to}}",
       "row": "row {{row}}",
       "reason_no-date": "no date",
       "reason_unreadable-amount": "unreadable amount",
+      "reason_duplicate-id": "the same id in two rows",
+      "reason_unknown-name": "nothing is called that",
+      "reason_ambiguous-name": "that name is not unique",
+      "reason_unknown-budget-part": "unknown budget part",
+      "reason_unknown-currency": "unknown currency",
+      "reason_bank-fact-edited": "not ours to change — the bank stated it",
+      "reason_nothing-to-delete": "nothing is held under that id",
       "copy": "Copy the report",
       "copied": "Report copied",
       "download": "Download the report"

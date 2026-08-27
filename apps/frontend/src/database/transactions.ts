@@ -17,6 +17,12 @@ import {
   reportOf,
   type ImportReport,
 } from '@/features/transactions/services/import-report.service.ts';
+import { v4 as uuidv4 } from 'uuid';
+import { hashString } from '@/lib/helpers.ts';
+import { SHEET_ID } from '@/lib/saldoo-sheet/format.ts';
+import type { SheetRow } from '@/lib/saldoo-sheet/read.ts';
+import { planSheet } from '@/features/transactions/services/sheet-plan.service.ts';
+import { getSettings } from '@/database/settings.ts';
 
 export type DBTransaction = {
   id: string;
@@ -222,4 +228,162 @@ export const resolveDutiesForExpense = async (expenseId: string) => {
 
   await setLastUpdated();
   outbox.markDirty();
+};
+
+/**
+ * Applies one of Saldoo's own sheets: inserting, updating and deleting what it asks for.
+ *
+ * The first write path in the app that does more than insert, and the reason the format exists at
+ * all — categorising four hundred payments is one drag in a spreadsheet and four hundred drawers
+ * here. What may be changed and what may not is decided by `planSheet`, which is a pure function
+ * over the rows and what is held; this executes the plan and counts what happened.
+ *
+ * **A deletion goes through `documentSession.remove`,** so it propagates as a deletion. Removing
+ * the row from Dexie alone would have the record arrive back from the next device that syncs.
+ *
+ * **An inserted row keeps no `rawData`,** which is not an omission: `rawData` is present exactly
+ * when a bank stated a payment, and that presence is what makes its figures uneditable. A row
+ * somebody typed into a spreadsheet is theirs in full, and giving it a `rawData` would quietly
+ * freeze it.
+ */
+export const applyDBSheet = async (rows: readonly SheetRow[]): Promise<ImportReport> => {
+  const [heldTransactions, tags, goals, expenses, settings] = await Promise.all([
+    db.transactions.toArray(),
+    db.tags.toArray(),
+    db.goals.toArray(),
+    db.expenses.toArray(),
+    getSettings(),
+  ]);
+
+  const plan = planSheet(rows, {
+    held: heldTransactions,
+    tags,
+    goals: goals.map((goal) => ({ id: goal.id, name: goal.description })),
+    expenses: expenses.map((expense) => ({ id: expense.id, name: expense.description })),
+    defaultCurrency: settings.currency,
+  });
+
+  const alreadyHeld = new Set(heldTransactions.map((transaction) => transaction.hash));
+  const seenInFile = new Set<string>();
+
+  const stored: DBTransaction[] = [];
+  let duplicates = 0;
+  let repeatedInFile = 0;
+  let notStored = 0;
+
+  for (const insert of plan.inserts) {
+    // Hashed over what the row says rather than over the row as written, because a sheet has no
+    // original to hash: the columns can be reordered, renamed into the other language, or the file
+    // rewritten by a spreadsheet, and none of that makes it a different payment. The consequence
+    // worth knowing is that two rows agreeing on all four are one payment as far as this can tell.
+    const hash = await hashString(
+      [insert.transactionDate, insert.description, insert.amount, insert.currency].join('|')
+    );
+
+    if (alreadyHeld.has(hash)) {
+      duplicates += 1;
+      continue;
+    }
+
+    if (seenInFile.has(hash)) {
+      repeatedInFile += 1;
+      continue;
+    }
+
+    seenInFile.add(hash);
+
+    // Written out field by field rather than spread, because a plan carries one thing a record must
+    // not: `row` says where in the file this came from, which stops meaning anything the moment the
+    // file is closed.
+    const transaction: DBTransaction = {
+      // The id the file states is kept, which is what makes an old export a restore rather than a
+      // second copy of everything in it. Minted only for a row somebody typed themselves.
+      id: insert.id ?? uuidv4(),
+      createdAt: new Date(),
+      sourceBank: SHEET_ID,
+      hash,
+      transactionDate: insert.transactionDate,
+      description: insert.description,
+      amount: insert.amount,
+      currency: insert.currency,
+      tagId: insert.tagId,
+      goalId: insert.goalId,
+      expenseId: insert.expenseId,
+      strategyPart: insert.strategyPart,
+    };
+
+    try {
+      await documentSession.put('transactions', transaction);
+      stored.push(transaction);
+    } catch (e) {
+      console.error(e);
+      notStored += 1;
+    }
+  }
+
+  let updated = 0;
+
+  for (const update of plan.updates) {
+    try {
+      await documentSession.update('transactions', update.id, {
+        ...update.changes,
+        updatedAt: new Date(),
+      });
+      updated += 1;
+    } catch (e) {
+      console.error(e);
+      notStored += 1;
+    }
+  }
+
+  let deleted = 0;
+
+  for (const deletion of plan.deletions) {
+    try {
+      await documentSession.remove('transactions', deletion.id);
+      deleted += 1;
+    } catch (e) {
+      console.error(e);
+      notStored += 1;
+    }
+  }
+
+  // The same settling the drawer does, for the same reason: filing a payment against a cost is what
+  // ticks that cost's duty off, and a sheet that assigned four hundred of them while leaving every
+  // duty open would be a second way of doing the same thing that does not do the same thing.
+  const expenseIds = new Set(
+    [...plan.inserts, ...plan.updates.map((update) => update.changes)]
+      .map((fields) => fields.expenseId)
+      .filter((id): id is string => !!id)
+  );
+  const goalIds = new Set(
+    [...plan.inserts, ...plan.updates.map((update) => update.changes)]
+      .map((fields) => fields.goalId)
+      .filter((id): id is string => !!id)
+  );
+
+  for (const expenseId of expenseIds) await resolveDutiesForExpense(expenseId);
+  for (const goalId of goalIds) await resolveContributionsForGoal(goalId);
+
+  if (stored.length || updated || deleted) {
+    await setLastUpdated();
+    outbox.markDirty();
+  }
+
+  toast(i18n.t(notStored ? 'errors.upload-transaction' : 'success.upload-transaction'));
+
+  return reportOf({
+    imported: stored.length,
+    // What re-importing an untouched export produces: every row named a record we hold and asked
+    // for nothing. Stated plainly rather than as a problem — it is the file working as intended.
+    duplicates: duplicates + plan.unchanged,
+    repeatedInFile,
+    unreadable: [],
+    notStored,
+    updated,
+    deleted,
+    refused: plan.refusals,
+    rows: rows.length,
+    storedDates: stored.map((transaction) => transaction.transactionDate),
+  });
 };
